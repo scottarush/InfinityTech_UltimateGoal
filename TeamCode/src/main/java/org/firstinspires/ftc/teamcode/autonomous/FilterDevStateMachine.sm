@@ -1,0 +1,54 @@
+%class AutonomousController
+%package org.firstinspires.ftc.teamcode.guidance.devstatemachines
+// http://smc.sourceforge.net/
+%start FilterDevStateMachine::Idle
+
+%map FilterDevStateMachine
+%%
+    Idle
+    {
+        evStartDoSquare jump(DoSquare::Start) { }
+    }
+%%
+
+    // StateMachine for Square sequence
+%map DoSquare
+%%
+    /*
+    * drives forward close enough to be able to locate a Skystone with the camera
+    */
+    Start
+        Entry {
+             // will automatically trigger evNoStoneFound
+ //           linearDriveSlow(28d);
+        }
+    {
+        evDriveComplete FirstTurn { }
+    }
+
+    FirstTurn
+        Entry{
+            // Make the turn
+         }
+    {
+        evDriveComplete SecondSideDrive {}
+    }
+
+    SecondSideDrive
+        Entry{
+ //           linearDriveSlow(8d);
+        }
+    {
+        evDriveComplete nil {}
+    }
+   /*
+    * Final state
+    */
+    Complete
+        Entry{
+            stop();
+        }
+    {
+
+    }
+%%

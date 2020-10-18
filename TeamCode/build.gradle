@@ -17,7 +17,9 @@ apply from: '../build.common.gradle'
 repositories {
     maven { url = "https://dl.bintray.com/first-tech-challenge/ftcsdk/" }
 }
-
+dependencies{
+    implementation files('lib/libejml.jar')
+}
 dependencies {
     annotationProcessor files('lib/OpModeAnnotationProcessor.jar')
 }
