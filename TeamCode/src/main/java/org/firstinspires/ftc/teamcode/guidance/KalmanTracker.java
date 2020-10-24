@@ -44,29 +44,35 @@ public class KalmanTracker {
 
     public static class KalmanParameters {
         // T sampling interval in seconds
-        double T = 0.050d;
+        public double T = 0.050d;
         // px0 x coordinate of robot initial position in meters
-        double PX0 = 0d;
+        public double PX0 = 0d;
         //  py0 y coordinate of robot initial position in meters
-        double PY0 = 0d;
+        public double PY0 = 0d;
         //  theta0 initial heading in radians where 0=judge side, PI/2=right side, PI=audience side, 3PI/2=left side
-        double THETA0 = 0d;
+        public double THETA0 = 0d;
         //  lx  Lateral distance from wheel axle to imu center in meters
-        double LX = 0.5d;
+        public double LX = 0.5d;
         //  ly Lateral distance from wheel axle to imu center in meters
-        double LY = 0.5d;
+        public double LY = 0.5d;
         //  r radius of wheel in meters
-        double WHEEL_RADIUS = 0.098d;
+        public double WHEEL_RADIUS = 0.098d;
         // Initial P covariance values
-        double SIGMA_POSITION = 0.1;
-        double VAR_POSITION = Math.pow(SIGMA_POSITION,2.0d);
-        double SIGMA_VELOCITY = 0.1;
-        double VAR_VELOCITY = Math.pow(SIGMA_VELOCITY,2.0d);
-        double SIGMA_W = 0.1;
-        double VAR_W = Math.pow(SIGMA_W,2.0d);
-        double SIGMA_THETA = 0.1;
-        double VAR_THETA = Math.pow(SIGMA_THETA,2.0d);
+        public double SIGMA_POSITION = 0.1;
+        public double VAR_POSITION = Math.pow(SIGMA_POSITION,2.0d);
+        public double SIGMA_VELOCITY = 0.1;
+        public double VAR_VELOCITY = Math.pow(SIGMA_VELOCITY,2.0d);
+        public double SIGMA_W = 0.1;
+        public double VAR_W = Math.pow(SIGMA_W,2.0d);
+        public double SIGMA_THETA = 0.1;
+        public double VAR_THETA = Math.pow(SIGMA_THETA,2.0d);
     }
+
+    // last calculated vx
+    private double mVx = 0d;
+    // last calculated vy
+    private double mVy = 0d;
+
     /**
      * Initializes the Kalman filter
      */
@@ -143,21 +149,21 @@ public class KalmanTracker {
      * @param w_rr angular velocity of RR wheel in radians/sec
       * @param theta_imu z coordinate of imu measured orientation in radians
      */
-    public void updateMeasurement(double w_lf,
-                                  double w_lr,
-                                  double w_rf,
-                                  double w_rr,
-                                  double theta_imu) {
+    public void updateMecanumMeasurement(double w_lf,
+                                         double w_lr,
+                                         double w_rf,
+                                         double w_rr,
+                                         double theta_imu) {
         // Compute the robot velocity from the wheel velocities
         double rover4 = mKalmanParameters.WHEEL_RADIUS/4.0d;
-        double vx = rover4*(w_lf+w_rf-w_lr-w_rr);
-        double vy = rover4*(w_lf+w_rf+w_lr+w_rr);
+        mVx = rover4*(w_lf-w_rf-w_lr+w_rr);
+        mVy = rover4*(w_lf+w_rf+w_lr+w_rr);
         double wzw = rover4*(-w_lf+w_rf-w_lr+w_rr)/(mKalmanParameters.LX+mKalmanParameters.LY);
 
         // Have to negate the wzw and wz_imu because we want to use left-handed orientation angles
         // instead of the right-handed angles produced by the measurements
 
-        DMatrixRMaj z = new DMatrixRMaj(new double[][] {{vx},{vy},{-wzw},{-theta_imu}});
+        DMatrixRMaj z = new DMatrixRMaj(new double[][] {{mVx},{mVy},{-wzw},{-theta_imu}});
 
         // Do Kalman predict step
         mFilter.predict();
@@ -177,6 +183,18 @@ public class KalmanTracker {
         return mFilter.getState().get(XHAT_PY_INDEX);
     }
 
+    /**
+     * returns last calculated input Vx.  Used for logging
+     */
+    public Double getVx(){
+        return mVx;
+    }
+    /**
+     * returns last calculated input Vy.  Used for logging
+     */
+    public Double getVy(){
+        return mVy;
+    }
     /**
      *
      * @return Estimated heading from 0 to 2*PI in radians.  Note that this is a left-handed angle

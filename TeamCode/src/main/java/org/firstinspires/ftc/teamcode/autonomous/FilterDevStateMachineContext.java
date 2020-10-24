@@ -34,18 +34,26 @@ public class FilterDevStateMachineContext
         return;
     }
 
-    public void evDriveComplete()
+    public void evMoveComplete()
     {
-        _transition = "evDriveComplete";
-        getState().evDriveComplete(this);
+        _transition = "evMoveComplete";
+        getState().evMoveComplete(this);
         _transition = "";
         return;
     }
 
-    public void evStartDoSquare()
+    public void evRotationComplete()
     {
-        _transition = "evStartDoSquare";
-        getState().evStartDoSquare(this);
+        _transition = "evRotationComplete";
+        getState().evRotationComplete(this);
+        _transition = "";
+        return;
+    }
+
+    public void evStartDemo()
+    {
+        _transition = "evStartDemo";
+        getState().evStartDemo(this);
         _transition = "";
         return;
     }
@@ -114,12 +122,17 @@ public class FilterDevStateMachineContext
         protected void entry(FilterDevStateMachineContext context) {}
         protected void exit(FilterDevStateMachineContext context) {}
 
-        protected void evDriveComplete(FilterDevStateMachineContext context)
+        protected void evMoveComplete(FilterDevStateMachineContext context)
         {
             Default(context);
         }
 
-        protected void evStartDoSquare(FilterDevStateMachineContext context)
+        protected void evRotationComplete(FilterDevStateMachineContext context)
+        {
+            Default(context);
+        }
+
+        protected void evStartDemo(FilterDevStateMachineContext context)
         {
             Default(context);
         }
@@ -199,11 +212,11 @@ public class FilterDevStateMachineContext
         }
 
         @Override
-        protected void evStartDoSquare(FilterDevStateMachineContext context)
+        protected void evStartDemo(FilterDevStateMachineContext context)
         {
 
             (context.getState()).exit(context);
-            context.setState(DoSquare.Start);
+            context.setState(DoDemo.Start);
             (context.getState()).entry(context);
             return;
         }
@@ -219,7 +232,7 @@ public class FilterDevStateMachineContext
         private static final long serialVersionUID = 1L;
     }
 
-    /* package */ static abstract class DoSquare
+    /* package */ static abstract class DoDemo
     {
     //-----------------------------------------------------------
     // Member methods.
@@ -233,24 +246,26 @@ public class FilterDevStateMachineContext
         // Constants.
         //
 
-        public static final DoSquare_Start Start =
-            new DoSquare_Start("DoSquare.Start", 1);
-        public static final DoSquare_FirstTurn FirstTurn =
-            new DoSquare_FirstTurn("DoSquare.FirstTurn", 2);
-        public static final DoSquare_SecondSideDrive SecondSideDrive =
-            new DoSquare_SecondSideDrive("DoSquare.SecondSideDrive", 3);
-        public static final DoSquare_Complete Complete =
-            new DoSquare_Complete("DoSquare.Complete", 4);
+        public static final DoDemo_Start Start =
+            new DoDemo_Start("DoDemo.Start", 1);
+        public static final DoDemo_Drive Drive =
+            new DoDemo_Drive("DoDemo.Drive", 2);
+        public static final DoDemo_RotateBack RotateBack =
+            new DoDemo_RotateBack("DoDemo.RotateBack", 3);
+        public static final DoDemo_StrafeBack StrafeBack =
+            new DoDemo_StrafeBack("DoDemo.StrafeBack", 4);
+        public static final DoDemo_Complete Complete =
+            new DoDemo_Complete("DoDemo.Complete", 5);
     }
 
-    protected static class DoSquare_Default
+    protected static class DoDemo_Default
         extends AutonomousControllerState
     {
     //-----------------------------------------------------------
     // Member methods.
     //
 
-        protected DoSquare_Default(String name, int id)
+        protected DoDemo_Default(String name, int id)
         {
             super (name, id);
         }
@@ -266,24 +281,33 @@ public class FilterDevStateMachineContext
         private static final long serialVersionUID = 1L;
     }
 
-    private static final class DoSquare_Start
-        extends DoSquare_Default
+    private static final class DoDemo_Start
+        extends DoDemo_Default
     {
     //-------------------------------------------------------
     // Member methods.
     //
 
-        private DoSquare_Start(String name, int id)
+        private DoDemo_Start(String name, int id)
         {
             super (name, id);
         }
 
         @Override
-        protected void evDriveComplete(FilterDevStateMachineContext context)
+        protected void entry(FilterDevStateMachineContext context)
+            {
+                AutonomousController ctxt = context.getOwner();
+
+            ctxt.rotateToHeading(90);
+            return;
+        }
+
+        @Override
+        protected void evRotationComplete(FilterDevStateMachineContext context)
         {
 
             (context.getState()).exit(context);
-            context.setState(DoSquare.FirstTurn);
+            context.setState(DoDemo.Drive);
             (context.getState()).entry(context);
             return;
         }
@@ -299,24 +323,33 @@ public class FilterDevStateMachineContext
         private static final long serialVersionUID = 1L;
     }
 
-    private static final class DoSquare_FirstTurn
-        extends DoSquare_Default
+    private static final class DoDemo_Drive
+        extends DoDemo_Default
     {
     //-------------------------------------------------------
     // Member methods.
     //
 
-        private DoSquare_FirstTurn(String name, int id)
+        private DoDemo_Drive(String name, int id)
         {
             super (name, id);
         }
 
         @Override
-        protected void evDriveComplete(FilterDevStateMachineContext context)
+        protected void entry(FilterDevStateMachineContext context)
+            {
+                AutonomousController ctxt = context.getOwner();
+
+            ctxt.moveStraight(24d);
+            return;
+        }
+
+        @Override
+        protected void evMoveComplete(FilterDevStateMachineContext context)
         {
 
             (context.getState()).exit(context);
-            context.setState(DoSquare.SecondSideDrive);
+            context.setState(DoDemo.RotateBack);
             (context.getState()).entry(context);
             return;
         }
@@ -332,22 +365,34 @@ public class FilterDevStateMachineContext
         private static final long serialVersionUID = 1L;
     }
 
-    private static final class DoSquare_SecondSideDrive
-        extends DoSquare_Default
+    private static final class DoDemo_RotateBack
+        extends DoDemo_Default
     {
     //-------------------------------------------------------
     // Member methods.
     //
 
-        private DoSquare_SecondSideDrive(String name, int id)
+        private DoDemo_RotateBack(String name, int id)
         {
             super (name, id);
         }
 
         @Override
-        protected void evDriveComplete(FilterDevStateMachineContext context)
+        protected void entry(FilterDevStateMachineContext context)
+            {
+                AutonomousController ctxt = context.getOwner();
+
+            ctxt.rotateToHeading(0);
+            return;
+        }
+
+        @Override
+        protected void evRotationComplete(FilterDevStateMachineContext context)
         {
 
+            (context.getState()).exit(context);
+            context.setState(DoDemo.StrafeBack);
+            (context.getState()).entry(context);
             return;
         }
 
@@ -362,14 +407,56 @@ public class FilterDevStateMachineContext
         private static final long serialVersionUID = 1L;
     }
 
-    private static final class DoSquare_Complete
-        extends DoSquare_Default
+    private static final class DoDemo_StrafeBack
+        extends DoDemo_Default
     {
     //-------------------------------------------------------
     // Member methods.
     //
 
-        private DoSquare_Complete(String name, int id)
+        private DoDemo_StrafeBack(String name, int id)
+        {
+            super (name, id);
+        }
+
+        @Override
+        protected void entry(FilterDevStateMachineContext context)
+            {
+                AutonomousController ctxt = context.getOwner();
+
+            ctxt.strafe(-24d);
+            return;
+        }
+
+        @Override
+        protected void evMoveComplete(FilterDevStateMachineContext context)
+        {
+
+            (context.getState()).exit(context);
+            context.setState(DoDemo.Complete);
+            (context.getState()).entry(context);
+            return;
+        }
+
+    //-------------------------------------------------------
+    // Member data.
+    //
+
+        //---------------------------------------------------
+        // Constants.
+        //
+
+        private static final long serialVersionUID = 1L;
+    }
+
+    private static final class DoDemo_Complete
+        extends DoDemo_Default
+    {
+    //-------------------------------------------------------
+    // Member methods.
+    //
+
+        private DoDemo_Complete(String name, int id)
         {
             super (name, id);
         }

@@ -31,17 +31,23 @@ public class GuidanceController {
     private MiniPID mPathSteeringPID = null;
     private MiniPID mPathPowerPID = null;
     private MiniPID mStraightPowerPID = null;
+    private MiniPID mStrafePowerPID = null;
 
     private double mRotationCommand = 0d;
     private double mPathSteeringCommand = 0d;
 
     private double mPowerCommand = 0d;
 
+    /** maximum power for straight and strafe modes. **/
+    private double mMaxPower = 1.0d;
     public static final int STOPPED = 0;
     public static final int ROTATION_MODE = 1;
     public static final int PATH_MODE = 2;
     public static final int STRAIGHT_MODE = 3;
+    public static final int STRAFE_MODE = 4;
     private int mMode = STOPPED;
+
+    public static final double MAX_STRAFE_HEADING_ERROR = Math.PI/180;
 
     private double mTargetHeading = 0d;
 
@@ -54,12 +60,6 @@ public class GuidanceController {
     private Point mPathLineEnd = null;
 
     private Point mTargetPoint = null;
-    /** Direction for straight mode.  true = forward, false = backward. **/
-    private boolean mStraightModeDirection = false;
-    /**
-     * maximum power for current straight mode maneuver.
-     */
-    private double mMaxStraightModePower = 1.0d;
 
     private ArrayList<IGuidanceControllerCommandListener> mCommandListeners = new ArrayList<>();
     private ArrayList<IGuidanceControllerStatusListener> mStatusListeners = new ArrayList<>();
@@ -70,15 +70,12 @@ public class GuidanceController {
         /**
          * Minimum angle threshold for rotation mode to complete
          */
-        public double rotationModeStopAngleError = 3d*Math.PI/180;
-        /**
-         * Angular velocity threshold to stop in radians per sec.
-         */
-        public double rotationModeStopAngularVelocityThreshold = 10.0d*Math.PI/180;
+        public double rotationModeStopAngleError = Math.PI/180;
+
         public double rotationModePropGain = 0.5d;
         public double rotationModeIntegGain = 0d;
-        public double rotationModeMaxIntegGain = 0.2d;
-        public double rotationModeDerivGain = 0d;
+        public double rotationModeMaxIntegGain = 0.3d;
+        public double rotationModeDerivGain = 0.8d;
 
         /**
          * Maximum angle to target to be able to enter path mode.
@@ -100,8 +97,8 @@ public class GuidanceController {
         public double straightModePowerMaxIntegOutput = 0.8d;
         public double straightModePowerDerivGain = 0d;
 
-        public double strafeModePowerPropGain = 0.2d;
-        public double strafeModePowerIntegGain = 0.2d;
+        public double strafeModePowerPropGain = 0.1d;
+        public double strafeModePowerIntegGain = 0.3d;
         public double strafeModePowerMaxIntegOutput = 0.8d;
         public double strafeModePowerDerivGain = 0d;
     }
@@ -126,6 +123,10 @@ public class GuidanceController {
         mStraightPowerPID = new MiniPID(mGCParameters.straightModePowerPropGain,mGCParameters.straightModePowerIntegGain,mGCParameters.straightModePowerDerivGain);
         mStraightPowerPID.setMaxIOutput(mGCParameters.straightModePowerMaxIntegOutput);
         mStraightPowerPID.setOutputLimits(0d,1.0d);
+
+        mStrafePowerPID = new MiniPID(mGCParameters.strafeModePowerPropGain,mGCParameters.strafeModePowerIntegGain,mGCParameters.strafeModePowerDerivGain);
+        mStrafePowerPID.setMaxIOutput(mGCParameters.strafeModePowerMaxIntegOutput);
+        mStrafePowerPID.setOutputLimits(0d,1.0d);
 
         if (ENABLE_LOGGING){
             mLogFile = new LogFile("/sdcard","gclog.csv",LOG_COLUMNS);
@@ -193,15 +194,9 @@ public class GuidanceController {
      **/
     public void moveStraight(double distance,double maxPower){
         mMode = STRAIGHT_MODE;
-        mMaxStraightModePower = maxPower;
-        if (distance >= 0d){
-            // forward
-            mStraightModeDirection = true;
-        }
-        else{
-            // backward
-            mStraightModeDirection = false;
-        }
+        mMaxPower = maxPower;
+        mStraightPowerPID.setOutputLimits(0d,maxPower);
+
         // Compute the target point
         double px = mKalmanTracker.getEstimatedXPosition() + Math.sin(mKalmanTracker.getEstimatedHeading())*distance;
         double py = mKalmanTracker.getEstimatedYPosition() + Math.cos(mKalmanTracker.getEstimatedHeading())*distance;
@@ -209,8 +204,38 @@ public class GuidanceController {
         // Clear all commands in case robot was moving
         clearAllCommands();
         mStraightPowerPID.reset();
-        mStraightPowerPID.setOutputLimits(-maxPower,maxPower);
     }
+    /**
+     * Strafes the robot left (negative distance) or right (positive distance).
+     * Listeners are notified on completion via the IGuidanceControllerStatusListener interface.
+     * @param distance distance to strafe in meters + for right, - for left
+     * @param maxPower maximum power from 0d to 1.0d
+     **/
+    public void strafe(double distance,double maxPower){
+        mMode = STRAFE_MODE;
+        mMaxPower = maxPower;
+        mStrafePowerPID.setOutputLimits(0d,maxPower);
+
+        // Compute the heading angle to strafe base on left or right
+        double strafeHeading = mKalmanTracker.getEstimatedHeading();
+        if (distance >= 0d) {
+            strafeHeading += Math.PI / 2;
+        }
+        else{
+            strafeHeading -= Math.PI / 2;
+        }
+        // Now compute the target point using the strafe heading
+        double px = mKalmanTracker.getEstimatedXPosition() + Math.sin(strafeHeading)*distance;
+        double py = mKalmanTracker.getEstimatedYPosition() + Math.cos(strafeHeading)*distance;
+        mTargetPoint = new Point(px,py);
+        // Save target heading to be able to correct at end if need be.
+        mTargetHeading = mKalmanTracker.getEstimatedHeading();
+        // Clear all commands in case robot was moving
+        clearAllCommands();
+        mStrafePowerPID.reset();
+        mRotationModePID.reset();
+    }
+
 
     /**
      * Does a rotation maneuver The rotation will be completed and notified to listeners via the
@@ -323,6 +348,8 @@ public class GuidanceController {
                 break;
             case STRAIGHT_MODE:
                 updateStraightMode();
+            case STRAFE_MODE:
+                updateStrafeMode();
             case STOPPED:
                 break;
         }
@@ -334,17 +361,15 @@ public class GuidanceController {
         // Compute current heading to target error threshold to decide if we need to stop
         double error = mKalmanTracker.getEstimatedHeading()-mTargetHeading;
         if (Math.abs(error) <= mGCParameters.rotationModeStopAngleError){
-            // Now check if the angular velocity has slowed enough to stop
-            if (Math.abs(mKalmanTracker.getEstimatedAngularVelocity()) <= mGCParameters.rotationModeStopAngularVelocityThreshold) {
-                mMode = STOPPED;
-                // Notify command listeners to stop the rotation command
-                for (Iterator<IGuidanceControllerCommandListener> iter = mCommandListeners.iterator(); iter.hasNext(); ) {
-                    IGuidanceControllerCommandListener listener = iter.next();
-                    listener.setRotationCommand(0d);
-                }
-                // And status listeners that the maneuver is complete
-                notifyRotationComplete();
-             }
+            mMode = STOPPED;
+            mRotationCommand = 0d;
+            // Notify command listeners to stop the rotation command
+            for (Iterator<IGuidanceControllerCommandListener> iter = mCommandListeners.iterator(); iter.hasNext(); ) {
+                IGuidanceControllerCommandListener listener = iter.next();
+                listener.setRotationCommand(0d);
+            }
+            // And status listeners that the maneuver is complete
+            notifyRotationComplete();
             return;
         }
         // Otherwise, drop through to compute regular rotation command
@@ -468,10 +493,6 @@ public class GuidanceController {
         else {
             // Not yet at the target control the power based on the distance to the target's y coordinate
             mPowerCommand = mStraightPowerPID.getOutput(rotRobotPos.y,rotatedTarget.y);
-//            // Reverse the sign of the command if going backward
-//            if (!mStraightModeDirection){
-//                mPowerCommand = Math.signum(mPowerCommand) * mPowerCommand;
-//            }
         }
 
         for(Iterator<IGuidanceControllerCommandListener> iter = mCommandListeners.iterator(); iter.hasNext();){
@@ -482,13 +503,62 @@ public class GuidanceController {
             // notify that the command is complete
             for(Iterator<IGuidanceControllerStatusListener> iter = mStatusListeners.iterator(); iter.hasNext();){
                 IGuidanceControllerStatusListener listener = iter.next();
-                listener.moveStraightComplete();
+                listener.moveComplete();
             }
         }
-
     }
 
-     /**
+    /**
+     * updates the strafe mode PID
+     */
+    private void updateStrafeMode(){
+        double theta = mKalmanTracker.getEstimatedHeading();
+        // To simplify processing, first rotate the coordinates of both robot and target by the heading.
+        // Rotated coordinates will then point straight up and only the x coordinate needs to be checked
+        // to determine when we have reached the target.
+        Point robotPos = new Point(mKalmanTracker.getEstimatedXPosition(),mKalmanTracker.getEstimatedYPosition());
+        Point rotRobotPos = robotPos.rotate(theta);
+        Point rotatedTarget = mTargetPoint.rotate(theta);
+
+        //  check if we have passed the strafe target.  Only need to check the x coordinate
+        boolean stop = false;
+        if (rotatedTarget.x < 0){
+            if (rotRobotPos.x <= rotatedTarget.x){
+                stop = true;
+            }
+        }
+        else{
+            if (rotRobotPos.x >= rotatedTarget.x){
+                stop = true;
+            }
+        }
+        if (stop){
+            mPowerCommand = 0d;
+            mRotationCommand = 0d;
+            mMode = STOPPED;
+        }
+        else {
+            // Not yet at the target control
+            // the power based on the distance to the target's x coordinate
+            mPowerCommand = mStrafePowerPID.getOutput(rotRobotPos.x,rotatedTarget.x);
+            // and compute a rotation command as an offset for any deviation from heading.
+            mRotationCommand = mRotationModePID.getOutput(mKalmanTracker.getEstimatedHeading(),mTargetHeading);
+        }
+
+        for(Iterator<IGuidanceControllerCommandListener> iter = mCommandListeners.iterator(); iter.hasNext();){
+            IGuidanceControllerCommandListener listener = iter.next();
+            listener.setStrafeCommand(mPowerCommand,mRotationCommand);
+        }
+        if (mMode == STOPPED){
+            // notify that the command is complete
+            for(Iterator<IGuidanceControllerStatusListener> iter = mStatusListeners.iterator(); iter.hasNext();){
+                IGuidanceControllerStatusListener listener = iter.next();
+                listener.moveComplete();
+            }
+        }
+    }
+
+    /**
      * returns the rotation command  for logging
      */
     public double getRotationCommand(){
@@ -517,6 +587,8 @@ public class GuidanceController {
                 return "PATH";
             case STRAIGHT_MODE:
                 return "STRAIGHT";
+            case STRAFE_MODE:
+                return "STRAFE";
             case STOPPED:
                 return "STOPPED";
             default:

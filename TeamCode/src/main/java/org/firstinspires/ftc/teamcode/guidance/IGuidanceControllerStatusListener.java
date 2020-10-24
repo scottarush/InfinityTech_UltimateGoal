@@ -13,8 +13,8 @@ public interface IGuidanceControllerStatusListener {
     void pathFollowComplete();
 
     /**
-     * Called when a straight mode maneuver is complete
+     * Called when a straight or strafe mode maneuver is complete
      */
-    void moveStraightComplete();
+    void moveComplete();
 
 }

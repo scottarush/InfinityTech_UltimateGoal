@@ -42,10 +42,6 @@ public class AutonomousController implements IGuidanceControllerStatusListener {
 
      private BaseSpeedBot mSpeedBot = null;
 
-    /**
-     * Common reference used for the MecanumDrive on either bot
-     */
-    private BaseMecanumDrive mMecanumDrive = null;
     private GuidanceController mGuidanceController;
 
     private ArrayList<OneShotTimer> mStateTimers = new ArrayList<>();
@@ -84,7 +80,6 @@ public class AutonomousController implements IGuidanceControllerStatusListener {
         mGuidanceController = guidanceController;
         mSpeedBot = speedBot;
 
-        mMecanumDrive = speedBot.getDrivetrain();
         mGuidanceController.addGuidanceControllerStatusListener(this);
         // Add timers to be checked
         mStateTimers.add(mTimer);
@@ -131,8 +126,8 @@ public class AutonomousController implements IGuidanceControllerStatusListener {
     }
 
     @Override
-    public void moveStraightComplete() {
-        transition("evMoveStraightComplete");
+    public void moveComplete() {
+        transition("evMoveComplete");
     }
 
     /**
@@ -141,7 +136,7 @@ public class AutonomousController implements IGuidanceControllerStatusListener {
      * will be triggered
      * @param angle rotation in degrees with positive angles to the right
      */
-    public void doRotation(int angle){
+    public void rotateToHeading(int angle){
         // Convert angle to floating point radians
         double radianAngle = (double)angle * Math.PI/180d;
         mGuidanceController.rotateToHeading(radianAngle);
@@ -157,28 +152,28 @@ public class AutonomousController implements IGuidanceControllerStatusListener {
         mGuidanceController.rotateToTarget(targetx,targety);
         mRotationTimeoutTimer.start();
     }
-    /**
-     * called from state machine to determine if heading is OK for path follow
-     * @param px x coordinate of target point
-     * @param py y coordinate of target point
-     */
-    public boolean isPathFollowValid(double px,double py){
-        return mGuidanceController.isPathFollowValid(px,py);
-    }
-    /**
-     * called from state machine to start a path follow using the guidance controller.
-     * This function assumes that isPathFollowValid has first been called to make
-     * @param targetx x coordinate of target point
-     * @param targety y coordinate of target point
-     */
-    public void doPathFollow(double targetx,double targety){
-        mGuidanceController.followPath(targetx,targety);
-    }
 
     /**
-     * helper method to build the transition table so that we can trigger events from
-     * within state machine handlers.
+     * called from state machine to drive forward or rearward
+     * @param distance in inches + for forward, - for rearward
      */
+    public void moveStraight(double distance){
+        double meters = distance / 39.37d;
+        mGuidanceController.moveStraight(meters,1.0d);
+    }
+    /**
+     * Strafes the robot left (negative distance) or right (positive distance).
+     * Listeners are notified on completion via the IGuidanceControllerStatusListener interface.
+     * @param distance distance to strafe in inches + for right, - for left
+     **/
+    public void strafe(double distance) {
+        double meters = distance / 39.37d;
+        mGuidanceController.strafe(meters,1.0d);
+    }
+        /**
+         * helper method to build the transition table so that we can trigger events from
+         * within state machine handlers.
+         */
     private void buildTransitionTable(){
         // Initialize the transition table for use in queueing events
         mTransition_map = new HashMap<>();
@@ -261,24 +256,19 @@ public class AutonomousController implements IGuidanceControllerStatusListener {
         }
         // Start event depends upon the selected sequence
         if (triggerStart){
-            transition("");
-          }
+            transition("evStartDemo");
+        }
 
         // Service all the timers in order to trigger any timeout callbacks/events
         serviceTimers();
-        // Call loop method on drivetrain to support drive and rotation controls
-        mMecanumDrive.loop();
-    }
+     }
 
 
      /**
      * Called from state machine to stop the robot
      */
     public void stop(){
-        mMecanumDrive.stop();
-        if (mSpeedBot instanceof CraneSpeedBot) {
-            ((CraneSpeedBot) mSpeedBot).getCrane().stop();
-        }
+        mSpeedBot.getDrivetrain().stop();
     }
 
     /**

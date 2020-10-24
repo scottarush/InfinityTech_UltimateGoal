@@ -31,6 +31,7 @@ package org.firstinspires.ftc.teamcode.drivetrain;
 
 import com.qualcomm.robotcore.eventloop.opmode.OpMode;
 import com.qualcomm.robotcore.hardware.DcMotor;
+import com.qualcomm.robotcore.hardware.HardwareMap;
 
 import org.firstinspires.ftc.teamcode.guidance.IGuidanceControllerCommandListener;
 import org.firstinspires.ftc.teamcode.util.LogFile;
@@ -189,6 +190,7 @@ public abstract class BaseMecanumDrive extends Drivetrain implements IGuidanceCo
      * Sets a straight command to the motors either forward or backward
      * @param power -1.0..1.0 backward to forward
      */
+    @Override
     public void setStraightCommand(double power){
         double motorPower[] = new double[4];
 
@@ -200,6 +202,21 @@ public abstract class BaseMecanumDrive extends Drivetrain implements IGuidanceCo
         for(int i=0;i < mMotorList.size();i++){
             mMotorList.get(i).setPower(motorPower[i]);
         }
+    }
+
+    @Override
+    public void setStrafeCommand(double power,double rotateCorrection) {
+        double motorPower[] = new double[4];
+
+        power = limitUnity(power);
+        motorPower[0] = power+rotateCorrection;
+        motorPower[1] = -power-rotateCorrection;
+        motorPower[2] = -power+rotateCorrection;
+        motorPower[3] = power-rotateCorrection;
+        for(int i=0;i < mMotorList.size();i++){
+            mMotorList.get(i).setPower(motorPower[i]);
+        }
+
     }
 
     /**
@@ -229,6 +246,7 @@ public abstract class BaseMecanumDrive extends Drivetrain implements IGuidanceCo
      * @param rotation 0 = stop, >0..+1.0 turn to right
      *                 >0..-1.0 turn to left
      */
+    @Override
     public void setRotationCommand(double rotation){
         double motorPower[] = new double[4];
         // Do a rotation scaled by the steering command

@@ -19,7 +19,7 @@ public class FilterDevelopmentOpMode extends OpMode{
 
     public static final boolean LOGGING_ENABLED = true;
     public static final String LOG_FILENAME = "kflog.csv";
-    public static final String[] LOG_COLUMNS = {"time", "w_lf", "w_rf", "w_lr", "w_rr", "theta_imu",
+    public static final String[] LOG_COLUMNS = {"time", "w_lf", "w_rf", "w_lr", "w_rr", "vx","vy","theta_imu",
             "kf_px", "kf_py", "kf_wz", "kf_heading",
             "mode","rot_cmd", "steering_cmd","cmd_pwr"};
     private LogFile mLogFile;
@@ -85,7 +85,6 @@ public class FilterDevelopmentOpMode extends OpMode{
 
         // Create the state machine controller
         mAutonomousController = new AutonomousController(this,mGuidanceController,mSpeedBot);
-
         // open the log file if enabled
         if (LOGGING_ENABLED) {
             mLogFile = new LogFile(LOG_PATHNAME, LOG_FILENAME, LOG_COLUMNS);
@@ -111,8 +110,8 @@ public class FilterDevelopmentOpMode extends OpMode{
         mElapsedTimeNS = 0;
         mStartTimeNS = mLastSystemTimeNS;
 
-        mGuidanceController.moveStraight(-1.0d,1.0d);
-
+  //     mGuidanceController.strafe(24.0d/39.37d,1.0d);
+   //     mGuidanceController.rotateToHeading(45*Math.PI/180);
         super.start();
     }
 
@@ -143,8 +142,8 @@ public class FilterDevelopmentOpMode extends OpMode{
             // Service the autononomous controller
             mAutonomousController.loop();
 
-            telemetry.addData("KF Data","heading=%5.2f px=%4.1f py=%4.1f",mKalmanTracker.getEstimatedHeading()*180d/Math.PI,mKalmanTracker.getEstimatedXPosition(),mKalmanTracker.getEstimatedYPosition());
-            telemetry.update();
+  //          telemetry.addData("KF Data","heading=%5.2f px=%4.1f py=%4.1f",mKalmanTracker.getEstimatedHeading()*180d/Math.PI,mKalmanTracker.getEstimatedXPosition(),mKalmanTracker.getEstimatedYPosition());
+    //        telemetry.update();
             // Log a record of data if enabled
             if (LOGGING_ENABLED) {
                 logData();
@@ -163,6 +162,8 @@ public class FilterDevelopmentOpMode extends OpMode{
         for(int i=0;i < speeds.length;i++){
             logRecord[logIndex++] = String.format("%4.2f",speeds[i]);
         }
+        logRecord[logIndex++] = String.format("%4.2f",mKalmanTracker.getVx());
+        logRecord[logIndex++] = String.format("%4.2f",mKalmanTracker.getVy());
 
         // IMU data
         double theta_imu = mIMUOrientation.firstAngle + mKalmanParameters.THETA0;
@@ -192,7 +193,7 @@ public class FilterDevelopmentOpMode extends OpMode{
         mIMUOrientation = mSpeedBot.getIMU().getAngularOrientation(AxesReference.INTRINSIC, AxesOrder.ZYX, AngleUnit.RADIANS);
         double theta_imu = mIMUOrientation.firstAngle + mKalmanParameters.THETA0;
         // Update the tracker.
-        mKalmanTracker.updateMeasurement(wheelSpeeds[BaseMecanumDrive.LF_WHEEL_ARRAY_INDEX],
+        mKalmanTracker.updateMecanumMeasurement(wheelSpeeds[BaseMecanumDrive.LF_WHEEL_ARRAY_INDEX],
                 wheelSpeeds[BaseMecanumDrive.LR_WHEEL_ARRAY_INDEX],
                 wheelSpeeds[BaseMecanumDrive.RF_WHEEL_ARRAY_INDEX],
                 wheelSpeeds[BaseMecanumDrive.RR_WHEEL_ARRAY_INDEX],
