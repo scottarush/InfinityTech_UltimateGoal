@@ -17,7 +17,7 @@ import org.firstinspires.ftc.teamcode.util.LogFile;
 public class FilterDevelopmentOpMode extends OpMode{
     public static final String LOG_PATHNAME = "/sdcard";
 
-    public static final boolean LOGGING_ENABLED = false;
+    public static final boolean LOGGING_ENABLED = true;
     public static final String LOG_FILENAME = "kflog.csv";
     public static final String[] LOG_COLUMNS = {"time", "w_lf", "w_rf", "w_lr", "w_rr", "theta_imu",
             "kf_px", "kf_py", "kf_wz", "kf_heading",
@@ -111,7 +111,9 @@ public class FilterDevelopmentOpMode extends OpMode{
         mElapsedTimeNS = 0;
         mStartTimeNS = mLastSystemTimeNS;
 
-         super.start();
+        mGuidanceController.moveStraight(-1.0d,1.0d);
+
+        super.start();
     }
 
     public void loop() {

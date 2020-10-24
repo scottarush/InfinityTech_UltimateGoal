@@ -13,23 +13,17 @@ public class SpeedBotMecanumDrive extends BaseMecanumDrive {
 
 
     /*
-    * With core hex motors there are 288 counts/axle rotation x 4:1 gear output ratio
+    * With core hex motors there are 288 counts/axle rotation x 1.6:1 gear output ratio
      */
     @Override
     protected int getEncoderCountsPerRev() {
-        return 288/4;
+        return (int) Math.round(ENCODER_COUNTS_PER_MOTOR_SHAFT_ROTATION/1.6d);
     }
 
     /**
      * Core hex motor from the specification
      */
     public static final int ENCODER_COUNTS_PER_MOTOR_SHAFT_ROTATION = 288;
-    /**
-     * Number of counts per inch of direct wheel movement.
-     **/
-    public static final double COUNTS_PER_INCH = ENCODER_COUNTS_PER_MOTOR_SHAFT_ROTATION /
-            (4 * MECANUM_WHEEL_CIRCUMFERENCE);
-
 
     public SpeedBotMecanumDrive(OpMode opMode){
         super(opMode);
