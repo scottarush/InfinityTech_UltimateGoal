@@ -13,9 +13,11 @@ import java.util.Iterator;
 public class GuidanceController {
 
     private MiniPID mRotationModePID = null;
+    private MiniPID mRotationSlowdownModePID = null;
     private MiniPID mPathSteeringPID = null;
     private MiniPID mPathPowerPID = null;
     private MiniPID mStraightPowerPID = null;
+    private MiniPID mStraightHeadingPID = null;
     private MiniPID mStrafePowerPID = null;
 
     private double mRotationCommand = 0d;
@@ -24,9 +26,10 @@ public class GuidanceController {
     private double mPowerCommand = 0d;
     public static final int STOPPED = 0;
     public static final int ROTATION_MODE = 1;
-    public static final int PATH_MODE = 2;
-    public static final int STRAIGHT_MODE = 3;
-    public static final int STRAFE_MODE = 4;
+    public static final int ROTATION_SLOWDOWN_MODE = 2;
+    public static final int PATH_MODE = 3;
+    public static final int STRAIGHT_MODE = 4;
+    public static final int STRAFE_MODE = 5;
     private int mMode = STOPPED;
 
     public static final double MAX_STRAFE_HEADING_ERROR = Math.PI/180;
@@ -56,11 +59,21 @@ public class GuidanceController {
          * Minimum angle threshold for rotation mode to complete
          */
         public double rotationModeStopAngleError = Math.PI/180;
+        /**
+         * Angular velocity threshold to stop in radians per sec.
+         */
+        public double rotationModeStopAngularVelocityThreshold = 30.0d*Math.PI/180;
+        public double rotationSlowdownModeEntryTime = 0.400;
 
-        public double rotationModePropGain = 0.5d;
-        public double rotationModeIntegGain = 0d;
-        public double rotationModeMaxIntegGain = 0.3d;
-        public double rotationModeDerivGain = 0.8d;
+        public double rotationModePropGain = 0.7d;
+        public double rotationModeIntegGain = 0.05d;
+        public double rotationModeMaxIntegGain = 0.2d;
+        public double rotationModeDerivGain = 4.0d;
+
+        public double rotationSlowdownModePropGain = 2.0d;
+        public double rotationSlowdownModeIntegGain = 0.1d;
+        public double rotationSlowdownModeMaxIntegGain = 0.5d;
+        public double rotationSlowdownModeDerivGain = 8.0d;
 
         /**
          * Maximum angle to target to be able to enter path mode.
@@ -78,12 +91,18 @@ public class GuidanceController {
         public double pathModePowerDerivGain = 0d;
 
         // Time to stop in seconds in straight mode.
-        public double straightModeStopTime = 0.25;
+        public double straightModeStopTime = 0.3;
         public double straightModePowerPropGain = 2.0d;
         public double straightModePowerIntegGain = 0d;
         public double straightModePowerMaxIntegOutput = 0.3d;
         public double straightModePowerDerivGain = 1.0d;
 
+        public double straightModeHeadingPropGain = 0.7d;
+        public double straightModeHeadingIntegGain = 0.05d;
+        public double straightModeHeadingMaxIntegOutput = 0.2d;
+        public double straightModeHeadingDerivGain = 4.0d;
+
+        public double strafeModeStopTime = 0.15;
         public double strafeModePowerPropGain = 0.1d;
         public double strafeModePowerIntegGain = 0.3d;
         public double strafeModePowerMaxIntegOutput = 0.8d;
@@ -99,6 +118,10 @@ public class GuidanceController {
         mRotationModePID.setMaxIOutput(mGCParameters.rotationModeMaxIntegGain);
         mRotationModePID.setOutputLimits(-1.0,1.0d);
 
+        mRotationSlowdownModePID = new MiniPID(mGCParameters.rotationSlowdownModePropGain,mGCParameters.rotationSlowdownModeIntegGain,mGCParameters.rotationSlowdownModeDerivGain);
+        mRotationSlowdownModePID.setMaxIOutput(mGCParameters.rotationSlowdownModeMaxIntegGain);
+        mRotationSlowdownModePID.setOutputLimits(-1.0,1.0d);
+
         mPathSteeringPID = new MiniPID(mGCParameters.pathModeSteeringPropGain,mGCParameters.pathModeSteeringIntegGain,mGCParameters.pathModeSteeringDerivGain);
         mPathSteeringPID.setMaxIOutput(mGCParameters.pathModeSteeringMaxIntegOutput);
         mPathSteeringPID.setOutputLimits(-1.0,1.0d);
@@ -110,6 +133,10 @@ public class GuidanceController {
         mStraightPowerPID = new MiniPID(mGCParameters.straightModePowerPropGain,mGCParameters.straightModePowerIntegGain,mGCParameters.straightModePowerDerivGain);
         mStraightPowerPID.setMaxIOutput(mGCParameters.straightModePowerMaxIntegOutput);
         mStraightPowerPID.setOutputLimits(-1.0d,1.0d);
+
+        mStraightHeadingPID = new MiniPID(mGCParameters.straightModeHeadingPropGain,mGCParameters.straightModeHeadingIntegGain,mGCParameters.straightModeHeadingDerivGain);
+        mStraightHeadingPID.setMaxIOutput(mGCParameters.straightModeHeadingMaxIntegOutput);
+        mStraightHeadingPID.setOutputLimits(-1.0d,1.0d);
 
         mStrafePowerPID = new MiniPID(mGCParameters.strafeModePowerPropGain,mGCParameters.strafeModePowerIntegGain,mGCParameters.strafeModePowerDerivGain);
         mStrafePowerPID.setMaxIOutput(mGCParameters.strafeModePowerMaxIntegOutput);
@@ -182,13 +209,16 @@ public class GuidanceController {
     public void moveStraight(double distance,double maxPower){
         mMode = STRAIGHT_MODE;
         mStraightPowerPID.setOutputLimits(-maxPower,maxPower);
+        // Save TargetHeading as current heading to keep us straight
+        mTargetHeading = mKalmanTracker.getEstimatedHeading();
           // Compute the target point
-        double px = mKalmanTracker.getEstimatedXPosition() + Math.sin(mKalmanTracker.getEstimatedHeading())*distance;
-        double py = mKalmanTracker.getEstimatedYPosition() + Math.cos(mKalmanTracker.getEstimatedHeading())*distance;
+        double px = mKalmanTracker.getEstimatedXPosition() + Math.sin(mTargetHeading)*distance;
+        double py = mKalmanTracker.getEstimatedYPosition() + Math.cos(mTargetHeading)*distance;
         mTargetPoint = new Point(px,py);
         // Clear all commands in case robot was moving
         clearAllCommands();
         mStraightPowerPID.reset();
+        mStraightHeadingPID.reset();
     }
     /**
      * Strafes the robot left (negative distance) or right (positive distance).
@@ -231,6 +261,7 @@ public class GuidanceController {
         // Clear all commands in case robot was moving
         clearAllCommands();
         mRotationModePID.reset();
+        mRotationSlowdownModePID.reset();
     }
     /**
      * Does a rotation maneuver to point the robot at the provided point.
@@ -325,6 +356,7 @@ public class GuidanceController {
         // check if we need to make a mode transition
         switch(mMode){
              case ROTATION_MODE:
+            case ROTATION_SLOWDOWN_MODE:
                  updateRotationMode();
                break;
              case PATH_MODE:
@@ -346,20 +378,45 @@ public class GuidanceController {
     private void updateRotationMode(){
         // Compute current heading to target error threshold to decide if we need to stop
         double error = mKalmanTracker.getEstimatedHeading()-mTargetHeading;
+        // Check if we need to enter slowdown mode to use a different PID set to deal with angular momentum overshoot
+        boolean slowdownTransition = false;
+        if (mMode == ROTATION_MODE){
+            double stoppingAngle = Math.abs(mKalmanTracker.getEstimatedAngularVelocity()) * mGCParameters.rotationSlowdownModeEntryTime;
+            if (Math.abs(error) <= stoppingAngle) {
+                mMode = ROTATION_SLOWDOWN_MODE;
+                // Make one initial call to the separate PID
+                mRotationSlowdownModePID.getOutput(mKalmanTracker.getEstimatedHeading(),mTargetHeading);
+                // Set this flag to use the non slowdown one for this cycle so that the differential component will be correct
+                // the slowdown PID on the next one.
+                slowdownTransition = true;
+             }
+         }
         if (Math.abs(error) <= mGCParameters.rotationModeStopAngleError){
-            mMode = STOPPED;
-            mRotationCommand = 0d;
-            // Notify command listeners to stop the rotation command
-            for (Iterator<IGuidanceControllerCommandListener> iter = mCommandListeners.iterator(); iter.hasNext(); ) {
-                IGuidanceControllerCommandListener listener = iter.next();
-                listener.setRotationCommand(0d);
+            // Now check if the angular velocity has slowed enough to stop
+            if (Math.abs(mKalmanTracker.getEstimatedAngularVelocity()) <= mGCParameters.rotationModeStopAngularVelocityThreshold) {
+                mMode = STOPPED;
+                mRotationCommand = 0d;
+                // Notify command listeners to stop the rotation command
+                for (Iterator<IGuidanceControllerCommandListener> iter = mCommandListeners.iterator(); iter.hasNext(); ) {
+                    IGuidanceControllerCommandListener listener = iter.next();
+                    listener.setRotationCommand(0d);
+                }
+                // And status listeners that the maneuver is complete
+                notifyRotationComplete();
+                return;
             }
-            // And status listeners that the maneuver is complete
-            notifyRotationComplete();
-            return;
         }
         // Otherwise, drop through to compute regular rotation command
-        mRotationCommand = mRotationModePID.getOutput(mKalmanTracker.getEstimatedHeading(),mTargetHeading);
+
+        // check which PID to use, but only use the SlowdownMode one on the second frame after the entry into the slowdown
+        // region.  Otherwise, the differential component, which is critical to slowing down the turn, will not yet be valid
+        // because it takes 2 frames to compute differential component.
+        if ((mMode == ROTATION_SLOWDOWN_MODE) && (!slowdownTransition)){
+            mRotationCommand = mRotationSlowdownModePID.getOutput(mKalmanTracker.getEstimatedHeading(),mTargetHeading);
+        }
+        else{
+            mRotationCommand = mRotationModePID.getOutput(mKalmanTracker.getEstimatedHeading(),mTargetHeading);
+        }
         for(Iterator<IGuidanceControllerCommandListener> iter = mCommandListeners.iterator(); iter.hasNext();){
             IGuidanceControllerCommandListener listener = iter.next();
             listener.setRotationCommand(mRotationCommand);
@@ -379,7 +436,7 @@ public class GuidanceController {
     private void clearAllCommands(){
         for(Iterator<IGuidanceControllerCommandListener> iter = mCommandListeners.iterator(); iter.hasNext();){
             IGuidanceControllerCommandListener listener = iter.next();
-            listener.setStraightCommand(0d);
+            listener.setStraightCommand(0d,0d);
             listener.setRotationCommand(0d);
             listener.setSteeringCommand(0d,0d);
         }
@@ -459,9 +516,9 @@ public class GuidanceController {
         Point rotRobotPos = robotPos.rotate(theta);
         Point rotatedTarget = mTargetPoint.rotate(theta);
 
-        //  check if we have passed the target.  Only need to check the y coordinate
+        //  check if we have passed the target.  Only need to check the y coordinate, but leave
+        // stopDistance based on the stop time and estimated speed
         boolean stop = false;
-        // Compute stop distance at current speed
         double stopDistance = mGCParameters.straightModeStopTime * mKalmanTracker.getEstimatedSpeed();
         if (rotatedTarget.y < 0){
             if (rotRobotPos.y <= rotatedTarget.y+stopDistance){
@@ -476,16 +533,19 @@ public class GuidanceController {
         if (stop){
             // Set power to 0 and drop through to send command
             mPowerCommand = 0d;
+            mRotationCommand = 0d;
             mMode = STOPPED;
         }
         else {
             // Not yet at the target control the power based on the distance to the target's y coordinate
             mPowerCommand = mStraightPowerPID.getOutput(rotRobotPos.y,rotatedTarget.y);
+            // and compute a heading command as an offset for any deviation from heading.
+            mRotationCommand = mStraightHeadingPID.getOutput(mKalmanTracker.getEstimatedHeading(),mTargetHeading);
         }
 
         for(Iterator<IGuidanceControllerCommandListener> iter = mCommandListeners.iterator(); iter.hasNext();){
             IGuidanceControllerCommandListener listener = iter.next();
-            listener.setStraightCommand(mPowerCommand);
+            listener.setStraightCommand(mPowerCommand,mRotationCommand);
         }
         if (mMode == STOPPED){
             // notify that the command is complete
@@ -508,15 +568,17 @@ public class GuidanceController {
         Point rotRobotPos = robotPos.rotate(theta);
         Point rotatedTarget = mTargetPoint.rotate(theta);
 
-        //  check if we have passed the strafe target.  Only need to check the x coordinate
+        //  check if we have passed the target.  Only need to check the x coordinate, but leave
+        // stopDistance based on the stop time and estimated speed
         boolean stop = false;
+        double stopDistance = mGCParameters.strafeModeStopTime * mKalmanTracker.getEstimatedSpeed();
         if (rotatedTarget.x < 0){
-            if (rotRobotPos.x <= rotatedTarget.x){
+            if (rotRobotPos.x <= rotatedTarget.x+stopDistance){
                 stop = true;
             }
         }
         else{
-            if (rotRobotPos.x >= rotatedTarget.x){
+            if (rotRobotPos.x >= rotatedTarget.x-stopDistance){
                 stop = true;
             }
         }
@@ -570,6 +632,8 @@ public class GuidanceController {
         switch(mMode) {
             case ROTATION_MODE:
                 return "ROTATION";
+            case ROTATION_SLOWDOWN_MODE:
+                return "ROTATION_SLOWDOWN";
             case PATH_MODE:
                 return "PATH";
             case STRAIGHT_MODE:

@@ -340,7 +340,7 @@ public class FilterDevStateMachineContext
             {
                 AutonomousController ctxt = context.getOwner();
 
-            ctxt.moveStraight(12d);
+            ctxt.moveStraight(24d);
             return;
         }
 
@@ -424,7 +424,7 @@ public class FilterDevStateMachineContext
             {
                 AutonomousController ctxt = context.getOwner();
 
-            ctxt.strafe(-12d);
+            ctxt.strafe(-24d);
             return;
         }
 

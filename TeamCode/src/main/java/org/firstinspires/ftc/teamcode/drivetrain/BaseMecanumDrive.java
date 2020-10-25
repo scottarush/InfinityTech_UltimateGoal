@@ -33,7 +33,9 @@ import com.qualcomm.robotcore.eventloop.opmode.OpMode;
 import com.qualcomm.robotcore.hardware.DcMotor;
 import com.qualcomm.robotcore.hardware.HardwareMap;
 
+import org.ejml.data.DMatrixRMaj;
 import org.firstinspires.ftc.teamcode.guidance.IGuidanceControllerCommandListener;
+import org.firstinspires.ftc.teamcode.guidance.Point;
 import org.firstinspires.ftc.teamcode.util.LogFile;
 
 import java.util.ArrayList;
@@ -84,6 +86,10 @@ public abstract class BaseMecanumDrive extends Drivetrain implements IGuidanceCo
     private int mMotorPositions[] = new int[4];
     private double mWheelSpeeds[] = new double[4];
 
+    private double mVx = 0d;
+    private double mVy = 0d;
+    private double mWZW = 0d;
+
     public static final String[] LOG_COLUMNS = {"time","counts_lf", "w_lf","counts_rf","w_rf","counts_lr" ,"w_lr","counts_rr" ,"w_rr"};
 
     private boolean mFirstLoopInit = false;
@@ -91,11 +97,6 @@ public abstract class BaseMecanumDrive extends Drivetrain implements IGuidanceCo
     private LogFile mLogFile;
     private final static boolean ENABLE_LOGGING = false;
     private long mLastLoopTimeNS = 0;
-
-    /**
-     * Wheel circumference in inches
-     **/
-    public static final double MECANUM_WHEEL_CIRCUMFERENCE = 12.1211;
 
     /**
      * @param
@@ -114,6 +115,25 @@ public abstract class BaseMecanumDrive extends Drivetrain implements IGuidanceCo
      * Must be implemented by subclasses to provide the number of counts per wheel revolution
      */
     protected abstract int getEncoderCountsPerRev();
+
+    /**
+     * wheel speed slip factor for this bot
+     */
+    protected abstract double getWheelSlipFactor();
+
+    /**
+     * lx  Lateral distance from wheel axle to imu center in meters
+     */
+    public abstract double getLX();
+    /**
+     * ly  Lateral distance from wheel axle to imu center in meters
+     */
+    public abstract double getLY();
+
+    /**
+     * Wheel radious in meters
+     */
+    public abstract double getWheelRadius();
 
     /**
      * Must be called to update wheel speed computations
@@ -159,9 +179,23 @@ public abstract class BaseMecanumDrive extends Drivetrain implements IGuidanceCo
             int newpos = getCurrentPosition(mMotorList.get(i));
             double angle = (double)(newpos - mMotorPositions[i])/(double)getEncoderCountsPerRev() * 2d*Math.PI;
             mWheelSpeeds[i] = angle /deltaT;
+            // Compensate for slip factor
+            mWheelSpeeds[i] *= (1.0d-getWheelSlipFactor());
             mMotorPositions[i] = newpos;  // Transfer to current pos array for next time
         }
- //       Log.i(getClass().getCanonicalName(),"positions=" + mMotorPositions[0]+","+mMotorPositions[1]+","+mMotorPositions[2]+","+mMotorPositions[3]);
+        // Now compute the body center values in direction of current heading.  These are the values actually used by the Kalman filter
+        // Compute the robot velocity from the wheel velocities which are in the local
+        // frame.  Equations below are from:
+        //  Trajectory and heading tracking of a mecanum wheeled robot using fuzzy logic control.
+        //  2016 International Conference on Instrumentation, Control and Automation (ICA), 54-59.
+        double rover4 = getWheelRadius()/4.0d;
+        mVx = rover4*(mWheelSpeeds[LF_WHEEL_ARRAY_INDEX]-mWheelSpeeds[RF_WHEEL_ARRAY_INDEX]-mWheelSpeeds[LR_WHEEL_ARRAY_INDEX]+mWheelSpeeds[RR_WHEEL_ARRAY_INDEX]);
+        mVy = rover4*(mWheelSpeeds[LF_WHEEL_ARRAY_INDEX]+mWheelSpeeds[RF_WHEEL_ARRAY_INDEX]+mWheelSpeeds[LR_WHEEL_ARRAY_INDEX]+mWheelSpeeds[RR_WHEEL_ARRAY_INDEX]);
+        // compute the radial velocity
+        mWZW = rover4*(-mWheelSpeeds[LF_WHEEL_ARRAY_INDEX]+mWheelSpeeds[RF_WHEEL_ARRAY_INDEX]-
+                mWheelSpeeds[LR_WHEEL_ARRAY_INDEX]+mWheelSpeeds[RR_WHEEL_ARRAY_INDEX])/(getLX() + getLY());
+
+        //       Log.i(getClass().getCanonicalName(),"positions=" + mMotorPositions[0]+","+mMotorPositions[1]+","+mMotorPositions[2]+","+mMotorPositions[3]);
     }
 
     /**
@@ -177,6 +211,25 @@ public abstract class BaseMecanumDrive extends Drivetrain implements IGuidanceCo
     }
 
     /**
+     * returns the body center vx component in direction of heading compensated for slip
+     */
+    public double getVx(){
+        return mVx;
+    }
+    /**
+     * returns the body center vy component in direction of heading compensated for slip
+     */
+    public double getVy(){
+        return mVy;
+    }
+    /**
+     * returns the body center wheel speed computed angular velocity compensated for slip
+     */
+    public double getWzw(){
+        return mWZW;
+    }
+
+    /**
      * private helper function for get current position.  Returns 0 if
      * null to allow fail-op operation.
      */
@@ -189,30 +242,31 @@ public abstract class BaseMecanumDrive extends Drivetrain implements IGuidanceCo
     /**
      * Sets a straight command to the motors either forward or backward
      * @param power -1.0..1.0 backward to forward
+     * @param headingCorrection -1.0..1.0 > 0 correct heading to right, < 0 correct heading to left
      */
     @Override
-    public void setStraightCommand(double power){
+    public void setStraightCommand(double power,double headingCorrection){
         double motorPower[] = new double[4];
 
         power = limitUnity(power);
-        motorPower[0] = power;
-        motorPower[1] = power;
-        motorPower[2] = power;
-        motorPower[3] = power;
+        motorPower[0] = power+headingCorrection;
+        motorPower[1] = power-headingCorrection;
+        motorPower[2] = power+headingCorrection;
+        motorPower[3] = power-headingCorrection;
         for(int i=0;i < mMotorList.size();i++){
             mMotorList.get(i).setPower(motorPower[i]);
         }
     }
 
     @Override
-    public void setStrafeCommand(double power,double rotateCorrection) {
+    public void setStrafeCommand(double power,double headingCorrection) {
         double motorPower[] = new double[4];
 
         power = limitUnity(power);
-        motorPower[0] = power+rotateCorrection;
-        motorPower[1] = -power-rotateCorrection;
-        motorPower[2] = -power+rotateCorrection;
-        motorPower[3] = power-rotateCorrection;
+        motorPower[0] = power+headingCorrection;
+        motorPower[1] = -power-headingCorrection;
+        motorPower[2] = -power+headingCorrection;
+        motorPower[3] = power-headingCorrection;
         for(int i=0;i < mMotorList.size();i++){
             mMotorList.get(i).setPower(motorPower[i]);
         }

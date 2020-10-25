@@ -4,14 +4,15 @@ public interface IGuidanceControllerCommandListener {
     /**
      * Sets a straight line command to the motors either forward or backward
      * @param power -1.0..1.0 backward to forward
+     * @param headingCorrection -1.0..1.0 > 0 correct heading to right, < 0 correct heading to left
      */
-    void setStraightCommand(double power);
+    void setStraightCommand(double power,double headingCorrection);
     /**
      * Sets a strafe command (mecanum drivetrains only, otherwise ignored) to the motors either forward or backward
      * @param power -1.0..1.0 left to right
-     * @param rotateCorrection -1.0..1.0 > 0 correct heading to right, < 0 correct heading to left
+     * @param headingCorrection -1.0..1.0 > 0 correct heading to right, < 0 correct heading to left
      */
-    void setStrafeCommand(double power,double rotateCorrection);
+    void setStrafeCommand(double power,double headingCorrection);
 
     /**
      * Sets a composite steering command to the motors with both steering and power input

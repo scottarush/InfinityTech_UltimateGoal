@@ -10,17 +10,32 @@ import com.qualcomm.robotcore.hardware.HardwareMap;
  */
 public class SpeedBotMecanumDrive extends BaseMecanumDrive {
 
-
-
     /*
     * With core hex motors there are 288 counts/axle rotation x 90:60 gear output ratio
-    * For some reason, though, this value results in a error 17% off in the KalmanTracker so the ratio
-    * has been increased by this amount from the theoretical 1.5
-    * TODO:  Figure out why the ratio doesn't work properly.
      */
     @Override
     protected int getEncoderCountsPerRev() {
-        return (int) Math.round(ENCODER_COUNTS_PER_MOTOR_SHAFT_ROTATION/1.75d);
+        return (int) Math.round(ENCODER_COUNTS_PER_MOTOR_SHAFT_ROTATION/1.7d);
+    }
+
+    @Override
+    public double getWheelRadius() {
+        return 0.098d/2d;
+    }
+
+    @Override
+    protected double getWheelSlipFactor() {
+        return 0d;
+    }
+
+    @Override
+    public double getLX() {
+        return 0.29d/2d;
+    }
+
+    @Override
+    public double getLY() {
+        return 0.275d/2d;
     }
 
     /**

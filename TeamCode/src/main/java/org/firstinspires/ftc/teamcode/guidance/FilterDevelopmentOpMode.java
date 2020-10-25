@@ -72,9 +72,9 @@ public class FilterDevelopmentOpMode extends OpMode{
         mKalmanParameters.PX0 = 0d;
         mKalmanParameters.PY0 = 0d;
         mKalmanParameters.THETA0 = 0d;
-        mKalmanParameters.LX = BaseSpeedBot.LX;
-        mKalmanParameters.LY = BaseSpeedBot.LY;
-        mKalmanParameters.WHEEL_RADIUS = BaseSpeedBot.WHEEL_RADIUS;
+        mKalmanParameters.LX = mSpeedBot.getDrivetrain().getLX();
+        mKalmanParameters.LY = mSpeedBot.getDrivetrain().getLY();
+        mKalmanParameters.WHEEL_RADIUS = mSpeedBot.getDrivetrain().getWheelRadius();
         mKalmanTracker.init(mKalmanParameters);
 
         // Initialize the guidance controller
@@ -111,8 +111,8 @@ public class FilterDevelopmentOpMode extends OpMode{
         mStartTimeNS = mLastSystemTimeNS;
 
 //      mGuidanceController.strafe(24.0d/39.37d,1.0d);
-   //     mGuidanceController.rotateToHeading(45*Math.PI/180);
-        mGuidanceController.moveStraight(24d/39.37d,1.0d);
+//        mGuidanceController.rotateToHeading(90*Math.PI/180);
+//        mGuidanceController.moveStraight(24d/39.37d,1.0d);
         super.start();
     }
 
@@ -141,7 +141,7 @@ public class FilterDevelopmentOpMode extends OpMode{
                 mGuidanceController.updateCommand();
              }
             // Service the autononomous controller
-  //          mAutonomousController.loop();
+            mAutonomousController.loop();
 
   //          telemetry.addData("KF Data","heading=%5.2f px=%4.1f py=%4.1f",mKalmanTracker.getEstimatedHeading()*180d/Math.PI,mKalmanTracker.getEstimatedXPosition(),mKalmanTracker.getEstimatedYPosition());
     //        telemetry.update();
@@ -187,17 +187,13 @@ public class FilterDevelopmentOpMode extends OpMode{
      * helper function to update the Tracker
      */
     private void updateTracker(){
-        // Get the wheel speeds
-        double[] wheelSpeeds = mSpeedBot.getDrivetrain().getWheelSpeeds();
-
         // Now get the IMU orientation
         mIMUOrientation = mSpeedBot.getIMU().getAngularOrientation(AxesReference.INTRINSIC, AxesOrder.ZYX, AngleUnit.RADIANS);
         double theta_imu = mIMUOrientation.firstAngle + mKalmanParameters.THETA0;
         // Update the tracker.
-        mKalmanTracker.updateMecanumMeasurement(wheelSpeeds[BaseMecanumDrive.LF_WHEEL_ARRAY_INDEX],
-                wheelSpeeds[BaseMecanumDrive.LR_WHEEL_ARRAY_INDEX],
-                wheelSpeeds[BaseMecanumDrive.RF_WHEEL_ARRAY_INDEX],
-                wheelSpeeds[BaseMecanumDrive.RR_WHEEL_ARRAY_INDEX],
+        mKalmanTracker.updateMeasurement(mSpeedBot.getDrivetrain().getVx(),
+                mSpeedBot.getDrivetrain().getVy(),
+                mSpeedBot.getDrivetrain().getWzw(),
                 theta_imu);
 
      }

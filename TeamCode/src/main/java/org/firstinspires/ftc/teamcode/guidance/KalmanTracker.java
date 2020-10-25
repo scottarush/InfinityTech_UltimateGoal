@@ -53,12 +53,20 @@ public class KalmanTracker {
         public double PY0 = 0d;
         //  theta0 initial heading in radians where 0=judge side, PI/2=right side, PI=audience side, 3PI/2=left side
         public double THETA0 = 0d;
-        //  lx  Lateral distance from wheel axle to imu center in meters
+        /**
+         * lx  Lateral distance from wheel axle to imu center in meters
+         */
         public double LX = 0.5d;
-        //  ly Lateral distance from wheel axle to imu center in meters
+
+        /**
+         * ly  Lateral distance from wheel axle to imu center in meters
+         */
         public double LY = 0.5d;
-        //  r radius of wheel in meters
-        public double WHEEL_RADIUS = 0.098d;
+        /**
+         * Wheel radious in meters
+         */
+        public double WHEEL_RADIUS = 0.098;
+
         // Initial P covariance values
         public double SIGMA_POSITION = 0.1;
         public double VAR_POSITION = Math.pow(SIGMA_POSITION,2.0d);
@@ -104,9 +112,8 @@ public class KalmanTracker {
         //-------------------------------------------------------------
         // R measurement noise covariance matrix
         //-------------------------------------------------------------
-        final double WHEEL_RADIUS = 0.050;
         final double SIGMA_W_WHL = 0.001;
-        final double R2_VAR_W_WHL = Math.pow(WHEEL_RADIUS,2.0d) * Math.pow(SIGMA_W_WHL,2.0d);
+        final double R2_VAR_W_WHL = Math.pow(mKalmanParameters.WHEEL_RADIUS,2.0d) * Math.pow(SIGMA_W_WHL,2.0d);
         final double VAR_VX = R2_VAR_W_WHL;
         final double VAR_VY = R2_VAR_W_WHL;
         final double VAR_W_WHL = R2_VAR_W_WHL/((Math.pow(mKalmanParameters.LY,2.0d) + Math.pow(mKalmanParameters.LX,2.0d)));
@@ -145,34 +152,24 @@ public class KalmanTracker {
 
     /**
      * Called at the sampling rate T to update the filter with a new measurement.
-     * @param w_lf angular velocity of LF wheel in radians/sec
-     * @param w_lr angular velocity of LR wheel in radians/sec
-     * @param w_rf angular velocity of RF wheel in radians/sec
-     * @param w_rr angular velocity of RR wheel in radians/sec
+     * @param vx x velocity in forward wheel heading frame
+     * @param vy y velocity in forward wheel heading frame
+     * @param wzw angular velocity component computed from wheel speeds
       * @param theta_imu z coordinate of imu measured orientation in radians
      */
-    public void updateMecanumMeasurement(double w_lf,
-                                         double w_lr,
-                                         double w_rf,
-                                         double w_rr,
-                                         double theta_imu) {
-        // Compute the robot velocity from the wheel velocities which are in the local
-        // frame
-        double rover4 = mKalmanParameters.WHEEL_RADIUS/4.0d;
-        mVx = rover4*(w_lf-w_rf-w_lr+w_rr);
-        mVy = rover4*(w_lf+w_rf+w_lr+w_rr);
-        // And then rotate into the global frame using the Point classes rotation function
-        Point vp = new Point(mVx,mVy);
-        Point rotated = vp.rotate(-getEstimatedHeading());
-        mVx = rotated.x;
-        mVy = rotated.y;
+    public void updateMeasurement(double vx,
+                                  double vy,
+                                  double wzw,
+                                  double theta_imu) {
 
-        double wzw = rover4*(-w_lf+w_rf-w_lr+w_rr)/(mKalmanParameters.LX+mKalmanParameters.LY);
+        // rotate into the global frame using the Point classes rotation function
+        Point vp = new Point(vx,vy);
+        Point rotated = vp.rotate(-getEstimatedHeading());
+
 
         // Have to negate the wzw and wz_imu because we want to use left-handed orientation angles
         // instead of the right-handed angles produced by the measurements
-
-        DMatrixRMaj z = new DMatrixRMaj(new double[][] {{mVx},{mVy},{-wzw},{-theta_imu}});
+        DMatrixRMaj z = new DMatrixRMaj(new double[][] {{rotated.x},{rotated.y},{-wzw},{-theta_imu}});
 
         // Do Kalman predict step
         mFilter.predict();
