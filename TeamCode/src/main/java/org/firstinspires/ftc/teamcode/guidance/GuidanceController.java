@@ -12,21 +12,6 @@ import java.util.Iterator;
  */
 public class GuidanceController {
 
-    private class Point {
-        public Point(double x, double y){
-            this.x = x;
-            this.y = y;
-        }
-        public double x = 0d;
-        public double y = 0d;
-
-        public Point rotate(double theta){
-            double rx = Math.cos(theta) * x - Math.sin(theta) * y;
-            double ry = Math.sin(theta) * x + Math.cos(theta) * y;
-            return new Point(rx,ry);
-        }
-    }
-
     private MiniPID mRotationModePID = null;
     private MiniPID mPathSteeringPID = null;
     private MiniPID mPathPowerPID = null;
@@ -37,9 +22,6 @@ public class GuidanceController {
     private double mPathSteeringCommand = 0d;
 
     private double mPowerCommand = 0d;
-
-    /** maximum power for straight and strafe modes. **/
-    private double mMaxPower = 1.0d;
     public static final int STOPPED = 0;
     public static final int ROTATION_MODE = 1;
     public static final int PATH_MODE = 2;
@@ -50,6 +32,9 @@ public class GuidanceController {
     public static final double MAX_STRAFE_HEADING_ERROR = Math.PI/180;
 
     private double mTargetHeading = 0d;
+
+    // direction in strafe and straight modes.  false = left/backward, true = right/forward
+    private boolean mDirection = true;
 
     private KalmanTracker mKalmanTracker = null;
     private LogFile mLogFile = null;
@@ -92,10 +77,12 @@ public class GuidanceController {
         public double pathModePowerMaxIntegOutput = 0.2d;
         public double pathModePowerDerivGain = 0d;
 
-        public double straightModePowerPropGain = 0.2d;
-        public double straightModePowerIntegGain = 0.2d;
-        public double straightModePowerMaxIntegOutput = 0.8d;
-        public double straightModePowerDerivGain = 0d;
+        // Time to stop in seconds in straight mode.
+        public double straightModeStopTime = 0.25;
+        public double straightModePowerPropGain = 2.0d;
+        public double straightModePowerIntegGain = 0d;
+        public double straightModePowerMaxIntegOutput = 0.3d;
+        public double straightModePowerDerivGain = 1.0d;
 
         public double strafeModePowerPropGain = 0.1d;
         public double strafeModePowerIntegGain = 0.3d;
@@ -122,11 +109,11 @@ public class GuidanceController {
 
         mStraightPowerPID = new MiniPID(mGCParameters.straightModePowerPropGain,mGCParameters.straightModePowerIntegGain,mGCParameters.straightModePowerDerivGain);
         mStraightPowerPID.setMaxIOutput(mGCParameters.straightModePowerMaxIntegOutput);
-        mStraightPowerPID.setOutputLimits(0d,1.0d);
+        mStraightPowerPID.setOutputLimits(-1.0d,1.0d);
 
         mStrafePowerPID = new MiniPID(mGCParameters.strafeModePowerPropGain,mGCParameters.strafeModePowerIntegGain,mGCParameters.strafeModePowerDerivGain);
         mStrafePowerPID.setMaxIOutput(mGCParameters.strafeModePowerMaxIntegOutput);
-        mStrafePowerPID.setOutputLimits(0d,1.0d);
+        mStrafePowerPID.setOutputLimits(-1.0d,1.0d);
 
         if (ENABLE_LOGGING){
             mLogFile = new LogFile("/sdcard","gclog.csv",LOG_COLUMNS);
@@ -194,10 +181,8 @@ public class GuidanceController {
      **/
     public void moveStraight(double distance,double maxPower){
         mMode = STRAIGHT_MODE;
-        mMaxPower = maxPower;
-        mStraightPowerPID.setOutputLimits(0d,maxPower);
-
-        // Compute the target point
+        mStraightPowerPID.setOutputLimits(-maxPower,maxPower);
+          // Compute the target point
         double px = mKalmanTracker.getEstimatedXPosition() + Math.sin(mKalmanTracker.getEstimatedHeading())*distance;
         double py = mKalmanTracker.getEstimatedYPosition() + Math.cos(mKalmanTracker.getEstimatedHeading())*distance;
         mTargetPoint = new Point(px,py);
@@ -213,8 +198,7 @@ public class GuidanceController {
      **/
     public void strafe(double distance,double maxPower){
         mMode = STRAFE_MODE;
-        mMaxPower = maxPower;
-        mStrafePowerPID.setOutputLimits(0d,maxPower);
+        mStrafePowerPID.setOutputLimits(-maxPower,maxPower);
 
         // Compute the heading angle to strafe base on left or right
         double strafeHeading = mKalmanTracker.getEstimatedHeading();
@@ -225,8 +209,8 @@ public class GuidanceController {
             strafeHeading -= Math.PI / 2;
         }
         // Now compute the target point using the strafe heading
-        double px = mKalmanTracker.getEstimatedXPosition() + Math.sin(strafeHeading)*distance;
-        double py = mKalmanTracker.getEstimatedYPosition() + Math.cos(strafeHeading)*distance;
+        double px = mKalmanTracker.getEstimatedXPosition() + Math.sin(strafeHeading)*Math.abs(distance);
+        double py = mKalmanTracker.getEstimatedYPosition() + Math.cos(strafeHeading)*Math.abs(distance);
         mTargetPoint = new Point(px,py);
         // Save target heading to be able to correct at end if need be.
         mTargetHeading = mKalmanTracker.getEstimatedHeading();
@@ -348,8 +332,10 @@ public class GuidanceController {
                 break;
             case STRAIGHT_MODE:
                 updateStraightMode();
+                break;
             case STRAFE_MODE:
                 updateStrafeMode();
+                break;
             case STOPPED:
                 break;
         }
@@ -475,13 +461,15 @@ public class GuidanceController {
 
         //  check if we have passed the target.  Only need to check the y coordinate
         boolean stop = false;
+        // Compute stop distance at current speed
+        double stopDistance = mGCParameters.straightModeStopTime * mKalmanTracker.getEstimatedSpeed();
         if (rotatedTarget.y < 0){
-            if (rotRobotPos.y <= rotatedTarget.y){
+            if (rotRobotPos.y <= rotatedTarget.y+stopDistance){
                 stop = true;
             }
         }
         else{
-            if (rotRobotPos.y >= rotatedTarget.y){
+            if (rotRobotPos.y >= rotatedTarget.y-stopDistance){
                 stop = true;
             }
         }
@@ -538,7 +526,6 @@ public class GuidanceController {
             mMode = STOPPED;
         }
         else {
-            // Not yet at the target control
             // the power based on the distance to the target's x coordinate
             mPowerCommand = mStrafePowerPID.getOutput(rotRobotPos.x,rotatedTarget.x);
             // and compute a rotation command as an offset for any deviation from heading.

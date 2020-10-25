@@ -291,8 +291,6 @@ public abstract class BaseMecanumDrive extends Drivetrain implements IGuidanceCo
      */
     public void stop() {
         setPower(0.0, 0.0, 0.0, 0.0);
-        // Return motors to manual control
-        setMotorModes(DcMotor.RunMode.RUN_WITHOUT_ENCODER);
         if (ENABLE_LOGGING) {
             mLogFile.closeFile();
         }

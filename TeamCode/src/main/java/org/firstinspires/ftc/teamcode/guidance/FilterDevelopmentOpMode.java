@@ -110,8 +110,9 @@ public class FilterDevelopmentOpMode extends OpMode{
         mElapsedTimeNS = 0;
         mStartTimeNS = mLastSystemTimeNS;
 
-  //     mGuidanceController.strafe(24.0d/39.37d,1.0d);
+//      mGuidanceController.strafe(24.0d/39.37d,1.0d);
    //     mGuidanceController.rotateToHeading(45*Math.PI/180);
+        mGuidanceController.moveStraight(24d/39.37d,1.0d);
         super.start();
     }
 
@@ -140,7 +141,7 @@ public class FilterDevelopmentOpMode extends OpMode{
                 mGuidanceController.updateCommand();
              }
             // Service the autononomous controller
-            mAutonomousController.loop();
+  //          mAutonomousController.loop();
 
   //          telemetry.addData("KF Data","heading=%5.2f px=%4.1f py=%4.1f",mKalmanTracker.getEstimatedHeading()*180d/Math.PI,mKalmanTracker.getEstimatedXPosition(),mKalmanTracker.getEstimatedYPosition());
     //        telemetry.update();

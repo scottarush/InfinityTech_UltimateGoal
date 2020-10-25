@@ -13,11 +13,14 @@ public class SpeedBotMecanumDrive extends BaseMecanumDrive {
 
 
     /*
-    * With core hex motors there are 288 counts/axle rotation x 1.6:1 gear output ratio
+    * With core hex motors there are 288 counts/axle rotation x 90:60 gear output ratio
+    * For some reason, though, this value results in a error 17% off in the KalmanTracker so the ratio
+    * has been increased by this amount from the theoretical 1.5
+    * TODO:  Figure out why the ratio doesn't work properly.
      */
     @Override
     protected int getEncoderCountsPerRev() {
-        return (int) Math.round(ENCODER_COUNTS_PER_MOTOR_SHAFT_ROTATION/1.6d);
+        return (int) Math.round(ENCODER_COUNTS_PER_MOTOR_SHAFT_ROTATION/1.75d);
     }
 
     /**
@@ -84,7 +87,6 @@ public class SpeedBotMecanumDrive extends BaseMecanumDrive {
         // Set all motors to zero power
         setPower(0, 0, 0, 0);
 
-        // Set all motors to run without encoders for maximum power
         setMotorModes(DcMotor.RunMode.RUN_USING_ENCODER);
 
         if (motorInitError.length() > 0){

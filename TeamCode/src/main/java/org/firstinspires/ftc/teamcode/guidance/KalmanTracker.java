@@ -21,6 +21,8 @@ public class KalmanTracker {
 
     private static final int XHAT_PX_INDEX = 0;
     private static final int XHAT_PY_INDEX = 1;
+    private static final int XHAT_VX_INDEX = 2;
+    private static final int XHAT_VY_INDEX = 3;
     private static final int XHAT_OMEGAZ_INDEX = 4;
     private static final int XHAT_THETA_INDEX = 5;
 
@@ -154,10 +156,17 @@ public class KalmanTracker {
                                          double w_rf,
                                          double w_rr,
                                          double theta_imu) {
-        // Compute the robot velocity from the wheel velocities
+        // Compute the robot velocity from the wheel velocities which are in the local
+        // frame
         double rover4 = mKalmanParameters.WHEEL_RADIUS/4.0d;
         mVx = rover4*(w_lf-w_rf-w_lr+w_rr);
         mVy = rover4*(w_lf+w_rf+w_lr+w_rr);
+        // And then rotate into the global frame using the Point classes rotation function
+        Point vp = new Point(mVx,mVy);
+        Point rotated = vp.rotate(-getEstimatedHeading());
+        mVx = rotated.x;
+        mVy = rotated.y;
+
         double wzw = rover4*(-w_lf+w_rf-w_lr+w_rr)/(mKalmanParameters.LX+mKalmanParameters.LY);
 
         // Have to negate the wzw and wz_imu because we want to use left-handed orientation angles
@@ -181,6 +190,13 @@ public class KalmanTracker {
      */
     public Double getEstimatedYPosition(){
         return mFilter.getState().get(XHAT_PY_INDEX);
+    }
+
+    /*
+     * Returns the current estimated linear speed
+     */
+    public Double getEstimatedSpeed(){
+        return Math.sqrt(Math.pow(mFilter.getState().get(XHAT_VX_INDEX),2)+Math.pow(mFilter.getState().get(XHAT_VY_INDEX),2));
     }
 
     /**

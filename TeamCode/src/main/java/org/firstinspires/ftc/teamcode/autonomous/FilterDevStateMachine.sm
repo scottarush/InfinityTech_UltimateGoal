@@ -24,7 +24,7 @@
 
     Drive
         Entry{
-            moveStraight(24d);
+            moveStraight(12d);
          }
     {
         evMoveComplete RotateBack {}
@@ -39,7 +39,7 @@
     }
     StrafeBack
         Entry{
-            strafe(-24d);
+            strafe(-12d);
         }
     {
         evMoveComplete Complete {}
