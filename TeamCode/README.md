@@ -1,16 +1,24 @@
 # 1. Introduction
 This is the TeamCode module for the InfinityTech robotics team software.  This readme documents the InfinityTech team software architecture for the 2020-2021 Ultimate goal season here.
 
-# Setting up Android Studio
+# Installing Android Studio
 InfinityTech uses Android Studio for all development.  We don't use the Blocks or OnBots methods you may have seen on the FTC website.  Here are the basic instructions for downloading Android Studio and setting it up:
-1.  Download Android Studio:  https://developer.android.com/studio
-2.  Install Android Studio on either a Windows PC or a Mac.  Note that you can't run it on a Chromebook.
+1.  Download Android Studio.  Unfortunately the current version broke the plugin we need for wireless Wifi development so you'll need to download the older 4.0.1 version until Google fixes the problem.  
+The 4.0.1 version for Windows is here: https://redirector.gvt1.com/edgedl/android/studio/install/4.0.1.0/android-studio-ide-193.6626763-windows.exe 
+and here for Mac: https://redirector.gvt1.com/edgedl/android/studio/install/4.0.1.0/android-studio-ide-193.6626763-mac.dmg
+2.  Install Android Studio on either a Windows PC or a Mac.  The Chrome version can't be installed on your school Chromebooks.
+3.  Start Android Studio and select "Configure->Plugins" (at the bottom of the start page).
+4.  Search for the "Android Wifi ADB" plugin i and hit "Install" on the right (note that the plugin is already installed on my computer):
+  ![Install Android Wifi ADB plugin](docs/install_android_wifiadb_plugin.PNG)
 
-## Downloading the Code from Github
-Once you have Android Studio up and running you will need to get the code from Github as follows:
-1.  Got to https://github.com and sign in.  If you don't already have a Github id, you'll need to create one at the "Sign Up" button on the upper right of the website home page.
-2.  Download the code from Github using Android Studio's "Get From Version Control" option on the start page here:  ![Get From Version Control option](docs/get_from_version_control.PNG)
-
+## Downloading the TeamCode from Github
+Once you have installed Android Studio, you will need to "Clone" the code from Github as follows:
+1.  Goto to https://github.com and sign in.  If you don't already have a Github id, you'll need to create one at the "Sign Up" button on the upper right of the website home page.
+2.  Start Android Studio and select "Get From Version Control"  on the start page:
+  ![Get From Version Control option](docs/get_from_version_control.PNG)
+3.  Enter the team repository URL below into the "Get From Version Control" dialog:  https://github.com/scottarush/InfinityTech_UltimateGoal:  For the "Directory:" enter a location on your computer's hard drive to store the code, such as _C:\Documents\My_UltimateGoal_Code_, but the code can go anywhere and the name of the directory doesn't matter:
+![Enter Github URL](docs/entering_github_url_in_android_studio.PNG)
+4.  Hit the "Clone" button at the bottom and Android Studio should automatically clone the team repository.  Once the download finishes, Android Studio should build the code without any problems.  If you have issues, we'll need to look at those during a robotics meeting. 
 
 ## Control and Expansion Hubs
 The rev robotics website has a good overview of both the Control and Expansion hubs here:  https://docs.revrobotics.com/rev-control-system/control-system-overview/control-hub-basics.  
@@ -23,7 +31,7 @@ Starting with the 2020-2021 Ultimate Goal season, InfinityTech uses Control hubs
 3.  Connect your computer to the Control Hub's Wifi Hotspot.  We named _InfinityTech13684_.  
 
 # Autonomous Mode
-InfinityTech has developed a framework for autonomous mode control using state machines, a Kalman Filter, and a guidance controller that implements _Proportional Integral Control_ or _PID_ algorithms.  This section provides a brief overview of each of these elements.
+InfinityTech has developed a framework for autonomous mode control using state machines, a Kalman Filter, and a guidance controller that implements "Proportional Integral Control" or _PID_ algorithms.  This section provides a brief overview of each of these elements.
 
 ## State Machine Compiler
 InfinityTech uses the open source _State Machine Compiler_ or _SMC_ project hosted on SourceForge here:  http://smc.sourceforge.net/, specifically the Java version.  SMC is an automatic code generator that takes in a description of a state machine and generates Java code.  A _state machine_ or, to use the exact computer science term, a _Finite State Machine_ is a very powerful way to program computers to know what actions to take in response to inputs.  Wikipedia has a very good description of state machines here:  https://en.wikipedia.org/wiki/Finite-state_machine
