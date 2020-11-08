@@ -9,7 +9,7 @@ InfinityTech uses Android Studio for all development.  We don't use the Blocks o
 ## Downloading the Code from Github
 Once you have Android Studio up and running you will need to get the code from Github as follows:
 1.  Got to https://github.com and sign in.  If you don't already have a Github id, you'll need to create one at the "Sign Up" button on the upper right of the website home page.
-2.  Download the code from Github using Android Studio's "Get From Version Control" option on the start page here:  ![Get From Version Control option](docs/get_from_version_control.png)
+2.  Download the code from Github using Android Studio's "Get From Version Control" option on the start page here:  ![Get From Version Control option](docs/get_from_version_control.PNG)
 
 
 ## Control and Expansion Hubs
