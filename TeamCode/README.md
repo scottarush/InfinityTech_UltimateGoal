@@ -107,7 +107,7 @@ The gen_autosm.bat file  points to a _Smc.jar_ file located in the 'TeamCode/lib
 
 ## Navigation in Autonomous Mode
 In order for the robot to navigate the playing field during autonomous mode, the robot needs the following two capabilities:
-1. The robot must be able to continuosly track its location and what direction it is pointing, know as its _position and  _heading_.  
+1. The robot must be able to continuosly track its location and the direction it is pointing, known as _position and  _heading_.  
 2.  The robot drivetrain must be able to move in response to commands from the autonomous state machine code such as in the example above.
 
 InfinityTech implements these two functions using a _Basic Kalman Filter_ and a _PID_ controller framework called the _Guidance Controller_.  This section describes both of these functions.  The software for both is in the _org.firstinspires.ftc.teamcode.guidance_ package.
