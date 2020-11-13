@@ -7,9 +7,9 @@ import com.qualcomm.robotcore.util.ReadWriteFile;
 import org.firstinspires.ftc.robotcore.internal.system.AppUtil;
 import org.firstinspires.ftc.teamcode.drivetrain.BaseMecanumDrive;
 import org.firstinspires.ftc.teamcode.drivetrain.SpeedBotMecanumDrive;
+import org.firstinspires.ftc.teamcode.hook.Hook;
 
 import java.io.File;
-import java.io.IOException;
 
 /**
  * This is the Speed Bot Chassis version used for development of the autonomous filter
@@ -31,7 +31,7 @@ public class BaseSpeedBot {
 
     protected SpeedBotMecanumDrive mDrivetrain = null;
 
-    private  FrontHooks mFrontHooks = null;
+    private Hook mFrontHooks = null;
 
     private boolean mEnableIMU = false;
 
@@ -45,7 +45,7 @@ public class BaseSpeedBot {
     }
 
 
-    public FrontHooks getFrontHooks(){
+    public Hook getFrontHooks(){
         return mFrontHooks;
     }
     /**
