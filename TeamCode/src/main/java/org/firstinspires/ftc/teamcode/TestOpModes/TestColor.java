@@ -54,8 +54,7 @@ import org.firstinspires.ftc.robotcore.external.navigation.DistanceUnit;
  * the A button on the gamepad, and decrease the gain by holding down the B button on the gamepad.
  * <p>
  * If the color sensor has a light which is controllable from software, you can use the X button on
- * the gamepad to toggle the light on and off. The REV sensors don't support this, but instead have
- * a physical switch on them to turn the light on and off, beginning with REV Color Sensor V2.
+ * the gamepad to toggle the light on and off. The REV sensors don't support this, but instead have65ytgfft++* a physical switch on them to turn the light on and off, beginning with REV Color Sensor V2.
  * <p>
  * If the color sensor also supports short-range distance measurements (usually via an infrared
  * proximity sensor), the reported distance will be written to telemetry. As of September 2020,
@@ -203,7 +202,7 @@ public class TestColor extends LinearOpMode {
 //        telemetry.addLine();
 //        telemetry.addData("Sensor 3", "Red Detected");
 //      }
-      if (inRange(colors3.red,0.017) && inRange(colors3.green,0.019) && inRange(colors3.blue,0.009)) {
+      if (inRange(colors3.red,0.020) && inRange(colors3.green,0.019) && inRange(colors3.blue,0.009)) {
         telemetry.addLine();
         telemetry.addData("Sensor 3", "Orange Ring Detected");
       }
