@@ -1,7 +1,7 @@
-%class FrontHookController
+%class HookController
 %package org.firstinspires.ftc.teamcode.hook
 // http://smc.sourceforge.net/
-%start FrontHookStateMachine::Start
+%start HookStateMachine::Start
 
 /**
 This is a small state machine for controlling the front hook assembly to handle the following
@@ -10,15 +10,15 @@ sequence actions:
 2. Changing hook positions.
 3. Grabbing, raising, and releasing a ring in a controlled sequence.
 **/
-%map FrontHookStateMachine
+%map HookStateMachine
 %%
     Start
     {
-        evInitialize [ctxt.getHookPosition() == FrontHook.HOOK_POSITION_UNKNOWN] jump(Calibrate::Start) { }
+        evInitialize [ctxt.getHookPosition() == Hook.HOOK_POSITION_UNKNOWN] jump(Calibrate::Start) { }
 
-        evInitialize [ctxt.getHookPosition() == FrontHook.HOOK_POSITION_RETRACTED] jump(Run::Retracted) {}
-        evInitialize [ctxt.getHookPosition() == FrontHook.HOOK_POSITION_LOWERED] jump(Run::Lowered) {}
-        evInitialize [ctxt.getHookPosition() == FrontHook.HOOK_POSITION_VERTICAL] jump(Run::Vertical) {}
+        evInitialize [ctxt.getHookPosition() == Hook.HOOK_POSITION_RETRACTED] jump(Run::Retracted) {}
+        evInitialize [ctxt.getHookPosition() == Hook.HOOK_POSITION_LOWERED] jump(Run::Lowered) {}
+        evInitialize [ctxt.getHookPosition() == Hook.HOOK_POSITION_VERTICAL] jump(Run::Vertical) {}
     }
     Default
     {
@@ -52,7 +52,7 @@ sequence actions:
     Start
         Entry {
             // Set the hook position to retracted
-            ctxt.setHookPosition(FrontHook.HOOK_POSITION_RETRACTED);
+            setHookPosition(Hook.HOOK_POSITION_RETRACTED);
         }
     {
         evRetractTimeoutError  CalibrateError {  }

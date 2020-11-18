@@ -126,11 +126,11 @@ public class BaseSpeedBotOpMode extends OpMode{
             // Use left bumper to raise and lower the front hooks
             boolean leftBumper = gamepad1.left_bumper || gamepad2.left_bumper;
             if (leftBumper){
-                if (robot.getFrontHooks().isOpen()){
-                    robot.getFrontHooks().closeHooks();
+                if (robot.getFrontHooks().isClampOpen()){
+                    robot.getFrontHooks().closeClamp();
                 }
                 else{
-                    robot.getFrontHooks().openHooks();
+                    robot.getFrontHooks().openClamp();
                 }
             }
 

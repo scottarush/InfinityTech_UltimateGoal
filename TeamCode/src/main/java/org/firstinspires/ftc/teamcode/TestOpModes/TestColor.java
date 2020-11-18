@@ -47,35 +47,39 @@ import org.firstinspires.ftc.robotcore.external.navigation.DistanceUnit;
  * This is an example LinearOpMode that shows how to use a color sensor in a generic
  * way, regardless of which particular make or model of color sensor is used. The Op Mode
  * assumes that the color sensor is configured with a name of "sensor_color".
- *
+ * <p>
  * There will be some variation in the values measured depending on the specific sensor you are using.
- *
+ * <p>
  * You can increase the gain (a multiplier to make the sensor report higher values) by holding down
  * the A button on the gamepad, and decrease the gain by holding down the B button on the gamepad.
- *
+ * <p>
  * If the color sensor has a light which is controllable from software, you can use the X button on
  * the gamepad to toggle the light on and off. The REV sensors don't support this, but instead have
  * a physical switch on them to turn the light on and off, beginning with REV Color Sensor V2.
- *
+ * <p>
  * If the color sensor also supports short-range distance measurements (usually via an infrared
  * proximity sensor), the reported distance will be written to telemetry. As of September 2020,
  * the only color sensors that support this are the ones from REV Robotics. These infrared proximity
  * sensor measurements are only useful at very small distances, and are sensitive to ambient light
  * and surface reflectivity. You should use a different sensor if you need precise distance measurements.
- *
+ * <p>
  * Use Android Studio to Copy this Class, and Paste it into your team's code folder with a new name.
  * Remove or comment out the @Disabled line to add this Op Mode to the Driver Station OpMode list
  */
 @TeleOp(name = "RevColorTest", group = "Sensor")
 //@Disabled
 public class TestColor extends LinearOpMode {
-  /** The colorSensor field will contain a reference to our color sensor hardware object */
-  NormalizedColorSensor colorSensor2;
+  /**
+   * The colorSensor field will contain a reference to our color sensor hardware object
+   */
+//  NormalizedColorSensor colorSensor2;
   NormalizedColorSensor colorSensor3;
 
-  /** The relativeLayout field is used to aid in providing interesting visual feedback
+  /**
+   * The relativeLayout field is used to aid in providing interesting visual feedback
    * in this sample application; you probably *don't* need this when you use a color sensor on your
-   * robot. Note that you won't see anything change on the Driver Station, only on the Robot Controller. */
+   * robot. Note that you won't see anything change on the Driver Station, only on the Robot Controller.
+   */
   View relativeLayout;
 
   /**
@@ -90,7 +94,8 @@ public class TestColor extends LinearOpMode {
    */
 
 
-  @Override public void runOpMode() {
+  @Override
+  public void runOpMode() {
     // Get a reference to the RelativeLayout so we can later change the background
     // color of the Robot Controller app to match the hue detected by the RGB sensor.
     int relativeLayoutId = hardwareMap.appContext.getResources().getIdentifier("RelativeLayout", "id", hardwareMap.appContext.getPackageName());
@@ -108,7 +113,7 @@ public class TestColor extends LinearOpMode {
           relativeLayout.setBackgroundColor(Color.WHITE);
         }
       });
-      }
+    }
   }
 
   protected void runSample() {
@@ -131,7 +136,7 @@ public class TestColor extends LinearOpMode {
     // Get a reference to our sensor object. It's recommended to use NormalizedColorSensor over
     // ColorSensor, because NormalizedColorSensor consistently gives values between 0 and 1, while
     // the values you get from ColorSensor are dependent on the specific sensor you're using.
-    colorSensor2 = hardwareMap.get(NormalizedColorSensor.class, "col2");
+    //   colorSensor2 = hardwareMap.get(NormalizedColorSensor.class, "col2");
     colorSensor3 = hardwareMap.get(NormalizedColorSensor.class, "col3");
 
     // Wait for the start button to be pressed.
@@ -153,12 +158,12 @@ public class TestColor extends LinearOpMode {
 
       // Tell the sensor our desired gain value (normally you would do this during initialization,
       // not during the loop)
-      colorSensor2.setGain(gain);
+      //    colorSensor2.setGain(gain);
       colorSensor3.setGain(gain);
 
 
       // Get the normalized colors2 from the sensor
-      NormalizedRGBA colors2 = colorSensor2.getNormalizedColors();
+      //     NormalizedRGBA colors2 = colorSensor2.getNormalizedColors();
       NormalizedRGBA colors3 = colorSensor3.getNormalizedColors();
 
       /* Use telemetry to display feedback on the driver station. We show the red, green, and blue
@@ -167,12 +172,12 @@ public class TestColor extends LinearOpMode {
        * for an explanation of HSV color. */
 
       // Update the hsvValues array by passing it to Color.colorToHSV()
-      Color.colorToHSV(colors2.toColor(), hsvValues);
+      Color.colorToHSV(colors3.toColor(), hsvValues);
 
-      telemetry.addLine()
-              .addData("Red 2", "%.3f", colors2.red)
-              .addData("Green 2", "%.3f", colors2.green)
-              .addData("Blue 2", "%.3f", colors2.blue);
+//      telemetry.addLine()
+//              .addData("Red 2", "%.3f", colors2.red)
+//              .addData("Green 2", "%.3f", colors2.green)
+//              .addData("Blue 2", "%.3f", colors2.blue);
 //      telemetry.addLine()
 //              .addData("Hue 2", "%.3f", hsvValues[0])
 //              .addData("Saturation 2", "%.3f", hsvValues[1])
@@ -191,20 +196,25 @@ public class TestColor extends LinearOpMode {
 //              .addData("Value 3", "%.3f", hsvValues[2]);
 //      telemetry.addData("Alpha 3", "%.3f", colors3.alpha);
 
-      if (colors3.red > 0.01 && colors3.green > 0.25 && colors3.blue > 0.15) {
+//      if (colors3.red > 0.01 && colors3.green > 0.25 && colors3.blue > 0.15) {
+//        telemetry.addLine();
+//        telemetry.addData("Sensor 3", "White Detected");
+//      } else if (colors3.red > 0.025 && colors3.green < 0.015 && colors3.blue < 0.015) {
+//        telemetry.addLine();
+//        telemetry.addData("Sensor 3", "Red Detected");
+//      }
+      if (inRange(colors3.red,0.017) && inRange(colors3.green,0.019) && inRange(colors3.blue,0.009)) {
         telemetry.addLine();
-        telemetry.addData("Sensor 3", "White Detected");
-      } else if (colors3.red > 0.025 && colors3.green < 0.015 && colors3.blue < 0.015) {
-        telemetry.addLine();
-        telemetry.addData("Sensor 3", "Red Detected");
+        telemetry.addData("Sensor 3", "Orange Ring Detected");
       }
-      if (colors2.red > 0.05 && colors2.green > 0.05 && colors2.blue > 0.05) {
-        telemetry.addLine();
-        telemetry.addData("Sensor 2", "White Detected");
-      } else if (colors2.red > ((colors2.green - 0.005) + (colors2.blue - 0.005))) {
-        telemetry.addLine();
-        telemetry.addData("Sensor 2", "Red Detected");
-      }
+
+//      if (colors2.red > 0.05 && colors2.green > 0.05 && colors2.blue > 0.05) {
+//        telemetry.addLine();
+//        telemetry.addData("Sensor 2", "White Detected");
+//      } else if (colors2.red > ((colors2.green - 0.005) + (colors2.blue - 0.005))) {
+//        telemetry.addLine();
+//        telemetry.addData("Sensor 2", "Red Detected");
+//      }
 
 
       /* If this color sensor also has a distance sensor, display the measured distance.
@@ -228,5 +238,13 @@ public class TestColor extends LinearOpMode {
         }
       });
     }
+  }
+
+  private boolean inRange(double color, double center) {
+    double diff = color - center;
+    if (Math.abs(diff) < 0.005) {
+      return true;
+    }
+    return false;
   }
 }

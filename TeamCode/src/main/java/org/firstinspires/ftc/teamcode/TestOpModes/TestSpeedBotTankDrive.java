@@ -42,7 +42,7 @@ This class is used to test the speed bot tank drive.
   */
 
 @TeleOp(name="TestSpeedBotTankDrive", group="Robot")
-@Disabled
+//@Disabled
 public class TestSpeedBotTankDrive extends OpMode{
 
     /* Declare OpMode members. */
@@ -93,6 +93,7 @@ public class TestSpeedBotTankDrive extends OpMode{
 
         // the speeds with the new gamepad inputs
         drivetrain.setTankDriveJoystickInput(xleft,yleft,xright,yright);
+
     }
 
     /*
