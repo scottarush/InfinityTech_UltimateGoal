@@ -19,6 +19,8 @@ repositories {
 }
 dependencies{
     implementation files('lib/libejml.jar')
+    implementation 'org.pytorch:pytorch_android:1.6.0'
+    implementation 'org.pytorch:pytorch_android_torchvision:1.6.0'
 }
 dependencies {
     annotationProcessor files('lib/OpModeAnnotationProcessor.jar')
