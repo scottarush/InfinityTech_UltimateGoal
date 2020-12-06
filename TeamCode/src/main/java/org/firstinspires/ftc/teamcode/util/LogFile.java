@@ -19,6 +19,8 @@ public class LogFile {
     private BufferedWriter mWriter;
 
     public LogFile(String filePath, String filename, String[] columnNames){
+        File root = Environment.getRootDirectory();
+        mFilePath = root.getPath()+"/"+filePath;
         mFilePath = filePath;
         mColumnNames = columnNames;
         mFilename = filename;
@@ -26,7 +28,6 @@ public class LogFile {
 
     public void openFile(){
         try {
-            File path = Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOWNLOADS);
             mLogFile = new File(mFilePath,mFilename);
             if (mLogFile.exists()){
                 mLogFile.delete();
