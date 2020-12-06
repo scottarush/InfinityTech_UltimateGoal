@@ -179,7 +179,7 @@ public class RingNeuralNetworkDataCollectionOpMode extends OpMode {
         if (mLightOn)
             light = "On";
         logRecord[logIndex++] = light;
-        logRecord[logIndex++] = String.format("%.01f mm", mProximitySensor.getDistance(DistanceUnit.MM));
+        logRecord[logIndex++] = String.format("%.01f", mProximitySensor.getDistance(DistanceUnit.MM));
         logRecord[logIndex++] = formatSensorValue(mTopColorSensor.getNormalizedColors().red);
         logRecord[logIndex++] = formatSensorValue(mTopColorSensor.getNormalizedColors().green);
         logRecord[logIndex++] = formatSensorValue(mTopColorSensor.getNormalizedColors().blue);
