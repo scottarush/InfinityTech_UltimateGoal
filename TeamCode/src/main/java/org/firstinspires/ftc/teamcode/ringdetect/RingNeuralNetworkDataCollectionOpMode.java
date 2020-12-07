@@ -18,14 +18,14 @@ import org.firstinspires.ftc.teamcode.util.OneShotTimer;
 public class RingNeuralNetworkDataCollectionOpMode extends OpMode {
     public static final String LOG_PATHNAME = "/sdcard";
 
-    public static final String LOG_FILENAME = "nndata.csv";
+    public static final String LOG_FILENAME = "06DEC20 initial training data.csv";
     public static final String[] LOG_COLUMNS = {"Record#","tag", "light status","distance", "top_red", "top_green", "top_blue", "top_distance", "mid_red", "mid_green", "mid_blue", "mid_distance", "bottom_red", "bottom_green", "bottom_blue", "bottom_distance"};
     private LogFile mLogFile;
     private RevColorSensorV3 mBottomColorSensor;
     private RevColorSensorV3 mTopColorSensor;
     private RevColorSensorV3 mMiddleSensor;
     private DistanceSensor mProximitySensor;
-    private String mCurrentTag = "No Rings";
+    private String mCurrentTag = NO_RING_TAG;
     private int mRecordNumber = 0;
     private OneShotTimer mCaptureMessageTimer = new OneShotTimer(1000, new OneShotTimer.IOneShotTimerCallback() {
         @Override
@@ -36,9 +36,9 @@ public class RingNeuralNetworkDataCollectionOpMode extends OpMode {
     private boolean mLastTagButtonState = false;
     private boolean mLastTriggerButtonState = false;
     private boolean mLastLightButtonState = false;
-    public static final String NO_RING_TAG = "NoRing";
-    public static final String ONE_RING_TAG = "OneRing";
-    public static final String FOUR_RING_TAG = "FourRings";
+    public static final String NO_RING_TAG = "No Rings";
+    public static final String ONE_RING_TAG = "One Ring";
+    public static final String FOUR_RING_TAG = "Four Rings";
 
     @Override
     public void init() {
@@ -87,12 +87,12 @@ public class RingNeuralNetworkDataCollectionOpMode extends OpMode {
 
         // if we had a rising edge, cycle to the next tag
         if (edgeDetect == true) {
-            if (mCurrentTag == "No Rings") {
-                mCurrentTag = "One Ring";
-            } else if (mCurrentTag == "One Ring") {
-                mCurrentTag = "Four Rings";
+            if (mCurrentTag == NO_RING_TAG) {
+                mCurrentTag = ONE_RING_TAG;
+            } else if (mCurrentTag == ONE_RING_TAG) {
+                mCurrentTag = FOUR_RING_TAG;
             } else {
-                mCurrentTag = "No Rings";
+                mCurrentTag = NO_RING_TAG;
             }
         }
         // check for x button triggered to toggle the light flag
