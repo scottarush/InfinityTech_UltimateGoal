@@ -1,45 +1,49 @@
 package org.firstinspires.ftc.teamcode.ringdetect;
 
+import org.ejml.data.DMatrixRMaj;
 import org.ejml.simple.SimpleMatrix;
-
 import java.util.ArrayList;
+import java.util.Iterator;
 import java.util.Random;
+import static org.ejml.dense.row.CommonOps_DDRM.mult;
+import static org.ejml.dense.row.CommonOps_DDRM.add;
+import static org.ejml.dense.row.CommonOps_DDRM.elementMult;
+import static org.ejml.dense.row.CommonOps_DDRM.subtract;
+import static org.ejml.dense.row.CommonOps_DDRM.transpose;
+import static org.ejml.dense.row.CommonOps_DDRM.scale;
+import static org.ejml.dense.row.CommonOps_DDRM.extractColumn;
+import static org.ejml.dense.row.CommonOps_DDRM.fill;
 
 /**
- * This class implements the neural network.
+ * This class implements the neural network.  Comments notation is from:
+ * http://neuralnetworksanddeeplearning.com/chap2.html
  */
 public class JavaNeuralNetwork {
-    // Array of weights in each layer from layer 2..L (total of L-1 elements)
-    ArrayList<SimpleMatrix> mWeights = null;
-    // Array of biases in each layer from layer 2..L (total of L-1 elements)
-    ArrayList<SimpleMatrix> mBiases = null;
 
-    // Array of activations for each layer from layer 1..L
-    ArrayList<SimpleMatrix> mActivations = null;
+    public interface ITrainingStatusListener{
+        public void trainingStatus(int epochNumber, double normalError);
+    }
+    // List weight matrices in each layer from layer 2..L (total of L-1 elements)
+    // element 0 => Layer 2
+    ArrayList<DMatrixRMaj> mWeights = null;
+    // List of biase matrices in each layer from layer 2..L (total of L-1 elements)
+    // element 0 => Layer 2
+    ArrayList<DMatrixRMaj> mBiases = null;
 
-    // Array of delta errors for each layer from layer 2..L (total of L-1 elements)
-    ArrayList<SimpleMatrix> mDeltas = null;
+    // Array of activation matrices used in backpropogation.  Each element contains L layers
+    ArrayList<DMatrixRMaj>[] mActivations = null;
 
-    // Batch size
-    private int mBatchSize = 5;
+    // Array of delta arrays used in backpropogation.  Each element contains L layers
+    ArrayList<DMatrixRMaj>[] mDeltas = null;
 
     // Learning Rate
     private double mETA = 0.005d;
 
-    // Matrix of training data
-    private SimpleMatrix mX = null;
-    // Index of current column for batch in mXBatch and mYBatch arrays
-    private int mBatchColumnIndex = 0;
-    // Current batch of training data extracted from mX
-    private SimpleMatrix mXBatch = null;
-    // Row Vector of tag data corresponding to X
-    private SimpleMatrix mY = null;
-    // Current batch of training data extracted from mY
-    private SimpleMatrix mYBatch = null;
-
     // Number of nodes in each layer starting from the input layer to the output
     private int[] mNetwork = null;
 
+    // Listeners for status updates at end of each epoch
+    private ArrayList<ITrainingStatusListener> mTrainingStatusListeners = new ArrayList<>();
     /**
      * Creates a new neural network with randomized weights
      * @param network array containing number of nodes in each layer
@@ -48,83 +52,165 @@ public class JavaNeuralNetwork {
         mNetwork = network;
         mWeights = new ArrayList<>();
         mBiases = new ArrayList<>();
-        // Just set the size of the activation L with null entries
-        mActivations = new ArrayList<>(network.length);
-        // And deltas to L-1
-        mDeltas = new ArrayList<>(network.length-1);
 
         // And initialize the weigth and bias matrices
         for (int i = 0; i < network.length - 1; i++) {
             // Add a total of L-1 weight and bias matrices
             SimpleMatrix w = SimpleMatrix.random_DDRM(network[i + 1], network[i], -1.0d, 1.0d, new Random());
-            mWeights.add(w);
+            mWeights.add(w.getDDRM());
             SimpleMatrix b = SimpleMatrix.random_DDRM(network[i + 1], 1, -1.0d, 1.0d, new Random());
-            mBiases.add(b);
+            mBiases.add(b.getDDRM());
         }
+    }
+
+    /**
+     * Adds a training status listeners
+     */
+    public void addTrainingStatusListener(ITrainingStatusListener listener){
+        if (mTrainingStatusListeners.contains(listener))
+            return;
+        mTrainingStatusListeners.add(listener);
     }
 
     /**
      * Feedforward method loops through
      * z^x,l = w^l * a^x,l−1 + b^l and a^x,l=σ(z^x,l).
+     *
+     * This method is used for both for run-time operation and training backpropogation
+     * @param activations reference to activation matrix to fill with values for training or
+     *                    nullfor run-time (and values will not be saved).
+     * @return vector of output node activations.  Only use for runtime.  Training uses the supplied list
      */
-    public void feedForward(SimpleMatrix input) {
+    public DMatrixRMaj feedForward(DMatrixRMaj input,ArrayList<DMatrixRMaj> activations) {
         // Set the input and save in the activations array
-        SimpleMatrix a_xlm1 = input;
-        mActivations.set(0, a_xlm1);
-        // and loop L-1 times starting with layer 0 up to L-1
-        SimpleMatrix z_xl = null;
-        for (int l = 0; l < mNetwork.length - 1; l++) {
-            SimpleMatrix wl = mWeights.get(l);
-            SimpleMatrix bl = mBiases.get(l);
-            z_xl = wl.mult(a_xlm1).plus(bl);
-
-            SimpleMatrix a_xl = sigma(z_xl);
-            mActivations.set(l+1,a_xl);
+        DMatrixRMaj a_xlm1 = input;
+        if (activations != null) {
+            activations.set(0, a_xlm1);
         }
+        // and loop L-1 times starting with layer 0 up to L-1
+        for (int l = 0; l < mNetwork.length - 1; l++) {
+            DMatrixRMaj wl = mWeights.get(l);
+            DMatrixRMaj bl = mBiases.get(l);
+
+            DMatrixRMaj z_xl = new DMatrixRMaj(bl);
+            mult(wl,a_xlm1,z_xl);
+            add(z_xl,bl,z_xl);
+
+            DMatrixRMaj a_xl = sigma(z_xl);
+            // If training then save the resultant activations to the supplied matrix
+            if (activations != null)
+                activations.set(l+1,a_xl);
+            // and save a^x,l as a^x,l-1 for time
+            a_xlm1 = a_xl;
+        }
+        // Return last computed activation matrix as the output node values.
+        return a_xlm1;
     }
     /**
      * backpropogate
+     * @param x numInputs X batchsize matrix of input batch
+     * @param y numOutputs x batchsize matrix of output values
      */
-    public void backprop(SimpleMatrix x, SimpleMatrix y) {
-        // Step 1.  Compute the output error delta according to δ^x,L=∇aCx ⊙ σ′(z^x,L)
+    private void backprop(DMatrixRMaj x, DMatrixRMaj y) {
+        // Loop through the mini-batch one sample at a time saving the activations and
+        // error deltas along the way
+        for(int column=0;column < x.numCols;column++) {
+            // Do the feedforward with a single column from x
+            DMatrixRMaj inputVector = new DMatrixRMaj(x.numRows,1);
+            extractColumn(x,column,inputVector);
+            feedForward(inputVector,mActivations[column]);
 
+            // Step 1.  Compute the output error delta according to δ^x,L=∇aCx ⊙ σ′(z^x,L)
             // ∇aCx is just the difference between the output activations and the y vector
-        SimpleMatrix cost = mActivations.get(mNetwork.length-1).minus(y);
+            DMatrixRMaj outputVector = new DMatrixRMaj(y.numRows,1);
+            extractColumn(y,column,outputVector);
+            DMatrixRMaj cost = new DMatrixRMaj(outputVector);
+            DMatrixRMaj a_xL = mActivations[column].get(mNetwork.length - 1);
+            subtract(a_xL,outputVector,cost);
             // the last term is just the output layer activation primed
-        SimpleMatrix sigma_prime = sigma_prime(mActivations.get(mNetwork.length-1));
-        // Compute and save the layer L error
-        SimpleMatrix del_xl = cost.elementMult(sigma_prime);
-        mDeltas.set(mNetwork.length-1,del_xl);
+            DMatrixRMaj sigma_prime = sigma_prime(a_xL);
+            // Compute and save the layer L error
+            DMatrixRMaj del_xl = new DMatrixRMaj(mNetwork[mNetwork.length-1],1);
+            elementMult(cost,sigma_prime,del_xl);
+            mDeltas[column].set(mNetwork.length - 1, del_xl);
 
-        // Step 2. back propogate the error from L-1,...2 according to
-        // δ^x,l=((w^l+1)^T * δ^x,l+1) ⊙ σ′(z^x,l)
-        // where σ′(z^x,l) = σ(z^x,l)(1-σ(z^x,l)) = a^x,l(1-a^x,l)
-        for(int l=mNetwork.length-2;l > 0;l--){
-            SimpleMatrix wl1_T = mWeights.get(l+1).transpose();
-            sigma_prime = sigma_prime(mActivations.get(l));
-            SimpleMatrix del_xlm1 = wl1_T.mult(del_xl).elementMult(sigma_prime);
-            // Save error delta for use in Step 3
-            mDeltas.set(l,del_xlm1);
-            // shift delta for next layer down
-            del_xl = del_xlm1;
+            // Step 2. back propogate the error from L-1,...2 according to
+            // δ^x,l=((w^l+1)^T * δ^x,l+1) ⊙ σ′(z^x,l)
+            // where σ′(z^x,l) = σ(z^x,l)(1-σ(z^x,l)) = a^x,l(1-a^x,l)
+            for (int l = mNetwork.length - 2; l >= 0; l--) {
+                DMatrixRMaj wl1_T = new DMatrixRMaj(mNetwork[l],mNetwork[l+1]);
+                transpose(mWeights.get(l),wl1_T);
+
+                DMatrixRMaj del_xlm1 = new DMatrixRMaj(mNetwork[l],1);
+                mult(wl1_T,del_xl,del_xlm1);
+
+                sigma_prime = sigma_prime(mActivations[column].get(l));
+                elementMult(del_xlm1,sigma_prime);
+
+                // Save error delta for use in Step 3
+                mDeltas[column].set(l, del_xlm1);
+                // shift delta for next layer down
+                del_xl = del_xlm1;
+            }
         }
-        // Step 3.  Gradient descent, for each l=L,L−1,…,2
-        // update weights according to: w^l→w^l−η/m * ∑ δ^x,l(ax,l−1)T
-        // and biases according to:  b^l→b^l−η/m ∑ δ^x,l
-
     }
+    /**
+     * stochastic gradient descent
+     * Step 3.  Gradient descent, for each l=L,L−1,…,2
+     * update weights according to: w^l→w^l−η/m * ∑ δ^x,l(a^x,l−1)^T
+     * and biases according to:  b^l→b^l−η/m ∑ δ^x,l
+     *
+     * Upon entry mActivations and mDeltas contain lists of the activation and delta matrices
+     * from the last backpropogated network.
+     * @param batchSize The number of valid values in this batches mActivations and mDeltas lists
+     */
+    private void sgd(int batchSize) {
+        double eta_m = mETA/batchSize;
+
+        // Loop through the layers in reverse from layer=L, L-1,...,2
+        // index l=0 corresponds to Layer 1
+        for(int l=mNetwork.length-2;l >= 0;l--){
+            // Create sum matrices for this layer
+            DMatrixRMaj wsum = new DMatrixRMaj(mWeights.get(l));
+            wsum.zero();
+            DMatrixRMaj bsum = new DMatrixRMaj(mBiases.get(l));
+            bsum.zero();
+            for(int i=0;i < batchSize;i++){
+                // Do the weights first
+                DMatrixRMaj del_xl = mDeltas[i].get(l+1);
+                DMatrixRMaj a_xlm1 = mActivations[i].get(l);
+
+                DMatrixRMaj a_xlm1_T = new DMatrixRMaj(a_xlm1.numCols,a_xlm1.numRows);
+                transpose(a_xlm1,a_xlm1_T);
+
+                DMatrixRMaj wtemp = new DMatrixRMaj(wsum);
+                mult(del_xl,a_xlm1_T,wtemp);
+                add(wsum,wtemp,wsum);
+                scale(eta_m,wsum,wtemp);
+                subtract(mWeights.get(l),wtemp,mWeights.get(l));
+
+                // Now the bias updates
+                DMatrixRMaj btemp = new DMatrixRMaj(bsum);
+                add(bsum,del_xl,bsum);
+                scale(eta_m,bsum,btemp);
+
+                subtract(mBiases.get(l),btemp,mBiases.get(l));
+            }
+        }
+    }
+
     /**
      * Computes the sigmoid of a matrix
      *
      * @param z
      * @return vector of the sigmoided matrix
      */
-    private SimpleMatrix sigma(SimpleMatrix z) {
+    private DMatrixRMaj sigma(DMatrixRMaj z) {
         // sigma = 1 / (1+e^-z)
-        SimpleMatrix retsigma = new SimpleMatrix(z);
-        for(int row=0;row < z.numRows();row++){
-            double s = 1/(1+Math.exp(-z.get(row,0)));
-            retsigma.set(row,0,s);
+        DMatrixRMaj retsigma = new DMatrixRMaj(z);
+        for (int row = 0; row < z.numRows; row++) {
+            double s = 1d / (1d + Math.exp(-z.get(row, 0)));
+            retsigma.set(row, 0, s);
         }
         return retsigma;
     }
@@ -134,10 +220,12 @@ public class JavaNeuralNetwork {
      * @param sigmaVector sigmoid vector computed from sigma function
      * @return derivative vector
      */
-    private SimpleMatrix sigma_prime(SimpleMatrix sigmaVector) {
+    private DMatrixRMaj sigma_prime(DMatrixRMaj sigmaVector) {
         // sigma' = sigma * (1 - sigma)
-        SimpleMatrix identity = SimpleMatrix.identity(sigmaVector.numRows());
-        SimpleMatrix sigmap = sigmaVector.elementMult(identity.minus(sigmaVector));
+        DMatrixRMaj sigmap = new DMatrixRMaj(sigmaVector.numRows,1);
+        fill(sigmap,1d);
+        subtract(sigmap,sigmaVector,sigmap);
+        elementMult(sigmap,sigmaVector);
         return sigmap;
     }
 
@@ -151,42 +239,61 @@ public class JavaNeuralNetwork {
      * @param numEpochs
      */
     public void train(SimpleMatrix x, SimpleMatrix y, int batchSize, double eta, int numEpochs) {
-        mX = x;
-        mY = y;
-        mBatchSize = batchSize;
         mETA = eta;
 
-        // First shuffle the training data
-        int[] columns = genShuffleColumnIndexVector(mX.numCols());
-        mX = shuffleMatrix(mX, columns);
-        mY = shuffleMatrix(mY, columns);
-        // Reset the batch column index
-        mBatchColumnIndex = 0;
-
-        // And loop through the epochs
-        for (int epochIndex = 0; epochIndex < numEpochs; epochIndex++) {
-            // Get next batch of training data
-            extractNextBatch();
-            for (int batchIndex = 0; batchIndex < mXBatch.numCols(); batchIndex++) {
-                SimpleMatrix xt = mXBatch.cols(batchIndex, batchIndex + 1);
-                // And do the feed forward
-                feedForward(xt);
+        // Allocate the activation and delta matrices needed for backpropogation according to the batch size
+        mActivations = new ArrayList[batchSize];
+        mDeltas = new ArrayList[batchSize];
+        for (int i = 0; i < batchSize; i++) {
+            mActivations[i] = new ArrayList<>(mNetwork.length);
+            mDeltas[i] = new ArrayList<>(mNetwork.length);
+            // Initialize the lists with matrices
+            for(int l=0;l < mNetwork.length;l++){
+                mActivations[i].add(new DMatrixRMaj(mNetwork[l]));
+                mDeltas[i].add(new DMatrixRMaj(mNetwork[l]));
             }
-
         }
-    }
+        // Loop through the epochs with one mini-batch at a time
+        for (int epochIndex = 0; epochIndex < numEpochs; epochIndex++) {
+            // Start a new epoch by shutffle the training data to randomize the
+            // batch picks
+            int[] columns = genShuffleColumnIndexVector(y.numCols());
+            x = shuffleMatrix(x, columns);
+            y = shuffleMatrix(y, columns);
+            int batchColumnIndex = 0;
+            boolean continueBatch = true;
+            int lastBatchSize = 0;
+            while (continueBatch) {
+                // Get next batch of training data
+                int remain = x.numCols() - batchColumnIndex;
+                lastBatchSize = batchSize;
+                if (remain < batchSize) {
+                    lastBatchSize = remain;
+                    // Clear continueBatch to drop out of the loop after this one
+                    continueBatch = false;
+                }
+                int batchEndColumn = batchColumnIndex + lastBatchSize;
+                DMatrixRMaj xbatch = x.cols(batchColumnIndex, batchEndColumn).getDDRM();
+                DMatrixRMaj ybatch = y.cols(batchColumnIndex, batchEndColumn).getDDRM();
+                // backprop the batch passing the activations
+                backprop(xbatch, ybatch);
 
-    /**
-     * Extracts the next batch and updates indexes for next time
-     */
-    private void extractNextBatch() {
-        int batchSize = mBatchSize;
-        int remain = mX.numCols() - mBatchColumnIndex;
-        if (remain < batchSize) {
-            batchSize = remain;
+                // do stochastic gradient descent iteration on this batch
+                sgd(lastBatchSize);
+
+                // Update the batchColumnIndex for next run
+                batchColumnIndex = batchEndColumn;
+             }
+            // Compute and save the output error for this epoch to the log array using
+            // the error deltas from the last layer of the last entry in the last batch
+            DMatrixRMaj lastDelta = mDeltas[lastBatchSize - 1].get(mNetwork.length - 1);
+            double normalError = SimpleMatrix.wrap(lastDelta).normF();
+            // And notify the status listeners
+            for(Iterator<ITrainingStatusListener>iter=mTrainingStatusListeners.iterator();iter.hasNext();){
+                ITrainingStatusListener listener = iter.next();
+                listener.trainingStatus(epochIndex+1,normalError);
+            }
         }
-        int batchEndColumn = mBatchColumnIndex + batchSize;
-        mXBatch = mX.cols(mBatchColumnIndex, batchEndColumn);
     }
 
     /**
@@ -210,6 +317,9 @@ public class JavaNeuralNetwork {
 
     /**
      * Shuffles the columns of a matrix and returns a shuffled copy.
+     * @param source source matrix to shuffle
+     * @param columns array of shuffled column indexes to shuffle
+     * @return shuffled matrix
      */
     private SimpleMatrix shuffleMatrix(SimpleMatrix source, int[] columns) {
         SimpleMatrix shuffle = null;
@@ -227,8 +337,8 @@ public class JavaNeuralNetwork {
     public String printNetwork() {
         StringBuffer buffer = new StringBuffer();
         for (int i = 0; i < mWeights.size(); i++) {
-            SimpleMatrix w = mWeights.get(i);
-            SimpleMatrix b = mBiases.get(i);
+            DMatrixRMaj w = mWeights.get(i);
+            DMatrixRMaj b = mBiases.get(i);
             buffer.append(printMatrix(w, "w_layer" + i));
             buffer.append("\n\r");
             buffer.append(printMatrix(b, "b_layer" + i));
@@ -244,20 +354,20 @@ public class JavaNeuralNetwork {
      * @param matrix
      * @return
      */
-    public static String printMatrix(SimpleMatrix matrix, String name) {
+    public static String printMatrix(DMatrixRMaj matrix, String name) {
         StringBuffer buffer = new StringBuffer();
         buffer.append("final double " + name + "[][]= {\n\r");
-        for (int row = 0; row < matrix.numRows(); row++) {
+        for (int row = 0; row < matrix.numRows; row++) {
             buffer.append("{");
-            for (int column = 0; column < matrix.numCols(); column++) {
+            for (int column = 0; column < matrix.numCols; column++) {
                 double value = matrix.get(row, column);
                 buffer.append(String.format("%1.10f", value));
-                if (column < matrix.numCols() - 1) {
+                if (column < matrix.numCols - 1) {
                     buffer.append(",");
                 }
             }
             buffer.append("}");
-            if (row < matrix.numRows() - 1) {
+            if (row < matrix.numRows - 1) {
                 buffer.append(",\n\r");
             } else {
                 buffer.append("};");
