@@ -1,5 +1,6 @@
 package org.firstinspires.ftc.teamcode.ringdetect;
 
+import org.ejml.simple.SimpleMatrix;
 import org.junit.Test;
 
 import java.io.File;
@@ -8,19 +9,35 @@ import java.io.IOException;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 
-public class RingNeuralNetworkTest {
+public class ShuffleTest {
 
     @Test
     public void main() {
         Path currentRelativePath = Paths.get("");
-        String filePath = currentRelativePath.toAbsolutePath().toString()+ "/src/main/java/org/firstinspires/ftc/teamcode/ringdetect";
-        String inputFile = "06DEC20 initial training data.csv";
-        RingTrainingDataPreProcessor processor = new RingTrainingDataPreProcessor(filePath+"/"+inputFile);
-        processor.processData();
+        String filePath = currentRelativePath.toAbsolutePath().toString()+ "/src/main/java/org/firstinspires/ftc/teamcode/ringdetect/data";
+
+
         // Now create and pass training data to neural network
-        JavaNeuralNetwork ringnn = new JavaNeuralNetwork(new int[]{13,15,3});
+        JavaNeuralNetwork ringnn = new JavaNeuralNetwork(new int[]{10,5});
 
         final StringBuffer logBuffer = new StringBuffer();
+        int cols = 20;
+        SimpleMatrix x = new SimpleMatrix(10,cols);
+        int offset =0;
+        for(int i=0;i < x.numRows();i++){
+            int increment = offset++;
+            for(int j=0;j < x.numCols();j++){
+                x.set(i,j,j+increment);
+            }
+        }
+        SimpleMatrix y = new SimpleMatrix(5,cols);
+        for(int i=0;i < y.numRows();i++){
+            int increment = offset++;
+            for(int j=0;j < y.numCols();j++){
+                y.set(i,j,j+increment);
+            }
+        }
+
         logBuffer.append("Epoch#,Normal Error\n");
         ringnn.addTrainingStatusListener(new JavaNeuralNetwork.ITrainingStatusListener() {
             @Override
@@ -28,7 +45,7 @@ public class RingNeuralNetworkTest {
                 logBuffer.append(epochNumber+","+ normalError +"\n");
             }
         });
-        ringnn.train(processor.getXTrainingData(),processor.getYTrainingData(),5,0.005d,50000);
+        ringnn.train(x,y,null,10,1.0d,2);
         try{
             File logFile = new File(filePath+"/training_log.csv");
             if (logFile.exists()){

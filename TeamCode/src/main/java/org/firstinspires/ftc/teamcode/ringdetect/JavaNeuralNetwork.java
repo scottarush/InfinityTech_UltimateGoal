@@ -2,6 +2,13 @@ package org.firstinspires.ftc.teamcode.ringdetect;
 
 import org.ejml.data.DMatrixRMaj;
 import org.ejml.simple.SimpleMatrix;
+
+import java.io.FileOutputStream;
+import java.io.IOException;
+import java.io.InputStream;
+import java.io.ObjectInputStream;
+import java.io.ObjectOutputStream;
+import java.io.Serializable;
 import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.Random;
@@ -18,34 +25,80 @@ import static org.ejml.dense.row.CommonOps_DDRM.fill;
  * This class implements the neural network.  Comments notation is from:
  * http://neuralnetworksanddeeplearning.com/chap2.html
  */
-public class JavaNeuralNetwork {
+@SuppressWarnings("unchecked")
+public class JavaNeuralNetwork implements Serializable {
 
     public interface ITrainingStatusListener{
-        public void trainingStatus(int epochNumber, double normalError);
+        void trainingStatus(int epochNumber, double normalError);
     }
     // List weight matrices in each layer from layer 2..L (total of L-1 elements)
     // element 0 => Layer 2
-    ArrayList<DMatrixRMaj> mWeights = null;
+    private ArrayList<DMatrixRMaj> mWeights = null;
     // List of biase matrices in each layer from layer 2..L (total of L-1 elements)
     // element 0 => Layer 2
-    ArrayList<DMatrixRMaj> mBiases = null;
+    private ArrayList<DMatrixRMaj> mBiases = null;
+
+    // vector of scale vectors to scale input data.
+    private SimpleMatrix mInputScaleVector = null;
 
     // Array of activation matrices used in backpropogation.  Each element contains L layers
-    ArrayList<DMatrixRMaj>[] mActivations = null;
+    private transient ArrayList<DMatrixRMaj>[] mActivations = null;
 
     // Array of delta arrays used in backpropogation.  Each element contains L layers
-    ArrayList<DMatrixRMaj>[] mDeltas = null;
+    private transient ArrayList<DMatrixRMaj>[] mDeltas = null;
 
     // Learning Rate
-    private double mETA = 0.005d;
+    transient private double mETA = 0.005d;
 
     // Number of nodes in each layer starting from the input layer to the output
     private int[] mNetwork = null;
 
     // Listeners for status updates at end of each epoch
-    private ArrayList<ITrainingStatusListener> mTrainingStatusListeners = new ArrayList<>();
+    transient private ArrayList<ITrainingStatusListener> mTrainingStatusListeners = new ArrayList<>();
+
     /**
-     * Creates a new neural network with randomized weights
+     * Deserializes an existing neural network from the FileInputStream.  This is the function
+     * used at runtime feedforward deployment.  It can also be used to further train an existing
+     * network.
+     * @param is FileInputStream pointing to the Serialized JavaNeuralNetwork object
+     * @throws Exception if there was a problem reading the serialized object from the fis
+     */
+    public JavaNeuralNetwork(InputStream is) throws Exception {
+        try{
+            ObjectInputStream ois = new ObjectInputStream(is);
+            JavaNeuralNetwork network = (JavaNeuralNetwork)ois.readObject();
+            // Copy the weights and biases into this one
+            mWeights = network.mWeights;
+            mBiases = network.mBiases;
+            mNetwork = network.mNetwork;
+        }
+        catch(IOException e){
+            throw new Exception("IOException reading neural network:"+e.getMessage());
+        }
+        catch(ClassNotFoundException e){
+            throw new Exception("ClassNotFoundException reading neural network:"+e.getMessage());
+        }
+    }
+
+    /**
+     * Serialzies the neural network to the supplied FileOutputStream
+     * @param fos FileOutputStream to save the network
+     * @throws Exception if there was a problem writing the serialized object
+     */
+    public void serializeNetwork(FileOutputStream fos) throws Exception{
+        try{
+            ObjectOutputStream oos = new ObjectOutputStream(fos);
+            oos.writeObject(this);
+            oos.close();
+        }
+         catch(IOException e){
+            throw new Exception("IOException writing neural network:"+e.getMessage());
+        }
+
+    }
+    /**
+     * Creates a new neural network with randomized weights.   This constructor is
+     * used only for training a new network.
      * @param network array containing number of nodes in each layer
      */
     public JavaNeuralNetwork(int network[]) {
@@ -63,6 +116,13 @@ public class JavaNeuralNetwork {
         }
     }
 
+    /**
+    * @return the column vector of scale factors used to scale the input data for feedforward runtime operation.
+    *
+     **/
+    public SimpleMatrix getInputScaleVector(){
+        return mInputScaleVector;
+    }
     /**
      * Adds a training status listeners
      */
@@ -234,12 +294,14 @@ public class JavaNeuralNetwork {
      *
      * @param x         X values must be numInputLayerNodes x NumSamples
      * @param y         Y values must be numOutputLayerNodes x NumSamples
+     * @param xscale        column vector of values used to scale each X row.
      * @param batchSize number of samples per epoch
      * @param eta       learning rate
      * @param numEpochs
      */
-    public void train(SimpleMatrix x, SimpleMatrix y, int batchSize, double eta, int numEpochs) {
+    public void train(SimpleMatrix x, SimpleMatrix y, SimpleMatrix xscale,int batchSize, double eta, int numEpochs) {
         mETA = eta;
+        mInputScaleVector = xscale;
 
         // Allocate the activation and delta matrices needed for backpropogation according to the batch size
         mActivations = new ArrayList[batchSize];
@@ -257,17 +319,20 @@ public class JavaNeuralNetwork {
         for (int epochIndex = 0; epochIndex < numEpochs; epochIndex++) {
             // Start a new epoch by shutffle the training data to randomize the
             // batch picks
-            int[] columns = genShuffleColumnIndexVector(y.numCols());
-            x = shuffleMatrix(x, columns);
-            y = shuffleMatrix(y, columns);
+            int[] columns = MatrixUtils.genShuffleColumnIndexVector(y.numCols());
+//            x = MatrixUtils.shuffleMatrix(x, columns);
+//            System.out.println(MatrixUtils.printMatrix(x.getDDRM(),"x"));
+//            y = MatrixUtils.shuffleMatrix(y, columns);
+//            System.out.println(MatrixUtils.printMatrix(y.getDDRM(),"y"));
             int batchColumnIndex = 0;
+
             boolean continueBatch = true;
             int lastBatchSize = 0;
             while (continueBatch) {
                 // Get next batch of training data
                 int remain = x.numCols() - batchColumnIndex;
                 lastBatchSize = batchSize;
-                if (remain < batchSize) {
+                if (remain <= batchSize) {
                     lastBatchSize = remain;
                     // Clear continueBatch to drop out of the loop after this one
                     continueBatch = false;
@@ -296,83 +361,17 @@ public class JavaNeuralNetwork {
         }
     }
 
-    /**
-     * generates a shuffled vector of columns for use in shuffling data
-     */
-    private int[] genShuffleColumnIndexVector(int length) {
-        int[] retarray = new int[length];
-        for (int i = 0; i < retarray.length; i++) {
-            retarray[i] = i;
-        }
-        // Now shuffle them in a loop
-        for (int i = 0; i < 20 * length; i++) {
-            int swapCol1 = 1 + (int) (Math.random() * length - 1);
-            int swapCol2 = 1 + (int) (Math.random() * length - 1);
-            int col2Val = retarray[swapCol2];
-            retarray[swapCol2] = retarray[swapCol1];
-            retarray[swapCol1] = col2Val;
-        }
-        return retarray;
-    }
-
-    /**
-     * Shuffles the columns of a matrix and returns a shuffled copy.
-     * @param source source matrix to shuffle
-     * @param columns array of shuffled column indexes to shuffle
-     * @return shuffled matrix
-     */
-    private SimpleMatrix shuffleMatrix(SimpleMatrix source, int[] columns) {
-        SimpleMatrix shuffle = null;
-        for (int i = 0; i < columns.length; i++) {
-            SimpleMatrix col = source.extractVector(false, columns[i]);
-            if (shuffle == null) {
-                shuffle = col;
-            } else {
-                shuffle = shuffle.concatColumns(col);
-            }
-        }
-        return shuffle;
-    }
-
     public String printNetwork() {
         StringBuffer buffer = new StringBuffer();
         for (int i = 0; i < mWeights.size(); i++) {
             DMatrixRMaj w = mWeights.get(i);
             DMatrixRMaj b = mBiases.get(i);
-            buffer.append(printMatrix(w, "w_layer" + i));
+            buffer.append(MatrixUtils.printMatrix(w, "w_layer" + i));
             buffer.append("\n\r");
-            buffer.append(printMatrix(b, "b_layer" + i));
+            buffer.append(MatrixUtils.printMatrix(b, "b_layer" + i));
             buffer.append("\n\r");
         }
         return buffer.toString();
     }
 
-    /**
-     * Utility to format a matrix in java 2D array initializer format for outputting weights
-     * to use as an initializer at runtime
-     *
-     * @param matrix
-     * @return
-     */
-    public static String printMatrix(DMatrixRMaj matrix, String name) {
-        StringBuffer buffer = new StringBuffer();
-        buffer.append("final double " + name + "[][]= {\n\r");
-        for (int row = 0; row < matrix.numRows; row++) {
-            buffer.append("{");
-            for (int column = 0; column < matrix.numCols; column++) {
-                double value = matrix.get(row, column);
-                buffer.append(String.format("%1.10f", value));
-                if (column < matrix.numCols - 1) {
-                    buffer.append(",");
-                }
-            }
-            buffer.append("}");
-            if (row < matrix.numRows - 1) {
-                buffer.append(",\n\r");
-            } else {
-                buffer.append("};");
-            }
-        }
-        return buffer.toString();
-    }
 }

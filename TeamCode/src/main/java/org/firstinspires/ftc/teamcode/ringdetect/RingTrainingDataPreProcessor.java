@@ -47,14 +47,26 @@ public class RingTrainingDataPreProcessor {
     private SimpleMatrix mXTrainingData = null;
     private SimpleMatrix mYTrainingData = null;
 
+    private SimpleMatrix mXTestData = null;
+    private SimpleMatrix mYTestData= null;
+
+    private SimpleMatrix mScaleFactors = null;
+
     public SimpleMatrix getXTrainingData(){
         return mXTrainingData;
     }
     public SimpleMatrix getYTrainingData(){
         return mYTrainingData;
     }
+    public SimpleMatrix getXTestData(){
+        return mXTestData;
+    }
+    public SimpleMatrix getYTestData(){
+        return mYTestData;
+    }
+    public SimpleMatrix getScaleFactors(){return mScaleFactors; }
 
-    public void processData() {
+    public void processData(double testFraction) {
         File inputFile = new File(mInputFilename);
         if (!inputFile.exists()) {
             System.out.println("Cannot find input file.");
@@ -76,16 +88,18 @@ public class RingTrainingDataPreProcessor {
             reader.close();
             fr.close();
 
+
             // Now create X and Y arrays and re-read data into the arrays
             mXTrainingData = new SimpleMatrix(TRAINING_DATA_NUM_ROWS,count);
             mYTrainingData = new SimpleMatrix(NUM_OUTPUT_STATES,count);
+
             fr = new FileReader(inputFile);
             reader = new BufferedReader(fr);
             int colIndex = 0;
             line = reader.readLine();  // throw away header line
             line = reader.readLine();
             while (line != null) {
-                parseLine(line,colIndex++);
+                parseLine(line,mXTrainingData,mYTrainingData,colIndex++);
                 line = reader.readLine();
             }
             reader.close();
@@ -94,82 +108,70 @@ public class RingTrainingDataPreProcessor {
             e.printStackTrace();
             return;
         }
-        // Now normalize the data
-        normalize();
+
+        // Normalize the data.  Must save the scale Factors to be used for runtime operation
+        mScaleFactors= MatrixUtils.normalizeRows(mXTrainingData);
+        MatrixUtils.normalizeRows(mYTrainingData);
+
+        // Shuffle the data to randomize the split between training and test
+        int columns[] = MatrixUtils.genShuffleColumnIndexVector(mXTrainingData.numCols());
+        mXTrainingData = MatrixUtils.shuffleMatrix(mXTrainingData,columns);
+        mYTrainingData = MatrixUtils.shuffleMatrix(mYTrainingData,columns);
+
+        // Compute the split between training and test data
+        int trainingCount = (int)Math.round((double)mXTrainingData.numCols()*testFraction);
+        int testColumnStart = mXTrainingData.numCols()-trainingCount;
+        //  split off test data starting testColumnStart
+        mXTestData = mXTrainingData.cols(testColumnStart,mXTrainingData.numCols());
+        mXTrainingData = mXTrainingData.cols(0,testColumnStart);
+
+        // And split off the test data starting at the testColumnStart
+        mYTestData = mYTrainingData.cols(testColumnStart,mYTrainingData.numCols());
+        mYTrainingData = mYTrainingData.cols(0,testColumnStart);
+
+ //       System.out.println(MatrixUtils.printMatrix(mXTrainingData.getDDRM(),"xtrain"));
+ //       System.out.println(MatrixUtils.printMatrix(mYTrainingData.getDDRM(),"ytrain"));
+
+
     }
 
-    private void parseLine(String line,int columnIndex) {
+    private void parseLine(String line,SimpleMatrix x,SimpleMatrix y,int columnIndex) {
         StringTokenizer tokenizer = new StringTokenizer(line, ",");
         tokenizer.nextToken();  // Skip record number
         String tag = tokenizer.nextToken();
 
         // Set the y data by first clearing the columm
         for(int i=0;i < NUM_OUTPUT_STATES;i++){
-            mYTrainingData.set(i,columnIndex,0d);
+            y.set(i,columnIndex,0d);
         }
         // And then set the ground truth one
         switch (tag) {
             case RingNeuralNetworkDataCollectionOpMode.NO_RING_TAG:
-                mYTrainingData.set(NO_RING_INDEX,columnIndex, 1d);
+                y.set(NO_RING_INDEX,columnIndex, 1d);
                 break;
             case RingNeuralNetworkDataCollectionOpMode.ONE_RING_TAG:
-                mYTrainingData.set(ONE_RING_INDEX,columnIndex,1d);
+                y.set(ONE_RING_INDEX,columnIndex,1d);
                 break;
             case RingNeuralNetworkDataCollectionOpMode.FOUR_RING_TAG:
-                mYTrainingData.set(FOUR_RINGS_INDEX,columnIndex, 1d);
+                y.set(FOUR_RINGS_INDEX,columnIndex, 1d);
                 break;
             default:
                 throw new RuntimeException("Invalid tag" + tag + " found in input file=" + mInputFilename);
         }
         tokenizer.nextToken();  // Skip the light status
-        mXTrainingData.set(DISTANCE_ROW_INDEX,columnIndex,Float.parseFloat(tokenizer.nextToken()));
-        mXTrainingData.set(TOP_RED_ROW_INDEX,columnIndex,Float.parseFloat(tokenizer.nextToken()));
-        mXTrainingData.set(TOP_GREEN_ROW_INDEX,columnIndex,Float.parseFloat(tokenizer.nextToken()));
-        mXTrainingData.set(TOP_BLUE_ROW_INDEX,columnIndex,Float.parseFloat(tokenizer.nextToken()));
-        mXTrainingData.set(TOP_DISTANCE_ROW_INDEX,columnIndex,Float.parseFloat(tokenizer.nextToken()));
-        mXTrainingData.set(MID_RED_ROW_INDEX,columnIndex,Float.parseFloat(tokenizer.nextToken()));
-        mXTrainingData.set(MID_GREEN_ROW_INDEX,columnIndex,Float.parseFloat(tokenizer.nextToken()));
-        mXTrainingData.set(MID_BLUE_ROW_INDEX,columnIndex,Float.parseFloat(tokenizer.nextToken()));
-        mXTrainingData.set(MID_DISTANCE_ROW_INDEX,columnIndex,Float.parseFloat(tokenizer.nextToken()));
-        mXTrainingData.set(BOTTOM_RED_ROW_INDEX,columnIndex,Float.parseFloat(tokenizer.nextToken()));
-        mXTrainingData.set(BOTTOM_GREEN_ROW_INDEX,columnIndex,Float.parseFloat(tokenizer.nextToken()));
-        mXTrainingData.set(BOTTOM_BLUE_ROW_INDEX,columnIndex,Float.parseFloat(tokenizer.nextToken()));
-        mXTrainingData.set(BOTTOM_DISTANCE_ROW_INDEX,columnIndex,Float.parseFloat(tokenizer.nextToken()));
-    }
-
-    private void normalize() {
-        double[] maxArray = new double[TRAINING_DATA_NUM_ROWS];
-        for(int i=0;i < maxArray.length;i++){
-            maxArray[i] = 0f;
-        }
-        // Compute the maxes
-        for(int column = 0; column < mXTrainingData.numCols(); column++){
-            for(int row = 0; row < mXTrainingData.numRows(); row++){
-                if (mXTrainingData.get(row,column) > maxArray[row]){
-                    maxArray[row] = mXTrainingData.get(row,column);
-                }
-            }
-        }
-        for(int column = 0; column < mXTrainingData.numCols(); column++){
-            for(int row = 0; row < mXTrainingData.numRows(); row++){
-                if (mXTrainingData.get(row,column) > maxArray[row]){
-                    maxArray[row] = mXTrainingData.get(row,column);
-                }
-            }
-        }
-        // Compute the scale factors to normalize to 1.000
-        double[] scaleFactors = new double[maxArray.length];
-        double max = 1.0d;
-        for(int i = 0; i < scaleFactors.length; i++){
-            scaleFactors[i] = max / maxArray[i];
-        }
-        // Now normalize to using the scaleFactors
-        for(int column = 0; column < mXTrainingData.numCols(); column++){
-            for(int row = 0; row < mXTrainingData.numRows(); row++){
-                double value = mXTrainingData.get(row,column) * scaleFactors[row];
-                mXTrainingData.set(row,column,value);
-            }
-        }
+        x.set(DISTANCE_ROW_INDEX,columnIndex,Float.parseFloat(tokenizer.nextToken()));
+        x.set(TOP_RED_ROW_INDEX,columnIndex,Float.parseFloat(tokenizer.nextToken()));
+        x.set(TOP_GREEN_ROW_INDEX,columnIndex,Float.parseFloat(tokenizer.nextToken()));
+        x.set(TOP_BLUE_ROW_INDEX,columnIndex,Float.parseFloat(tokenizer.nextToken()));
+        x.set(TOP_DISTANCE_ROW_INDEX,columnIndex,Float.parseFloat(tokenizer.nextToken()));
+        x.set(MID_RED_ROW_INDEX,columnIndex,Float.parseFloat(tokenizer.nextToken()));
+        x.set(MID_GREEN_ROW_INDEX,columnIndex,Float.parseFloat(tokenizer.nextToken()));
+        x.set(MID_BLUE_ROW_INDEX,columnIndex,Float.parseFloat(tokenizer.nextToken()));
+        x.set(MID_DISTANCE_ROW_INDEX,columnIndex,Float.parseFloat(tokenizer.nextToken()));
+        x.set(BOTTOM_RED_ROW_INDEX,columnIndex,Float.parseFloat(tokenizer.nextToken()));
+        x.set(BOTTOM_GREEN_ROW_INDEX,columnIndex,Float.parseFloat(tokenizer.nextToken()));
+        x.set(BOTTOM_BLUE_ROW_INDEX,columnIndex,Float.parseFloat(tokenizer.nextToken()));
+        x.set(BOTTOM_DISTANCE_ROW_INDEX,columnIndex,Float.parseFloat(tokenizer.nextToken()));
     }
 
 }
