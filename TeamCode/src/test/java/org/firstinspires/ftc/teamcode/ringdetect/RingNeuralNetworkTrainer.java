@@ -31,7 +31,7 @@ public class RingNeuralNetworkTrainer {
                 logBuffer.append(epochNumber+","+ normalError +"\n");
             }
         });
-        ringnn.train(processor.getXTrainingData(),processor.getYTrainingData(), processor.getScaleFactors(), 5,1.0d,5000);
+        ringnn.train(processor.getXTrainingData(),processor.getYTrainingData(), processor.getScaleFactors(), 10,0.1d,5000);
         // Save the training log
         try{
             File logFile = new File(trainingDataPath+"/training_log.csv");
