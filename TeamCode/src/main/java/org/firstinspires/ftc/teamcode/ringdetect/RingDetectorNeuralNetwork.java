@@ -37,6 +37,8 @@ public class RingDetectorNeuralNetwork extends JavaNeuralNetwork {
 
     private static final String LOGGING_HEADER = "Result,y0,y1,y2,Dista,TopR,TopG,TopB,TopDist,MidR,MidG,MidB,MidDist,BottomR,BottomG,BottomB,BottomDist";
 
+    private int mLastInference = RingDetectorNeuralNetwork.UNKNOWN;
+
     private FileWriter mLogWriter = null;
 
     public RingDetectorNeuralNetwork(InputStream is) throws Exception {
@@ -73,6 +75,7 @@ public class RingDetectorNeuralNetwork extends JavaNeuralNetwork {
 
     /**
      * Performs a measurement with another sample of data.
+     * @param measurementData vector of new measurement data
      * @returns NO_RING, ONE_RING, or FOUR_RINGS, or UNKNOWN
      */
     public int doInference(RingSensorData measurementData) {
@@ -95,7 +98,10 @@ public class RingDetectorNeuralNetwork extends JavaNeuralNetwork {
         int inference = decodeOutput(y);
 
         if (mLogWriter != null){
-            logInference(x,y,inference);
+            if (mLastInference != inference) {
+                logInference(x, y, inference);
+                mLastInference = inference;
+            }
         }
 
         return inference;
@@ -106,11 +112,11 @@ public class RingDetectorNeuralNetwork extends JavaNeuralNetwork {
             mLogWriter.write(RingDetectorNeuralNetwork.convertToString(inference));
             mLogWriter.write(",");
             for(int i=0;i < y.numRows();i++){
-                mLogWriter.write(String.format("1.5f",y.get(i,0)));
+                mLogWriter.write(String.format("%1.5f",y.get(i,0)));
                 mLogWriter.write(",");
             }
             for(int i=0;i < INPUT_ROWS;i++){
-                mLogWriter.write(String.format("1.5f",x.get(i,0)));
+                mLogWriter.write(String.format("%1.5f",x.get(i,0)));
                 if (i < INPUT_ROWS-1){
                     mLogWriter.write(",");
                 }

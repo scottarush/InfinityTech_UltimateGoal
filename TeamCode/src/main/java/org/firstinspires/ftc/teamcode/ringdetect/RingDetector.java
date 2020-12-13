@@ -42,6 +42,10 @@ public class RingDetector {
         try{
             InputStream is = new FileInputStream(nnFile);
             mNetwork = new RingDetectorNeuralNetwork(is);
+
+            if (logFile.exists()){
+                logFile.delete();
+            }
             mLogWriter = new FileWriter(logFile);
             mNetwork.setLogStream(mLogWriter);
         }
