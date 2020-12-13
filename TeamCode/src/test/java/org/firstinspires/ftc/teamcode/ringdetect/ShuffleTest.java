@@ -45,7 +45,7 @@ public class ShuffleTest {
                 logBuffer.append(epochNumber+","+ normalError +"\n");
             }
         });
-        ringnn.train(x,y,null,10,1.0d,2);
+        ringnn.train(x,y,null,10,1.0d,2,true);
         try{
             File logFile = new File(filePath+"/training_log.csv");
             if (logFile.exists()){

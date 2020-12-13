@@ -12,10 +12,11 @@
     <!-- We have to override android:name property that is defined in the FtcRobotController
     manifest in order ot use it for access to the AppContextUtility we use to get to the
     Assets folder
-    -->
     <application
         tools:replace="android:name"
         android:name=".util.AppContextUtility"
         />
+        // Unfortunately this conflicts with other FtcRobotController code
+    -->
 
 </manifest>

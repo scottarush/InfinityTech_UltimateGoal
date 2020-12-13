@@ -133,17 +133,35 @@ public class JavaNeuralNetwork implements Serializable {
     }
 
     /**
+     * Runtime feedforward method. This method  uses raw input data that will be scaled
+     * by the scaleFactor matrix internal to the network.
+     * @param rawInput vector of raw input node data that has not already been normalized.
+     *             Must have same number of rows as input layer nodes and single column.
+     * @returns column vector of output node activations
+     */
+    public SimpleMatrix feedForward(SimpleMatrix rawInput){
+        // Scale the data first and then run the feedForward algorithm
+        DMatrixRMaj dm = rawInput.getDDRM();
+        SimpleMatrix output = SimpleMatrix.wrap(feedForward(dm,null));
+        return output;
+    }
+    /**
+     * Training  feedfordward method. This method is used for both for run-time operation
+     * and training backpropogation.
      * Feedforward method loops through
      * z^x,l = w^l * a^x,l−1 + b^l and a^x,l=σ(z^x,l).
+     * This is the actual feedforward method that requires normalized input data and is
+     * called directly for training.  The other feedforward signature is used for runtime
+     * which takes unscaled raw input data.
      *
-     * This method is used for both for run-time operation and training backpropogation
+     * @param normalizedInput vector of pre-normalized input node activations.
      * @param activations reference to activation matrix to fill with values for training or
      *                    nullfor run-time (and values will not be saved).
      * @return vector of output node activations.  Only use for runtime.  Training uses the supplied list
      */
-    public DMatrixRMaj feedForward(DMatrixRMaj input,ArrayList<DMatrixRMaj> activations) {
+    private DMatrixRMaj feedForward(DMatrixRMaj normalizedInput,ArrayList<DMatrixRMaj> activations) {
         // Set the input and save in the activations array
-        DMatrixRMaj a_xlm1 = input;
+        DMatrixRMaj a_xlm1 = normalizedInput;
         if (activations != null) {
             activations.set(0, a_xlm1);
         }
@@ -298,8 +316,9 @@ public class JavaNeuralNetwork implements Serializable {
      * @param batchSize number of samples per epoch
      * @param eta       learning rate
      * @param numEpochs
+     * @param shuffleData shuffle training data on each Epoch when true (usually need to do this)
      */
-    public void train(SimpleMatrix x, SimpleMatrix y, SimpleMatrix xscale,int batchSize, double eta, int numEpochs) {
+    public void train(SimpleMatrix x, SimpleMatrix y, SimpleMatrix xscale,int batchSize, double eta, int numEpochs,boolean shuffleData) {
         mETA = eta;
         mInputScaleVector = xscale;
 
@@ -320,10 +339,12 @@ public class JavaNeuralNetwork implements Serializable {
             // Start a new epoch by shutffle the training data to randomize the
             // batch picks
             int[] columns = MatrixUtils.genShuffleColumnIndexVector(y.numCols());
-//            x = MatrixUtils.shuffleMatrix(x, columns);
-//            System.out.println(MatrixUtils.printMatrix(x.getDDRM(),"x"));
-//            y = MatrixUtils.shuffleMatrix(y, columns);
-//            System.out.println(MatrixUtils.printMatrix(y.getDDRM(),"y"));
+            // Normally we want to shuffle data every epoch, but allow the caller to
+            // determine.
+            if (shuffleData) {
+                x = MatrixUtils.shuffleMatrix(x, columns);
+                y = MatrixUtils.shuffleMatrix(y, columns);
+            }
             int batchColumnIndex = 0;
 
             boolean continueBatch = true;

@@ -13,24 +13,44 @@ import java.nio.file.Paths;
 /**
  * Test class to train the ring neural network.
  */
-public class RingNeuralNetworkTrainer {
+public class NetworkVerifier {
 
-    RingDataProcessor mDataProcessor = new RingDataProcessor();
+    SimpleMatrix mX;
+    SimpleMatrix mY;
+    SimpleMatrix mScale;
+    static final int NUM_INPUTS = 3;
+    static final int NUM_OUTPUTS = 3;
 
-    /**
-     * Reads data into the pre-processor for both training and testing.
-     */
-    public void readData(File trainingDataFile,double testFraction,boolean normalize){
-        mDataProcessor.processData(trainingDataFile,testFraction,normalize);
+    public void genData(){
+        SimpleMatrix inputVectors[] = new SimpleMatrix[NUM_INPUTS];
+        SimpleMatrix outputVectors[] = new SimpleMatrix[NUM_OUTPUTS];
+        for(int i=0;i < inputVectors.length;i++){
+            inputVectors[i] = new SimpleMatrix(inputVectors.length,1);
+            inputVectors[i].set(i,0,1.0d);
+            int opposite = outputVectors.length-i-1;
+            outputVectors[i] = new SimpleMatrix(outputVectors.length,1);
+            outputVectors[i].set(opposite,0,1.0d);
+        }
+        int num_samples = 1000;
+         for(int col=0;col < num_samples;col++){
+             int i = col % 3;
+             if (mX == null){
+                 mX = new SimpleMatrix(inputVectors[i]);
+                 mY = new SimpleMatrix(outputVectors[i]);
+             }
+             else{
+                 mX = mX.concatColumns(inputVectors[i]);
+                 mY = mY.concatColumns(outputVectors[i]);
+             }
+         }
     }
-    /**
+     /**
      * Called to train the network
      */
     public void
-    trainNetwork(File trainingDataFile,File networkFile,File logFile){
-        readData(trainingDataFile,0.10,true);
+    trainNetwork(File networkFile,File logFile){
         // Now create and pass training data to neural network
-        JavaNeuralNetwork ringnn = new JavaNeuralNetwork(new int[]{13,15,3});
+        JavaNeuralNetwork ringnn = new JavaNeuralNetwork(new int[]{3,5,3});
 
         final StringBuffer logBuffer = new StringBuffer();
         logBuffer.append("Epoch#,Normal Error\n");
@@ -41,8 +61,9 @@ public class RingNeuralNetworkTrainer {
                 logBuffer.append(epochNumber+","+ normalError +"\n");
             }
         });
-        ringnn.train(mDataProcessor.getXTrainingData(), mDataProcessor.getYTrainingData(),
-                mDataProcessor.getScaleFactors(), 10,0.1d,5000,false);
+
+        genData();
+        ringnn.train(mX,mY,mScale, 10,0.1d,5000,true);
          // Write out the network
         try {
             if (networkFile.exists()){
@@ -69,7 +90,7 @@ public class RingNeuralNetworkTrainer {
 
     }
 
-    public void testNetwork(File trainingDataFile,File neuralNetworkFile,File logFile,double testFraction){
+    public void testNetwork(File neuralNetworkFile,File logFile,double testFraction){
        // Read the network
         RingDetectorNeuralNetwork ringnn=null;
         try {
@@ -85,42 +106,20 @@ public class RingNeuralNetworkTrainer {
         final StringBuffer logBuffer = new StringBuffer();
         logBuffer.append("Data#,Truth,yTruth,Detection,yDetection\n");
 
-        // Read the test data
-        readData(trainingDataFile,testFraction,true);
-        SimpleMatrix x = mDataProcessor.getXTestData();
-        SimpleMatrix y = mDataProcessor.getYTestData();
+        genData();
 
         // And loop through the test data
-        int pass = 0;
-        int fail = 0;
-        for(int column=0;column < x.numCols();column++){
-            SimpleMatrix input = x.extractVector(false,column);
-            SimpleMatrix ytruth = y.extractVector(false,column);
+        for(int column=0;column < mX.numCols();column++){
+            SimpleMatrix input = mX.extractVector(false,column);
+            SimpleMatrix ytruth = mX.extractVector(false,column);
 
             SimpleMatrix output = ringnn.doTestInference(input);
-            int truth = ringnn.decodeOutput(ytruth);
-            int inference = ringnn.decodeOutput(output);
-
-            if (truth != inference){
-                fail++;
-                logBuffer.append("Fail:");
-            }
-            else {
-                pass++;
-                logBuffer.append("Pass:");
-
-            }
 
             String ytruths = MatrixUtils.printColumn(ytruth,0);
-            String truths = ringnn.convertToString(truth);
-
-            String yinference = MatrixUtils.printColumn(output,0);
-            String inferences = ringnn.convertToString(inference);
-            logBuffer.append(","+truths+","+ytruths+","+inferences+","+yinference+"\n");
+            String ydetections = MatrixUtils.printColumn(output,0);
+            logBuffer.append(column+1+","+ytruths+","+ydetections+"\n");
         }
-        double percent = 100d * (double)pass/(double)x.numCols();
-        logBuffer.append("Summary\n");
-        logBuffer.append(String.format("%2.1f",percent)+".  Pass="+pass+".  Fail="+fail+". of "+x.numCols()+" test samples.\n");
+
         // Save the test log
         try{
             if (logFile.exists()){
@@ -138,24 +137,22 @@ public class RingNeuralNetworkTrainer {
 
     @Test
     public void main() {
-        RingNeuralNetworkTrainer trainer = new RingNeuralNetworkTrainer();
+        NetworkVerifier trainer = new NetworkVerifier();
 
         Path currentRelativePath = Paths.get("");
         String trainingDataPath = currentRelativePath.toAbsolutePath().toString() + "/src/test/java/org/firstinspires/ftc/teamcode/ringdetect";
-        File trainingFile = new File(trainingDataPath, "06DEC20 initial training data.csv");
-        String runtimeNetworkPath = currentRelativePath.toAbsolutePath().toString() + "/src/main/assets";
-        File networkFile = new File(runtimeNetworkPath, "all_sensors_ring_neuralnetwork.bin");
+        File networkFile = new File(trainingDataPath, "verify_network.bin");
 
         boolean train = true;
         if (train) {
             // Now save the network to the runtime assets directory
             File logFile = new File(trainingDataPath + "/training_log.csv");
-            trainer.trainNetwork(trainingFile,networkFile,logFile);
+            trainer.trainNetwork(networkFile,logFile);
         }
         boolean test = true;
         if (test){
             File logFile = new File(trainingDataPath + "/testing_log.csv");
-            testNetwork(trainingFile,networkFile,logFile,0.10);
+            testNetwork(networkFile,logFile,0.10);
         }
 
     }

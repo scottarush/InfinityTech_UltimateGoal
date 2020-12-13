@@ -9,7 +9,7 @@ public class MatrixUtils {
      */
     public static int[] genShuffleColumnIndexVector(int length) {
         int[] retarray = new int[length];
-         for (int i = 0; i < retarray.length; i++) {
+        for (int i = 0; i < retarray.length; i++) {
             retarray[i] = i;
         }
 
@@ -26,7 +26,8 @@ public class MatrixUtils {
 
     /**
      * Shuffles the columns of a matrix and returns a shuffled copy.
-     * @param source source matrix to shuffle
+     *
+     * @param source  source matrix to shuffle
      * @param columns array of shuffled column indexes to shuffle
      * @return shuffled matrix
      */
@@ -73,33 +74,54 @@ public class MatrixUtils {
     }
 
     /**
+     * Utility to print a column of a matrix
+     *
+     * @param matrix
+     * @return
+     */
+    public static String printColumn(SimpleMatrix matrix, int column) {
+        StringBuffer buffer = new StringBuffer();
+        buffer.append("{");
+        for (int row = 0; row < matrix.numRows(); row++) {
+            double value = matrix.get(row, column);
+            buffer.append(String.format("%1.5f", value));
+            if (row < matrix.numRows() - 1) {
+                buffer.append(",");
+            } else {
+                buffer.append("}");
+            }
+        }
+        return buffer.toString();
+    }
+
+    /**
      * @param x matrix to normalize
      * @return column vector of scaling coefficients for each row.
      */
     public static SimpleMatrix normalizeRows(SimpleMatrix x) {
         double[] maxArray = new double[x.numRows()];
-        for(int i=0;i < maxArray.length;i++){
+        for (int i = 0; i < maxArray.length; i++) {
             maxArray[i] = 0f;
         }
         // Compute the maxes
-        for(int column = 0; column < x.numCols(); column++){
-            for(int row = 0; row < x.numRows(); row++){
-                if (x.get(row,column) > maxArray[row]){
-                    maxArray[row] = x.get(row,column);
+        for (int column = 0; column < x.numCols(); column++) {
+            for (int row = 0; row < x.numRows(); row++) {
+                if (x.get(row, column) > maxArray[row]) {
+                    maxArray[row] = x.get(row, column);
                 }
             }
         }
-          // Compute the scale factors to normalize to 1.000
-        SimpleMatrix scaleFactors = new SimpleMatrix(maxArray.length,1);
+        // Compute the scale factors to normalize to 1.000
+        SimpleMatrix scaleFactors = new SimpleMatrix(maxArray.length, 1);
         double max = 1.0d;
-        for(int i = 0; i < scaleFactors.numRows(); i++){
-            scaleFactors.set(i,0, max / maxArray[i]);
+        for (int i = 0; i < scaleFactors.numRows(); i++) {
+            scaleFactors.set(i, 0, max / maxArray[i]);
         }
         // Now normalize to using the scaleFactors
-        for(int column = 0; column < x.numCols(); column++){
-            for(int row = 0; row < x.numRows(); row++){
-                double value = x.get(row,column) * scaleFactors.get(row,0);
-                x.set(row,column,value);
+        for (int column = 0; column < x.numCols(); column++) {
+            for (int row = 0; row < x.numRows(); row++) {
+                double value = x.get(row, column) * scaleFactors.get(row, 0);
+                x.set(row, column, value);
             }
         }
         return scaleFactors;

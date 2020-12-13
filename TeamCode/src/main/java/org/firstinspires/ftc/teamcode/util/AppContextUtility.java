@@ -8,18 +8,18 @@ import android.content.res.AssetManager;
  * This class provides a way to get access to the assets folder through
  * an additional application.
  */
-public class AppContextUtility extends Application {
-    private static Context mContext;
+public class AppContextUtility {
+    private static Context mContext = null;
 
-    @Override
-    public void onCreate() {
-        super.onCreate();
-        mContext = this;
+    /**
+     * This function is called from the FtcRobotControllerActivity.  That code must be modified
+     * manually on each updated during the season.
+     * @param context
+     */
+    public static void setApplicationContext(Context context){
+        mContext = context;
     }
 
-    public static Context getContext(){
-        return mContext;
-    }
     public static AssetManager getAssetManager(){
         if (mContext != null)
             return mContext.getAssets();
