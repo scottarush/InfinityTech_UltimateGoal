@@ -11,7 +11,7 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 
 /**
- * Test class to train the ring neural network.
+ * Test class created to verify the neural network code
  */
 public class NetworkVerifier {
 
@@ -50,12 +50,12 @@ public class NetworkVerifier {
     public void
     trainNetwork(File networkFile,File logFile){
         // Now create and pass training data to neural network
-        JavaNeuralNetwork ringnn = new JavaNeuralNetwork(new int[]{3,5,3});
+        NeuralNetwork ringnn = new NeuralNetwork(new int[]{3,5,3});
 
         final StringBuffer logBuffer = new StringBuffer();
         logBuffer.append("Epoch#,Normal Error\n");
 
-        ringnn.addTrainingStatusListener(new JavaNeuralNetwork.ITrainingStatusListener() {
+        ringnn.addTrainingStatusListener(new NeuralNetwork.ITrainingStatusListener() {
             @Override
             public void trainingStatus(int epochNumber, double normalError) {
                 logBuffer.append(epochNumber+","+ normalError +"\n");
@@ -63,7 +63,7 @@ public class NetworkVerifier {
         });
 
         genData();
-        ringnn.train(mX,mY,mScale, 10,0.1d,5000,true);
+        ringnn.train("NetworkVerifier",mX,mY,mScale, 10,0.1d,5000,true);
          // Write out the network
         try {
             if (networkFile.exists()){
@@ -95,7 +95,7 @@ public class NetworkVerifier {
         RingDetectorNeuralNetwork ringnn=null;
         try {
             FileInputStream fis = new FileInputStream(neuralNetworkFile);
-            ringnn = new RingDetectorNeuralNetwork(fis);
+            ringnn = new RingDetectorNeuralNetwork(RingDetectorNeuralNetwork.ALL_SENSORS);
         }
         catch(Exception e){
             e.printStackTrace();

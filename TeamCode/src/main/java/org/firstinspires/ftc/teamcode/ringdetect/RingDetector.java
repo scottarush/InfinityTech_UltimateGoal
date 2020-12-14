@@ -1,7 +1,5 @@
 package org.firstinspires.ftc.teamcode.ringdetect;
 
-import android.os.Environment;
-
 import com.qualcomm.hardware.rev.RevColorSensorV3;
 import com.qualcomm.robotcore.eventloop.opmode.OpMode;
 import com.qualcomm.robotcore.hardware.DistanceSensor;
@@ -19,6 +17,11 @@ import java.io.InputStream;
  */
 public class RingDetector {
 
+    private int mRingDetectorConfiguration = RingDetectorNeuralNetwork.TOP_BOTTOM_COLOR_SENSORS_ONLY;
+
+    private boolean mDistanceSensorEnabled = false;
+    private boolean mMidColorSensorEnabled = false;
+
     private RingDetectorNeuralNetwork mNetwork = null;
     private OpMode mOpMode = null;
     private RevColorSensorV3 mBottomColorSensor;
@@ -32,66 +35,72 @@ public class RingDetector {
         mOpMode = opMode;
     }
 
-    public void init() throws Exception{
+    public void init() throws Exception {
         String initErrString = "";
-        File nnPath = new File("/sdcard/neural_networks");
-        File nnFile = new File(nnPath,"all_sensors_ring_neuralnetwork.bin");
-
-        File logPath = new File("/sdcard/logs");
-        File logFile = new File(logPath,"nnlog.csv");
-        try{
-            InputStream is = new FileInputStream(nnFile);
-            mNetwork = new RingDetectorNeuralNetwork(is);
-
-            if (logFile.exists()){
-                logFile.delete();
-            }
-            mLogWriter = new FileWriter(logFile);
-            mNetwork.setLogStream(mLogWriter);
+        // Enabled/disable sensors
+        switch (mRingDetectorConfiguration) {
+            case RingDetectorNeuralNetwork.ALL_SENSORS:
+                mMidColorSensorEnabled = true;
+                mDistanceSensorEnabled = true;
+                break;
+            case RingDetectorNeuralNetwork.TOP_BOTTOM_COLOR_SENSORS_ONLY:
+                mMidColorSensorEnabled = false;
+                mDistanceSensorEnabled = false;
+                break;
+            case RingDetectorNeuralNetwork.NO_DISTANCE_SENSOR:
+                mMidColorSensorEnabled = true;
+                mDistanceSensorEnabled = false;
+                break;
+            case RingDetectorNeuralNetwork.NO_MID_COLOR_SENSOR:
+                mMidColorSensorEnabled = false;
+                mDistanceSensorEnabled = true;
+                break;
         }
-        catch(Exception e){
-            initErrString += "Error reading neural network file:"+e.getMessage();
+        try {
+           mNetwork = new RingDetectorNeuralNetwork(mRingDetectorConfiguration);
+        } catch (Exception e) {
+            initErrString += e.getMessage();
         }
         try {
             mTopColorSensor = mOpMode.hardwareMap.get(RevColorSensorV3.class, "topClr");
-        }
-        catch(Exception e){
+        } catch (Exception e) {
             initErrString += "top color sensor error";
         }
-        try {
-            mMidColorSensor = mOpMode.hardwareMap.get(RevColorSensorV3.class, "midClr");
-        }
-        catch(Exception e){
-            initErrString += "middle color sensor error";
+        if (mMidColorSensorEnabled) {
+            try {
+                mMidColorSensor = mOpMode.hardwareMap.get(RevColorSensorV3.class, "midClr");
+            } catch (Exception e) {
+                initErrString += "middle color sensor error";
+            }
         }
         try {
             mBottomColorSensor = mOpMode.hardwareMap.get(RevColorSensorV3.class, "bottomClr");
-        }
-        catch(Exception e){
+        } catch (Exception e) {
             initErrString += "bottom color sensor error";
         }
-        try {
-            mDistanceSensor = mOpMode.hardwareMap.get(DistanceSensor.class, "range");
-        }
-        catch(Exception e){
-            initErrString += "distance sensor error";
+        if (mDistanceSensorEnabled) {
+            try {
+                mDistanceSensor = mOpMode.hardwareMap.get(DistanceSensor.class, "range");
+            } catch (Exception e) {
+                initErrString += "distance sensor error";
+            }
         }
 
         configureColorSensor(mTopColorSensor);
         configureColorSensor(mBottomColorSensor);
-        configureColorSensor(mMidColorSensor);
+        if (mMidColorSensorEnabled)
+            configureColorSensor(mMidColorSensor);
 
-        if (initErrString.length() > 0){
+        if (initErrString.length() > 0) {
             throw new Exception(initErrString);
         }
 
     }
 
-    public void stop(){
+    public void stop() {
         try {
             mLogWriter.close();
-        }
-        catch(IOException e){
+        } catch (IOException e) {
 
         }
     }
@@ -101,26 +110,124 @@ public class RingDetector {
     }
 
     /**
+     * Called for logging to telemetry.
+     *
+     * @return formatted string of current color sensor readings
+     */
+    public String getTelemetryString() {
+        String s = "{" + formatSensorValue(mTopColorSensor.getNormalizedColors().red) +
+                ", " + formatSensorValue(mTopColorSensor.getNormalizedColors().green) +
+                ", " + formatSensorValue(mTopColorSensor.getNormalizedColors().blue) +
+                "," +formatColorDistance(mTopColorSensor)+
+                "}";
+        s += "\nBottom: {" + formatSensorValue(mBottomColorSensor.getNormalizedColors().red) +
+                ", " + formatSensorValue(mBottomColorSensor.getNormalizedColors().green) +
+                ", " + formatSensorValue(mBottomColorSensor.getNormalizedColors().blue) +
+                "," +formatColorDistance(mBottomColorSensor)+
+                "}";
+        if (mMidColorSensorEnabled) {
+            s += "\nMiddle: {" + formatSensorValue(mMidColorSensor.getNormalizedColors().red) +
+                    ", " + formatSensorValue(mMidColorSensor.getNormalizedColors().green) +
+                    ", " + formatSensorValue(mMidColorSensor.getNormalizedColors().blue) +
+                    "," +formatColorDistance(mMidColorSensor)+
+                    "}";
+        }
+        if (mDistanceSensorEnabled) {
+            s+= "\nDistance="+String.format("%.01f mm", mDistanceSensor.getDistance(DistanceUnit.MM));
+        }
+        return s;
+    }
+
+
+    private String formatColorDistance(RevColorSensorV3 sensor) {
+        return formatSensorValue((float) sensor.getDistance(DistanceUnit.MM));
+    }
+
+    // formats the numbers into a string to be able to print in telemetry
+    private String formatSensorValue(float value) {
+        return String.format("%.5f", value);
+    }
+
+    /**
      * Called to read the sensors and do an inference.
+     *
      * @return the result according to the codes in {@link RingDetectorNeuralNetwork}
      */
-    public int readDetector(){
+    public int readDetector() {
         // Read all the sensors into a measurement object for the network
-        RingDetectorNeuralNetwork.RingSensorData data = new RingDetectorNeuralNetwork.RingSensorData();
+        switch (mRingDetectorConfiguration) {
+            case RingDetectorNeuralNetwork.ALL_SENSORS:
+                return doAllSensorReadDetector();
+            case RingDetectorNeuralNetwork.NO_DISTANCE_SENSOR:
+                return doNoDistanceSensorReadDetector();
+            case RingDetectorNeuralNetwork.NO_MID_COLOR_SENSOR:
+                return doNoMidSensorReadDetector();
+            case RingDetectorNeuralNetwork.TOP_BOTTOM_COLOR_SENSORS_ONLY:
+                return doTopBottomOnlyReadDetector();
+        }
+        // Invalid.  Shouldn't happen
+        return RingDetectorNeuralNetwork.UNKNOWN;
+    }
+
+    private int doAllSensorReadDetector() {
+        RingDetectorNeuralNetwork.AllSensorInputData data = new RingDetectorNeuralNetwork.AllSensorInputData();
         data.topColorRed = mTopColorSensor.getNormalizedColors().red;
-        data.topColorBlue= mTopColorSensor.getNormalizedColors().blue;
+        data.topColorBlue = mTopColorSensor.getNormalizedColors().blue;
         data.topColorGreen = mTopColorSensor.getNormalizedColors().green;
         data.topDistanceMM = mTopColorSensor.getDistance(DistanceUnit.MM);
         data.midColorRed = mMidColorSensor.getNormalizedColors().red;
-        data.midColorBlue= mMidColorSensor.getNormalizedColors().blue;
+        data.midColorBlue = mMidColorSensor.getNormalizedColors().blue;
         data.midColorGreen = mMidColorSensor.getNormalizedColors().green;
         data.midDistanceMM = mMidColorSensor.getDistance(DistanceUnit.MM);
         data.bottomColorRed = mBottomColorSensor.getNormalizedColors().red;
-        data.bottomColorBlue= mBottomColorSensor.getNormalizedColors().blue;
+        data.bottomColorBlue = mBottomColorSensor.getNormalizedColors().blue;
         data.bottomColorGreen = mBottomColorSensor.getNormalizedColors().green;
         data.bottomDistanceMM = mBottomColorSensor.getDistance(DistanceUnit.MM);
         data.distanceSensorMM = mDistanceSensor.getDistance(DistanceUnit.MM);
-
-        return  mNetwork.doInference(data);
+        return mNetwork.doInference(data);
     }
+
+    private int doNoDistanceSensorReadDetector() {
+        RingDetectorNeuralNetwork.NoDistanceSensorInputData data = new RingDetectorNeuralNetwork.NoDistanceSensorInputData();
+        data.topColorRed = mTopColorSensor.getNormalizedColors().red;
+        data.topColorBlue = mTopColorSensor.getNormalizedColors().blue;
+        data.topColorGreen = mTopColorSensor.getNormalizedColors().green;
+        data.topDistanceMM = mTopColorSensor.getDistance(DistanceUnit.MM);
+        data.midColorRed = mMidColorSensor.getNormalizedColors().red;
+        data.midColorBlue = mMidColorSensor.getNormalizedColors().blue;
+        data.midColorGreen = mMidColorSensor.getNormalizedColors().green;
+        data.midDistanceMM = mMidColorSensor.getDistance(DistanceUnit.MM);
+        data.bottomColorRed = mBottomColorSensor.getNormalizedColors().red;
+        data.bottomColorBlue = mBottomColorSensor.getNormalizedColors().blue;
+        data.bottomColorGreen = mBottomColorSensor.getNormalizedColors().green;
+        data.bottomDistanceMM = mBottomColorSensor.getDistance(DistanceUnit.MM);
+        return mNetwork.doInference(data);
+    }
+    private int doNoMidSensorReadDetector() {
+        RingDetectorNeuralNetwork.NoMidInputData data = new RingDetectorNeuralNetwork.NoMidInputData();
+        data.topColorRed = mTopColorSensor.getNormalizedColors().red;
+        data.topColorBlue = mTopColorSensor.getNormalizedColors().blue;
+        data.topColorGreen = mTopColorSensor.getNormalizedColors().green;
+        data.topDistanceMM = mTopColorSensor.getDistance(DistanceUnit.MM);
+        data.bottomColorRed = mBottomColorSensor.getNormalizedColors().red;
+        data.bottomColorBlue = mBottomColorSensor.getNormalizedColors().blue;
+        data.bottomColorGreen = mBottomColorSensor.getNormalizedColors().green;
+        data.bottomDistanceMM = mBottomColorSensor.getDistance(DistanceUnit.MM);
+        data.distanceSensorMM = mDistanceSensor.getDistance(DistanceUnit.MM);
+        return mNetwork.doInference(data);
+    }
+    private int doTopBottomOnlyReadDetector() {
+        RingDetectorNeuralNetwork.TopBottomOnlyInputData data = new RingDetectorNeuralNetwork.TopBottomOnlyInputData();
+        data.topColorRed = mTopColorSensor.getNormalizedColors().red;
+        data.topColorBlue = mTopColorSensor.getNormalizedColors().blue;
+        data.topColorGreen = mTopColorSensor.getNormalizedColors().green;
+        data.topDistanceMM = mTopColorSensor.getDistance(DistanceUnit.MM);
+        data.bottomColorRed = mBottomColorSensor.getNormalizedColors().red;
+        data.bottomColorBlue = mBottomColorSensor.getNormalizedColors().blue;
+        data.bottomColorGreen = mBottomColorSensor.getNormalizedColors().green;
+        data.bottomDistanceMM = mBottomColorSensor.getDistance(DistanceUnit.MM);
+        return mNetwork.doInference(data);
+    }
+
+
 }

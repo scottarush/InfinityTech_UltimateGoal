@@ -12,8 +12,6 @@ import org.firstinspires.ftc.teamcode.util.OneShotTimer;
 @TeleOp(name="RingDetectorTest", group="Robot")
 public class RingDetectorTestOpMode extends OpMode {
 
-    private int mLastInferenceResult = RingDetectorNeuralNetwork.UNKNOWN;
-
     private int mInferenceNum = 0;
 
     private RingDetector mRingDetector = null;
@@ -46,12 +44,12 @@ public class RingDetectorTestOpMode extends OpMode {
 
     public void loop() {
         int inference = mRingDetector.readDetector();
-        if (mLastInferenceResult != inference){
-            mLastInferenceResult = inference;
-            String sinference = RingDetectorNeuralNetwork.convertToString(inference);
-            telemetry.addData("New Inference Result","#"+mInferenceNum++ +":"+sinference);
-            telemetry.update();
-        }
+
+        String sinference = RingDetectorNeuralNetwork.convertToString(inference);
+        telemetry.addData("Inference Result","#"+mInferenceNum++ +":"+sinference);
+        telemetry.addData("Status:",mRingDetector.getTelemetryString());
+        telemetry.update();
+
     }
 
 }

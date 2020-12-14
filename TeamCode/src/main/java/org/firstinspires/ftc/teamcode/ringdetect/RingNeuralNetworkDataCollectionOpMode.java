@@ -19,7 +19,7 @@ import org.firstinspires.ftc.teamcode.util.OneShotTimer;
 public class RingNeuralNetworkDataCollectionOpMode extends OpMode {
     public static final String LOG_PATHNAME = "/sdcard";
 
-    public static final String LOG_FILENAME = "06DEC20 initial training data.csv";
+    public static final String LOG_FILENAME = "13DEC20_training_data.csv";
     public static final String[] LOG_COLUMNS = {"Record#","tag", "light status","distance", "top_red", "top_green", "top_blue", "top_distance", "mid_red", "mid_green", "mid_blue", "mid_distance", "bottom_red", "bottom_green", "bottom_blue", "bottom_distance"};
     private LogFile mLogFile;
     private RevColorSensorV3 mBottomColorSensor;
@@ -132,15 +132,16 @@ public class RingNeuralNetworkDataCollectionOpMode extends OpMode {
         if (mCaptureMessageTimer.isRunning()){
             message = "Captured record "+mRecordNumber;
         }
-        telemetry.addData("Status",  mCurrentTag+" "+message);
-        // Now build the logging data output
-        String s = "{"+ formatSensorValue(mTopColorSensor.getNormalizedColors().red)+
+         // Now build the logging data output
+        String tops = "{"+ formatSensorValue(mTopColorSensor.getNormalizedColors().red)+
                 ", " + formatSensorValue(mTopColorSensor.getNormalizedColors().green)+
                 ", " + formatSensorValue(mTopColorSensor.getNormalizedColors().blue)+
-                "}\nBottom: {" + formatSensorValue(mBottomColorSensor.getNormalizedColors().red)+
+                "}";
+        String bottoms = "Bottom: {" + formatSensorValue(mBottomColorSensor.getNormalizedColors().red)+
                 ", " + formatSensorValue(mBottomColorSensor.getNormalizedColors().green)+
                 ", " + formatSensorValue(mBottomColorSensor.getNormalizedColors().blue)+
-                "}\nMiddle: {"+ formatSensorValue(mMiddleSensor.getNormalizedColors().red)+
+                "}";
+        String mids = "Middle: {"+ formatSensorValue(mMiddleSensor.getNormalizedColors().red)+
                 ", " + formatSensorValue(mMiddleSensor.getNormalizedColors().green)+
                 ", " + formatSensorValue(mMiddleSensor.getNormalizedColors().blue) + "}";
 
@@ -151,8 +152,11 @@ public class RingNeuralNetworkDataCollectionOpMode extends OpMode {
         if (mLightOn) {
             lightstatus = "Yes";
         }
-        telemetry.addData("Light Status", lightstatus);
-        telemetry.addData("Top", s);
+ //       telemetry.addData("Light Status", lightstatus);
+        telemetry.addData("Status",  mCurrentTag+" "+message);
+        telemetry.addData("Top", tops);
+        telemetry.addData("Mid", mids);
+        telemetry.addData("Bottom", bottoms);
         telemetry.addData("Proximity Sensor Distance", String.format("%.01f mm", mProximitySensor.getDistance(DistanceUnit.MM)));
         telemetry.addData("Color sensor Distances", distance);
         telemetry.update();
@@ -162,8 +166,9 @@ public class RingNeuralNetworkDataCollectionOpMode extends OpMode {
      private String formatSensorValue(float value){
         return String.format("%.4f",value);
      }
+
      private String formatColorDistance(RevColorSensorV3 sensor){
-        return formatSensorValue((float) ((DistanceSensor) sensor).getDistance(DistanceUnit.MM));
+        return formatSensorValue((float) sensor.getDistance(DistanceUnit.MM));
      }
     /**
      * Saves the capture data
@@ -194,7 +199,7 @@ public class RingNeuralNetworkDataCollectionOpMode extends OpMode {
         logRecord[logIndex++] = formatSensorValue(mBottomColorSensor.getNormalizedColors().blue);
         logRecord[logIndex] = formatColorDistance(mBottomColorSensor);
 
-                mLogFile.writeLogRow(logRecord);
+        mLogFile.writeLogRow(logRecord);
 
     }
 

@@ -26,11 +26,12 @@ import static org.ejml.dense.row.CommonOps_DDRM.fill;
  * http://neuralnetworksanddeeplearning.com/chap2.html
  */
 @SuppressWarnings("unchecked")
-public class JavaNeuralNetwork implements Serializable {
+public class NeuralNetwork implements Serializable {
 
     public interface ITrainingStatusListener{
         void trainingStatus(int epochNumber, double normalError);
     }
+    private String mDescription = "No Description";
     // List weight matrices in each layer from layer 2..L (total of L-1 elements)
     // element 0 => Layer 2
     private ArrayList<DMatrixRMaj> mWeights = null;
@@ -39,22 +40,29 @@ public class JavaNeuralNetwork implements Serializable {
     private ArrayList<DMatrixRMaj> mBiases = null;
 
     // vector of scale vectors to scale input data.
-    private SimpleMatrix mInputScaleVector = null;
+    private DMatrixRMaj mInputScaleVector = null;
 
     // Array of activation matrices used in backpropogation.  Each element contains L layers
-    private transient ArrayList<DMatrixRMaj>[] mActivations = null;
+    private ArrayList<DMatrixRMaj>[] mActivations = null;
 
     // Array of delta arrays used in backpropogation.  Each element contains L layers
-    private transient ArrayList<DMatrixRMaj>[] mDeltas = null;
+    private ArrayList<DMatrixRMaj>[] mDeltas = null;
 
     // Learning Rate
-    transient private double mETA = 0.005d;
+    private double mETA = 0.005d;
 
     // Number of nodes in each layer starting from the input layer to the output
-    private int[] mNetwork = null;
+    int[] mNetwork = null;
 
     // Listeners for status updates at end of each epoch
-    transient private ArrayList<ITrainingStatusListener> mTrainingStatusListeners = new ArrayList<>();
+    private ArrayList<ITrainingStatusListener> mTrainingStatusListeners = new ArrayList<>();
+
+    /**
+     * Default constructor used only with an existing network that will be deserialized via deserializeNetwork()
+     */
+    public NeuralNetwork(){
+
+    }
 
     /**
      * Deserializes an existing neural network from the FileInputStream.  This is the function
@@ -63,14 +71,14 @@ public class JavaNeuralNetwork implements Serializable {
      * @param is FileInputStream pointing to the Serialized JavaNeuralNetwork object
      * @throws Exception if there was a problem reading the serialized object from the fis
      */
-    public JavaNeuralNetwork(InputStream is) throws Exception {
+    public void deserializeNetwork(InputStream is) throws Exception {
         try{
             ObjectInputStream ois = new ObjectInputStream(is);
-            JavaNeuralNetwork network = (JavaNeuralNetwork)ois.readObject();
-            // Copy the weights and biases into this one
-            mWeights = network.mWeights;
-            mBiases = network.mBiases;
-            mNetwork = network.mNetwork;
+            mDescription = (String) ois.readObject();
+            mNetwork = (int[]) ois.readObject();
+            mWeights = (ArrayList<DMatrixRMaj>) ois.readObject();
+            mBiases = (ArrayList<DMatrixRMaj>) ois.readObject();
+            mInputScaleVector = (DMatrixRMaj) ois.readObject();
         }
         catch(IOException e){
             throw new Exception("IOException reading neural network:"+e.getMessage());
@@ -88,20 +96,29 @@ public class JavaNeuralNetwork implements Serializable {
     public void serializeNetwork(FileOutputStream fos) throws Exception{
         try{
             ObjectOutputStream oos = new ObjectOutputStream(fos);
-            oos.writeObject(this);
+            oos.writeObject(mDescription);
+            oos.writeObject(mNetwork);
+            oos.writeObject(mWeights);
+            oos.writeObject(mBiases);
+            oos.writeObject(mInputScaleVector);
             oos.close();
         }
-         catch(IOException e){
-            throw new Exception("IOException writing neural network:"+e.getMessage());
-        }
-
+         catch(IOException e) {
+             throw new Exception("IOException writing neural network:" + e.getMessage());
+         }
+    }
+    /**
+     * Returns the name of the network at the time that it was last trained.
+     */
+    public String getDescription(){
+        return mDescription;
     }
     /**
      * Creates a new neural network with randomized weights.   This constructor is
      * used only for training a new network.
      * @param network array containing number of nodes in each layer
      */
-    public JavaNeuralNetwork(int network[]) {
+    public NeuralNetwork(int network[]) {
         mNetwork = network;
         mWeights = new ArrayList<>();
         mBiases = new ArrayList<>();
@@ -120,7 +137,7 @@ public class JavaNeuralNetwork implements Serializable {
     * @return the column vector of scale factors used to scale the input data for feedforward runtime operation.
     *
      **/
-    public SimpleMatrix getInputScaleVector(){
+    public DMatrixRMaj getInputScaleVector(){
         return mInputScaleVector;
     }
     /**
@@ -133,28 +150,30 @@ public class JavaNeuralNetwork implements Serializable {
     }
 
     /**
-     * Runtime feedforward method. This method  uses raw input data that will be scaled
-     * by the scaleFactor matrix internal to the network.
-     * @param rawInput vector of raw input node data that has not already been normalized.
+     * Runtime feedforward method. This method uses raw input data that has NOT been scaled with
+     * the normalization factors for this network.
+     * @param rawInput vector of raw input node data that has NOT  been normalized.
      *             Must have same number of rows as input layer nodes and single column.
      * @returns column vector of output node activations
      */
     public SimpleMatrix feedForward(SimpleMatrix rawInput){
         // Scale the data first and then run the feedForward algorithm
         DMatrixRMaj dm = rawInput.getDDRM();
+        elementMult(dm,mInputScaleVector);
         SimpleMatrix output = SimpleMatrix.wrap(feedForward(dm,null));
         return output;
     }
     /**
-     * Training  feedfordward method. This method is used for both for run-time operation
-     * and training backpropogation.
+     * Training  feedfordward method. This method is used for training back-propogation only.
+     * This method does NOT scale the data and must have normalized input data.
+     *
      * Feedforward method loops through
      * z^x,l = w^l * a^x,l−1 + b^l and a^x,l=σ(z^x,l).
      * This is the actual feedforward method that requires normalized input data and is
      * called directly for training.  The other feedforward signature is used for runtime
      * which takes unscaled raw input data.
      *
-     * @param normalizedInput vector of pre-normalized input node activations.
+     * @param normalizedInput vector of normalized input node activations.
      * @param activations reference to activation matrix to fill with values for training or
      *                    nullfor run-time (and values will not be saved).
      * @return vector of output node activations.  Only use for runtime.  Training uses the supplied list
@@ -316,11 +335,12 @@ public class JavaNeuralNetwork implements Serializable {
      * @param batchSize number of samples per epoch
      * @param eta       learning rate
      * @param numEpochs
-     * @param shuffleData shuffle training data on each Epoch when true (usually need to do this)
+     * @param shuffleEachEpoch shuffle training data on each Epoch when true (usually need to do this)
      */
-    public void train(SimpleMatrix x, SimpleMatrix y, SimpleMatrix xscale,int batchSize, double eta, int numEpochs,boolean shuffleData) {
+    public void train(String description,SimpleMatrix x, SimpleMatrix y, SimpleMatrix xscale,int batchSize, double eta, int numEpochs,boolean shuffleEachEpoch) {
         mETA = eta;
-        mInputScaleVector = xscale;
+        mInputScaleVector = xscale.getDDRM();
+        mDescription = description;
 
         // Allocate the activation and delta matrices needed for backpropogation according to the batch size
         mActivations = new ArrayList[batchSize];
@@ -336,12 +356,13 @@ public class JavaNeuralNetwork implements Serializable {
         }
         // Loop through the epochs with one mini-batch at a time
         for (int epochIndex = 0; epochIndex < numEpochs; epochIndex++) {
-            // Start a new epoch by shutffle the training data to randomize the
-            // batch picks
-            int[] columns = MatrixUtils.genShuffleColumnIndexVector(y.numCols());
-            // Normally we want to shuffle data every epoch, but allow the caller to
+            // Start a new epoch
+
+             // Normally we want to shuffle data every epoch, but allow the caller to
             // determine.
-            if (shuffleData) {
+            if (shuffleEachEpoch) {
+                // shuffle the training data to randomize the batch picks
+                int[] columns = MatrixUtils.genShuffleColumnIndexVector(y.numCols());
                 x = MatrixUtils.shuffleMatrix(x, columns);
                 y = MatrixUtils.shuffleMatrix(y, columns);
             }

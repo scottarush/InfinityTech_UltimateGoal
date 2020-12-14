@@ -15,7 +15,7 @@ import java.nio.file.Paths;
  */
 public class RingNeuralNetworkTrainer {
 
-    RingDataProcessor mDataProcessor = new RingDataProcessor();
+    RingDataProcessor mDataProcessor = null;
 
     /**
      * Reads data into the pre-processor for both training and testing.
@@ -27,21 +27,25 @@ public class RingNeuralNetworkTrainer {
      * Called to train the network
      */
     public void
-    trainNetwork(File trainingDataFile,File networkFile,File logFile){
+    trainNetwork(String description,File trainingDataFile,int networkConfig,File logFile){
+        mDataProcessor = new RingDataProcessor(networkConfig);
+        File networkFile = RingDetectorNeuralNetwork.getNeuralNetworkFile(networkConfig);
+
         readData(trainingDataFile,0.10,true);
         // Now create and pass training data to neural network
-        JavaNeuralNetwork ringnn = new JavaNeuralNetwork(new int[]{13,15,3});
+        NeuralNetwork ringnn = new NeuralNetwork(new int[]{13,15,3});
 
         final StringBuffer logBuffer = new StringBuffer();
         logBuffer.append("Epoch#,Normal Error\n");
 
-        ringnn.addTrainingStatusListener(new JavaNeuralNetwork.ITrainingStatusListener() {
+        ringnn.addTrainingStatusListener(new NeuralNetwork.ITrainingStatusListener() {
             @Override
             public void trainingStatus(int epochNumber, double normalError) {
                 logBuffer.append(epochNumber+","+ normalError +"\n");
             }
         });
-        ringnn.train(mDataProcessor.getXTrainingData(), mDataProcessor.getYTrainingData(),
+
+        ringnn.train(description,mDataProcessor.getXTrainingData(), mDataProcessor.getYTrainingData(),
                 mDataProcessor.getScaleFactors(), 10,0.1d,5000,false);
          // Write out the network
         try {
@@ -69,12 +73,12 @@ public class RingNeuralNetworkTrainer {
 
     }
 
-    public void testNetwork(File trainingDataFile,File neuralNetworkFile,File logFile,double testFraction){
+    public void testNetwork(File trainingDataFile,int networkConfig,File logFile,double testFraction){
        // Read the network
         RingDetectorNeuralNetwork ringnn=null;
         try {
-            FileInputStream fis = new FileInputStream(neuralNetworkFile);
-            ringnn = new RingDetectorNeuralNetwork(fis);
+            FileInputStream fis = new FileInputStream(RingDetectorNeuralNetwork.getNeuralNetworkFile(networkConfig));
+            ringnn = new RingDetectorNeuralNetwork(networkConfig);
         }
         catch(Exception e){
             e.printStackTrace();
@@ -85,8 +89,8 @@ public class RingNeuralNetworkTrainer {
         final StringBuffer logBuffer = new StringBuffer();
         logBuffer.append("Data#,Truth,yTruth,Detection,yDetection\n");
 
-        // Read the test data
-        readData(trainingDataFile,testFraction,true);
+        // Read the test data but do not scale it
+        readData(trainingDataFile,testFraction,false);
         SimpleMatrix x = mDataProcessor.getXTestData();
         SimpleMatrix y = mDataProcessor.getYTestData();
 
@@ -136,26 +140,29 @@ public class RingNeuralNetworkTrainer {
 
     }
 
+    /**
+     * The main method in this class configures the
+     */
     @Test
     public void main() {
         RingNeuralNetworkTrainer trainer = new RingNeuralNetworkTrainer();
 
         Path currentRelativePath = Paths.get("");
         String trainingDataPath = currentRelativePath.toAbsolutePath().toString() + "/src/test/java/org/firstinspires/ftc/teamcode/ringdetect";
-        File trainingFile = new File(trainingDataPath, "06DEC20 initial training data.csv");
-        String runtimeNetworkPath = currentRelativePath.toAbsolutePath().toString() + "/src/main/assets";
-        File networkFile = new File(runtimeNetworkPath, "all_sensors_ring_neuralnetwork.bin");
+        File trainingFile = new File(trainingDataPath, "13DEC20_training_data.csv");
+        String runtimeNetworkPath = trainingDataPath;
 
-        boolean train = true;
+        boolean train = false;
+        int networkConfig = RingDetectorNeuralNetwork.TOP_BOTTOM_COLOR_SENSORS_ONLY;
         if (train) {
             // Now save the network to the runtime assets directory
             File logFile = new File(trainingDataPath + "/training_log.csv");
-            trainer.trainNetwork(trainingFile,networkFile,logFile);
+            trainer.trainNetwork("All sensors",trainingFile,networkConfig,logFile);
         }
         boolean test = true;
         if (test){
             File logFile = new File(trainingDataPath + "/testing_log.csv");
-            testNetwork(trainingFile,networkFile,logFile,0.10);
+            testNetwork(trainingFile,networkConfig,logFile,0.10);
         }
 
     }

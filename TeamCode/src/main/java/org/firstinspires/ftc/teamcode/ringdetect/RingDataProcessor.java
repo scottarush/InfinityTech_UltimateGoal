@@ -19,27 +19,16 @@ public class RingDataProcessor {
     public static final int ONE_RING_INDEX = 1;
     public static final int FOUR_RINGS_INDEX = 2;
 
-    public static final int TRAINING_DATA_ROWS = 13;
-    // Columns in the X array training data which are also the columns in the input vector
-    // at runtime
-    public static final int DISTANCE_ROW_INDEX = 0;
-    public static final int TOP_RED_ROW_INDEX = 1;
-    public static final int TOP_GREEN_ROW_INDEX = 2;
-    public static final int TOP_BLUE_ROW_INDEX = 3;
-    public static final int TOP_DISTANCE_ROW_INDEX = 4;
-    public static final int MID_RED_ROW_INDEX = 5;
-    public static final int MID_GREEN_ROW_INDEX = 6;
-    public static final int MID_BLUE_ROW_INDEX = 7;
-    public static final int MID_DISTANCE_ROW_INDEX = 8;
-    public static final int BOTTOM_RED_ROW_INDEX = 9;
-    public static final int BOTTOM_GREEN_ROW_INDEX = 10;
-    public static final int BOTTOM_BLUE_ROW_INDEX = 11;
-    public static final int BOTTOM_DISTANCE_ROW_INDEX = 12;
-
     // number of states to recognize
     public static final int NUM_OUTPUT_STATES = 3;
 
-    public RingDataProcessor() {
+    private int mNetworkConfiguration = -1;
+    /**
+     * Constructor
+     * @param networkConfiguration configs defined in {@link RingDetectorNeuralNetwork}
+     */
+    public RingDataProcessor(int networkConfiguration) {
+        mNetworkConfiguration = networkConfiguration;
     }
 
     private SimpleMatrix mXTrainingData = null;
@@ -93,7 +82,21 @@ public class RingDataProcessor {
             fr.close();
 
             // Now create X and Y arrays and re-read data into the arrays
-            mXTrainingData = new SimpleMatrix(TRAINING_DATA_ROWS,count);
+            switch(mNetworkConfiguration){
+                case RingDetectorNeuralNetwork.ALL_SENSORS:
+                    mXTrainingData = new SimpleMatrix(RingDetectorNeuralNetwork.ALL_SENSORS_INPUT_ROWS,count);
+                    break;
+                case RingDetectorNeuralNetwork.NO_MID_COLOR_SENSOR:
+                    mXTrainingData = new SimpleMatrix(RingDetectorNeuralNetwork.NO_MID_COLOR_SENSOR_INPUT_ROWS,count);
+                    break;
+                case RingDetectorNeuralNetwork.NO_DISTANCE_SENSOR:
+                    mXTrainingData = new SimpleMatrix(RingDetectorNeuralNetwork.NO_DISTANCE_SENSOR_INPUT_ROWS,count);
+                    break;
+                case RingDetectorNeuralNetwork.TOP_BOTTOM_COLOR_SENSORS_ONLY:
+                    mXTrainingData = new SimpleMatrix(RingDetectorNeuralNetwork.TOP_BOTTOM_ONLY_INPUT_ROWS,count);
+                    break;
+            }
+            // Y array is always the same
             mYTrainingData = new SimpleMatrix(NUM_OUTPUT_STATES,count);
 
             fr = new FileReader(mInputFile);
@@ -128,8 +131,8 @@ public class RingDataProcessor {
         mYTrainingData = MatrixUtils.shuffleMatrix(mYTrainingData,columns);
 
         // Compute the split between training and test data
-        int trainingCount = (int)Math.round((double)mXTrainingData.numCols()*testFraction);
-        int testColumnStart = mXTrainingData.numCols()-trainingCount;
+        int testCount = (int)Math.round((double)mXTrainingData.numCols()*testFraction);
+        int testColumnStart = mXTrainingData.numCols()-testCount;
         //  split off test data starting testColumnStart
         mXTestData = mXTrainingData.cols(testColumnStart,mXTrainingData.numCols());
         mXTrainingData = mXTrainingData.cols(0,testColumnStart);
@@ -168,19 +171,85 @@ public class RingDataProcessor {
                 throw new RuntimeException("Invalid tag" + tag + " found in input file=" + mInputFile.getName());
         }
         tokenizer.nextToken();  // Skip the light status
-        x.set(DISTANCE_ROW_INDEX,columnIndex,Float.parseFloat(tokenizer.nextToken()));
-        x.set(TOP_RED_ROW_INDEX,columnIndex,Float.parseFloat(tokenizer.nextToken()));
-        x.set(TOP_GREEN_ROW_INDEX,columnIndex,Float.parseFloat(tokenizer.nextToken()));
-        x.set(TOP_BLUE_ROW_INDEX,columnIndex,Float.parseFloat(tokenizer.nextToken()));
-        x.set(TOP_DISTANCE_ROW_INDEX,columnIndex,Float.parseFloat(tokenizer.nextToken()));
-        x.set(MID_RED_ROW_INDEX,columnIndex,Float.parseFloat(tokenizer.nextToken()));
-        x.set(MID_GREEN_ROW_INDEX,columnIndex,Float.parseFloat(tokenizer.nextToken()));
-        x.set(MID_BLUE_ROW_INDEX,columnIndex,Float.parseFloat(tokenizer.nextToken()));
-        x.set(MID_DISTANCE_ROW_INDEX,columnIndex,Float.parseFloat(tokenizer.nextToken()));
-        x.set(BOTTOM_RED_ROW_INDEX,columnIndex,Float.parseFloat(tokenizer.nextToken()));
-        x.set(BOTTOM_GREEN_ROW_INDEX,columnIndex,Float.parseFloat(tokenizer.nextToken()));
-        x.set(BOTTOM_BLUE_ROW_INDEX,columnIndex,Float.parseFloat(tokenizer.nextToken()));
-        x.set(BOTTOM_DISTANCE_ROW_INDEX,columnIndex,Float.parseFloat(tokenizer.nextToken()));
+        // Now create the x array according to the configuration
+        switch(mNetworkConfiguration){
+            case RingDetectorNeuralNetwork.ALL_SENSORS:
+                parseAllSensorConfigLine(x,columnIndex,tokenizer);
+                break;
+            case RingDetectorNeuralNetwork.NO_MID_COLOR_SENSOR:
+                parseNoMidSensorConfigLine(x,columnIndex,tokenizer);
+                break;
+            case RingDetectorNeuralNetwork.NO_DISTANCE_SENSOR:
+                parseNoDistanceSensorConfigLine(x,columnIndex,tokenizer);
+                break;
+            case RingDetectorNeuralNetwork.TOP_BOTTOM_COLOR_SENSORS_ONLY:
+                parseTopBottomOnlyConfigLine(x,columnIndex,tokenizer);
+                break;
+        }
+     }
+
+    private void parseAllSensorConfigLine(SimpleMatrix x,int columnIndex,StringTokenizer tokenizer){
+        x.set(RingDetectorNeuralNetwork.ALL_SENSORS_DISTANCE_ROW_INDEX,columnIndex,Float.parseFloat(tokenizer.nextToken()));
+        x.set(RingDetectorNeuralNetwork.ALL_SENSORS_TOP_RED_ROW_INDEX, columnIndex,Float.parseFloat(tokenizer.nextToken()));
+        x.set(RingDetectorNeuralNetwork.ALL_SENSORS_TOP_BLUE_ROW_INDEX, columnIndex,Float.parseFloat(tokenizer.nextToken()));
+        x.set(RingDetectorNeuralNetwork.ALL_SENSORS_TOP_GREEN_ROW_INDEX,columnIndex,Float.parseFloat(tokenizer.nextToken()));
+        x.set(RingDetectorNeuralNetwork.ALL_SENSORS_TOP_DISTANCE_ROW_INDEX,columnIndex,Float.parseFloat(tokenizer.nextToken()));
+        x.set(RingDetectorNeuralNetwork.ALL_SENSORS_MID_RED_ROW_INDEX,columnIndex,Float.parseFloat(tokenizer.nextToken()));
+        x.set(RingDetectorNeuralNetwork.ALL_SENSORS_MID_BLUE_ROW_INDEX, columnIndex,Float.parseFloat(tokenizer.nextToken()));
+        x.set(RingDetectorNeuralNetwork.ALL_SENSORS_MID_GREEN_ROW_INDEX, columnIndex,Float.parseFloat(tokenizer.nextToken()));
+        x.set(RingDetectorNeuralNetwork.ALL_SENSORS_MID_DISTANCE_ROW_INDEX, columnIndex,Float.parseFloat(tokenizer.nextToken()));
+        x.set(RingDetectorNeuralNetwork.ALL_SENSORS_BOTTOM_RED_ROW_INDEX, columnIndex,Float.parseFloat(tokenizer.nextToken()));
+        x.set(RingDetectorNeuralNetwork.ALL_SENSORS_BOTTOM_BLUE_ROW_INDEX, columnIndex,Float.parseFloat(tokenizer.nextToken()));
+        x.set(RingDetectorNeuralNetwork.ALL_SENSORS_BOTTOM_GREEN_ROW_INDEX,columnIndex,Float.parseFloat(tokenizer.nextToken()));
+        x.set(RingDetectorNeuralNetwork.ALL_SENSORS_BOTTOM_DISTANCE_ROW_INDEX, columnIndex,Float.parseFloat(tokenizer.nextToken()));
     }
+    private void parseNoMidSensorConfigLine(SimpleMatrix x,int columnIndex,StringTokenizer tokenizer){
+        x.set(RingDetectorNeuralNetwork.NO_MID_COLOR_SENSOR_DISTANCE_ROW_INDEX,columnIndex,Float.parseFloat(tokenizer.nextToken()));
+        x.set(RingDetectorNeuralNetwork.NO_MID_COLOR_SENSOR_TOP_RED_ROW_INDEX, columnIndex,Float.parseFloat(tokenizer.nextToken()));
+        x.set(RingDetectorNeuralNetwork.NO_MID_COLOR_SENSOR_TOP_BLUE_ROW_INDEX, columnIndex,Float.parseFloat(tokenizer.nextToken()));
+        x.set(RingDetectorNeuralNetwork.NO_MID_COLOR_SENSOR_TOP_GREEN_ROW_INDEX,columnIndex,Float.parseFloat(tokenizer.nextToken()));
+        x.set(RingDetectorNeuralNetwork.NO_MID_COLOR_SENSOR_TOP_DISTANCE_ROW_INDEX,columnIndex,Float.parseFloat(tokenizer.nextToken()));
+        // Skip Mid values
+        tokenizer.nextToken();
+        tokenizer.nextToken();
+        tokenizer.nextToken();
+        tokenizer.nextToken();
+         x.set(RingDetectorNeuralNetwork.NO_MID_COLOR_SENSOR_BOTTOM_RED_ROW_INDEX, columnIndex,Float.parseFloat(tokenizer.nextToken()));
+        x.set(RingDetectorNeuralNetwork.NO_MID_COLOR_SENSOR_BOTTOM_BLUE_ROW_INDEX, columnIndex,Float.parseFloat(tokenizer.nextToken()));
+        x.set(RingDetectorNeuralNetwork.NO_MID_COLOR_SENSOR_BOTTOM_GREEN_ROW_INDEX,columnIndex,Float.parseFloat(tokenizer.nextToken()));
+        x.set(RingDetectorNeuralNetwork.NO_MID_COLOR_SENSOR_BOTTOM_DISTANCE_ROW_INDEX, columnIndex,Float.parseFloat(tokenizer.nextToken()));
+    }
+    private void parseNoDistanceSensorConfigLine(SimpleMatrix x,int columnIndex,StringTokenizer tokenizer){
+        tokenizer.nextToken();  // skip distance
+        x.set(RingDetectorNeuralNetwork.NO_DISTANCE_SENSOR_TOP_RED_ROW_INDEX, columnIndex,Float.parseFloat(tokenizer.nextToken()));
+        x.set(RingDetectorNeuralNetwork.NO_DISTANCE_SENSOR_TOP_BLUE_ROW_INDEX, columnIndex,Float.parseFloat(tokenizer.nextToken()));
+        x.set(RingDetectorNeuralNetwork.NO_DISTANCE_SENSOR_TOP_GREEN_ROW_INDEX,columnIndex,Float.parseFloat(tokenizer.nextToken()));
+        x.set(RingDetectorNeuralNetwork.NO_DISTANCE_SENSOR_TOP_DISTANCE_ROW_INDEX,columnIndex,Float.parseFloat(tokenizer.nextToken()));
+        x.set(RingDetectorNeuralNetwork.NO_DISTANCE_SENSOR_MID_RED_ROW_INDEX,columnIndex,Float.parseFloat(tokenizer.nextToken()));
+        x.set(RingDetectorNeuralNetwork.NO_DISTANCE_SENSOR_MID_BLUE_ROW_INDEX, columnIndex,Float.parseFloat(tokenizer.nextToken()));
+        x.set(RingDetectorNeuralNetwork.NO_DISTANCE_SENSOR_MID_GREEN_ROW_INDEX, columnIndex,Float.parseFloat(tokenizer.nextToken()));
+        x.set(RingDetectorNeuralNetwork.NO_DISTANCE_SENSOR_MID_DISTANCE_ROW_INDEX, columnIndex,Float.parseFloat(tokenizer.nextToken()));
+        x.set(RingDetectorNeuralNetwork.NO_DISTANCE_SENSOR_BOTTOM_RED_ROW_INDEX, columnIndex,Float.parseFloat(tokenizer.nextToken()));
+        x.set(RingDetectorNeuralNetwork.NO_DISTANCE_SENSOR_BOTTOM_BLUE_ROW_INDEX, columnIndex,Float.parseFloat(tokenizer.nextToken()));
+        x.set(RingDetectorNeuralNetwork.NO_DISTANCE_SENSOR_BOTTOM_GREEN_ROW_INDEX,columnIndex,Float.parseFloat(tokenizer.nextToken()));
+        x.set(RingDetectorNeuralNetwork.NO_DISTANCE_SENSOR_BOTTOM_DISTANCE_ROW_INDEX, columnIndex,Float.parseFloat(tokenizer.nextToken()));
+    }
+    private void parseTopBottomOnlyConfigLine(SimpleMatrix x,int columnIndex,StringTokenizer tokenizer){
+        tokenizer.nextToken();  // skip distance
+        x.set(RingDetectorNeuralNetwork.ALL_SENSORS_TOP_RED_ROW_INDEX, columnIndex,Float.parseFloat(tokenizer.nextToken()));
+        x.set(RingDetectorNeuralNetwork.ALL_SENSORS_TOP_BLUE_ROW_INDEX, columnIndex,Float.parseFloat(tokenizer.nextToken()));
+        x.set(RingDetectorNeuralNetwork.ALL_SENSORS_TOP_GREEN_ROW_INDEX,columnIndex,Float.parseFloat(tokenizer.nextToken()));
+        x.set(RingDetectorNeuralNetwork.ALL_SENSORS_TOP_DISTANCE_ROW_INDEX,columnIndex,Float.parseFloat(tokenizer.nextToken()));
+        // Skip Mid values
+        tokenizer.nextToken();
+        tokenizer.nextToken();
+        tokenizer.nextToken();
+        tokenizer.nextToken();
+        x.set(RingDetectorNeuralNetwork.ALL_SENSORS_BOTTOM_RED_ROW_INDEX, columnIndex,Float.parseFloat(tokenizer.nextToken()));
+        x.set(RingDetectorNeuralNetwork.ALL_SENSORS_BOTTOM_BLUE_ROW_INDEX, columnIndex,Float.parseFloat(tokenizer.nextToken()));
+        x.set(RingDetectorNeuralNetwork.ALL_SENSORS_BOTTOM_GREEN_ROW_INDEX,columnIndex,Float.parseFloat(tokenizer.nextToken()));
+        x.set(RingDetectorNeuralNetwork.ALL_SENSORS_BOTTOM_DISTANCE_ROW_INDEX, columnIndex,Float.parseFloat(tokenizer.nextToken()));
+    }
+
 
 }
