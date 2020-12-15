@@ -152,12 +152,12 @@ public class RingNeuralNetworkTrainer {
         RingNeuralNetworkTrainer trainer = new RingNeuralNetworkTrainer();
 
         Path currentRelativePath = Paths.get("");
-        String trainingDataPath = currentRelativePath.toAbsolutePath().toString() + "/src/test/java/org/firstinspires/ftc/teamcode/ringdetect";
+        String dataPath = currentRelativePath.toAbsolutePath().toString() + "/src/test/java/org/firstinspires/ftc/teamcode/ringdetect/data";
         String trainingFileName = "15DEC20_training_data.csv";
         String testingFileName = "15DEC20_testing_data.csv";
 
-        File trainingFile = new File(trainingDataPath, trainingFileName);
-        File neuralNetFilePath = new File(trainingDataPath);
+        File trainingFile = new File(dataPath, trainingFileName);
+        File neuralNetFilePath = new File(dataPath);
 
         boolean TRAIN = false;
         int networkConfig = RingDetectorNeuralNetwork.ALL_SENSORS;
@@ -166,7 +166,7 @@ public class RingNeuralNetworkTrainer {
         fileprefix = fileprefix.substring(0,fileprefix.length()-4);      // Strip .bin extension
         String trainingLogFilename= fileprefix+"_training_log.cvs";
         if (TRAIN) {
-            File logFile = new File(trainingDataPath,trainingLogFilename);
+            File logFile = new File(dataPath,trainingLogFilename);
             trainer.trainNewNetwork(RingDetectorNeuralNetwork.getNeuralNetworkFilename(networkConfig),
                     trainingFile,neuralNetFilePath,networkConfig,logFile);
         }
@@ -174,7 +174,7 @@ public class RingNeuralNetworkTrainer {
         boolean test = true;
         String testingLogFilename = fileprefix +"_testing_log.cvs";
         if (test){
-            File logFile = new File(trainingDataPath,testingLogFilename);
+            File logFile = new File(dataPath,testingLogFilename);
             trainer.testNetwork(trainingFile,neuralNetFilePath,networkConfig,logFile,1.0);
         }
 
