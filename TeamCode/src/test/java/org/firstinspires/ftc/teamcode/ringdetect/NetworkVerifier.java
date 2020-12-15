@@ -90,12 +90,11 @@ public class NetworkVerifier {
 
     }
 
-    public void testNetwork(File neuralNetworkFile,File logFile,double testFraction){
+    public void testNetwork(File nnFilePath,File logFile,double testFraction){
        // Read the network
         RingDetectorNeuralNetwork ringnn=null;
         try {
-            FileInputStream fis = new FileInputStream(neuralNetworkFile);
-            ringnn = new RingDetectorNeuralNetwork(RingDetectorNeuralNetwork.ALL_SENSORS);
+            ringnn = new RingDetectorNeuralNetwork(nnFilePath,RingDetectorNeuralNetwork.ALL_SENSORS,logFile);
         }
         catch(Exception e){
             e.printStackTrace();
@@ -141,18 +140,17 @@ public class NetworkVerifier {
 
         Path currentRelativePath = Paths.get("");
         String trainingDataPath = currentRelativePath.toAbsolutePath().toString() + "/src/test/java/org/firstinspires/ftc/teamcode/ringdetect";
-        File networkFile = new File(trainingDataPath, "verify_network.bin");
-
+        File nnPath = new File(trainingDataPath);
         boolean train = true;
         if (train) {
             // Now save the network to the runtime assets directory
-            File logFile = new File(trainingDataPath + "/training_log.csv");
-            trainer.trainNetwork(networkFile,logFile);
+            File logFile = new File(trainingDataPath + "/top_bottom_ringnn_training_log.csv");
+            trainer.trainNetwork(nnPath,logFile);
         }
         boolean test = true;
         if (test){
-            File logFile = new File(trainingDataPath + "/testing_log.csv");
-            testNetwork(networkFile,logFile,0.10);
+            File logFile = new File(trainingDataPath + "/top_bottom_testing_log.csv");
+            testNetwork(nnPath,logFile,0.10);
         }
 
     }
