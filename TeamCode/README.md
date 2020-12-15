@@ -46,6 +46,8 @@ InfinityTech has developed a framework for autonomous mode control using state m
 - org.firstinspires.ftc.teamcode.autonomous
 - org.firstinspires.ftc.teamcode.guidance
 
+InitityTech has also developed a neural network ring detector in order to be able to detect the ring configuration at the start of the UltimateGoal autonomous mode.
+
 ## State Machine Compiler
 InfinityTech uses the open source _State Machine Compiler_ or _SMC_ project hosted on SourceForge here:  http://smc.sourceforge.net/, specifically the Java version.  SMC is an automatic code generator that takes in a description of a state machine and generates Java code.  A _state machine_ or, to use the exact computer science term, a _Finite State Machine_ is a very powerful way to program computers to know what actions to take in response to inputs.  Wikipedia has a very good description of state machines here:  https://en.wikipedia.org/wiki/Finite-state_machine
 

@@ -3,7 +3,6 @@ import org.ejml.simple.SimpleMatrix;
 import org.junit.Test;
 
 import java.io.File;
-import java.io.FileInputStream;
 import java.io.FileOutputStream;
 import java.io.FileWriter;
 import java.io.IOException;
@@ -119,10 +118,10 @@ public class RingNeuralNetworkTrainer {
 
             }
 
-            String ytruths = MatrixUtils.printColumn(ytruth,0);
+            String ytruths = NeuralNetworkMatrixUtils.printColumn(ytruth,0);
             String truths = ringnn.convertToString(truth);
 
-            String yinference = MatrixUtils.printColumn(output,0);
+            String yinference = NeuralNetworkMatrixUtils.printColumn(output,0);
             String inferences = ringnn.convertToString(inference);
             logBuffer.append(","+truths+","+ytruths+","+inferences+","+yinference+"\n");
         }

@@ -3,7 +3,6 @@ import org.ejml.simple.SimpleMatrix;
 import org.junit.Test;
 
 import java.io.File;
-import java.io.FileInputStream;
 import java.io.FileOutputStream;
 import java.io.FileWriter;
 import java.io.IOException;
@@ -114,8 +113,8 @@ public class NetworkVerifier {
 
             SimpleMatrix output = ringnn.doTestInference(input);
 
-            String ytruths = MatrixUtils.printColumn(ytruth,0);
-            String ydetections = MatrixUtils.printColumn(output,0);
+            String ytruths = NeuralNetworkMatrixUtils.printColumn(ytruth,0);
+            String ydetections = NeuralNetworkMatrixUtils.printColumn(output,0);
             logBuffer.append(column+1+","+ytruths+","+ydetections+"\n");
         }
 

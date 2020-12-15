@@ -117,8 +117,8 @@ public class RingDataProcessor {
 
         if (normalize) {
             // Normalize the data.  Must save the scale Factors to be used for runtime operation
-            mScaleFactors = MatrixUtils.normalizeRows(mXTrainingData);
-            MatrixUtils.normalizeRows(mYTrainingData);
+            mScaleFactors = NeuralNetworkMatrixUtils.normalizeRows(mXTrainingData);
+            NeuralNetworkMatrixUtils.normalizeRows(mYTrainingData);
         }
         else{
             mScaleFactors = new SimpleMatrix(mXTrainingData.numRows(),1);
@@ -127,9 +127,9 @@ public class RingDataProcessor {
 
         // Shuffle the data if requested to randomize the split between training and test
         if (shuffle) {
-            int columns[] = MatrixUtils.genShuffleColumnIndexVector(mXTrainingData.numCols());
-            mXTrainingData = MatrixUtils.shuffleMatrix(mXTrainingData, columns);
-            mYTrainingData = MatrixUtils.shuffleMatrix(mYTrainingData, columns);
+            int columns[] = NeuralNetworkMatrixUtils.genShuffleColumnIndexVector(mXTrainingData.numCols());
+            mXTrainingData = NeuralNetworkMatrixUtils.shuffleMatrix(mXTrainingData, columns);
+            mYTrainingData = NeuralNetworkMatrixUtils.shuffleMatrix(mYTrainingData, columns);
         }
         // Compute the split between training and test data
         int testCount = (int)Math.round((double)mXTrainingData.numCols()*testFraction);
