@@ -1,3 +1,23 @@
+/*
+ * Copyright (c) 2020, Scott Rush. All Rights Reserved.
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *   http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ *
+ * This software uses the open source Efficient Java Matrix Library.
+ * See:
+ * https://github.com/lessthanoptimal/ejml
+ */
+
 package org.firstinspires.ftc.teamcode.ringdetect;
 
 import org.ejml.data.DMatrixRMaj;
@@ -24,6 +44,8 @@ import static org.ejml.dense.row.CommonOps_DDRM.fill;
 /**
  * This class implements the neural network.  Comments notation is from:
  * http://neuralnetworksanddeeplearning.com/chap2.html
+ *
+ * @author Scott Rush
  */
 @SuppressWarnings("unchecked")
 public class NeuralNetwork implements Serializable {
@@ -362,9 +384,9 @@ public class NeuralNetwork implements Serializable {
             // determine.
             if (shuffleEachEpoch) {
                 // shuffle the training data to randomize the batch picks
-                int[] columns = MatrixUtils.genShuffleColumnIndexVector(y.numCols());
-                x = MatrixUtils.shuffleMatrix(x, columns);
-                y = MatrixUtils.shuffleMatrix(y, columns);
+                int[] columns = NeuralNetworkMatrixUtils.genShuffleColumnIndexVector(y.numCols());
+                x = NeuralNetworkMatrixUtils.shuffleMatrix(x, columns);
+                y = NeuralNetworkMatrixUtils.shuffleMatrix(y, columns);
             }
             int batchColumnIndex = 0;
 
@@ -412,9 +434,9 @@ public class NeuralNetwork implements Serializable {
         for (int i = 0; i < mWeights.size(); i++) {
             DMatrixRMaj w = mWeights.get(i);
             DMatrixRMaj b = mBiases.get(i);
-            buffer.append(MatrixUtils.printMatrix(w, "w_layer" + i));
+            buffer.append(NeuralNetworkMatrixUtils.printMatrix(w, "w_layer" + i));
             buffer.append("\n\r");
-            buffer.append(MatrixUtils.printMatrix(b, "b_layer" + i));
+            buffer.append(NeuralNetworkMatrixUtils.printMatrix(b, "b_layer" + i));
             buffer.append("\n\r");
         }
         return buffer.toString();
