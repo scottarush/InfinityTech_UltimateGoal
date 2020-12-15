@@ -1,5 +1,5 @@
 # Introduction
-This is the TeamCode module for the FTC InfinityTech #13684 robotics team.  This readme documents the InfinityTech team software tool setup and architecture for the 2020-2021 Ultimate goal season here.
+This is the TeamCode module for the FTC InfinityTech #13684 robotics team.  This _README_ documents the InfinityTech team software tool setup and architecture for the 2020-2021 Ultimate goal season here.
 
 # Installing Android Studio
 InfinityTech uses Android Studio for all development.  Here are the basic instructions for installing Android Studio and setting it up:
@@ -9,6 +9,7 @@ Mac: [Android 4.0.1 for Mac](https://redirector.gvt1.com/edgedl/android/studio/i
 2.  Install Android Studio on either a Windows PC or a Mac.  The Chrome version can't be installed on your school Chromebooks.
 3.  Start Android Studio and select "Configure->Plugins" (at the bottom of the start page).
 4.  Type in "Android Wifi ADB" plugin in the left search box, select it in the list, and hit the "Install" button on the right (note that the plugin is already installed on my computer):
+
   ![Install Android Wifi ADB plugin](docs/install_android_wifiadb_plugin.PNG)
 
 ## Downloading TeamCode from Github
@@ -116,14 +117,16 @@ In order for the robot to navigate the playing field during autonomous mode, the
 InfinityTech implements these two functions using a _Basic Kalman Filter_ and a _PID_ controller framework called the _Guidance Controller_.  This section describes both of these functions.  The software for both is in the _org.firstinspires.ftc.teamcode.guidance_ package.
 
 ### Kalman Filter
-InfinityTech has developed a _Basic Kalman Filter_ that reads encoder signals from each wheel motor of the drivetrain and the Gyro signal from the Control Hub's internal  _IMU_ or Inertial Measurement Unit.  Both of these signals are very noisy and can drift significantly as the robot moves around the playing field.  The Kalman Filter is a signal processing software technique that was originally designed for the Apollo program during the NASA moon missions in the 1960s.  
+InfinityTech has developed a _Basic Kalman Filter_ that reads encoder signals from each wheel motor of the drivetrain and the Gyro signal from the Control Hub's internal  _IMU_ or Inertial Measurement Unit.  Both of these signals are very noisy and can drift significantly as the robot moves around the playing field.  
 
-Kalman Filters are now used widely in almost all navigation systems in robots, autonomous vehicles, etc..  InfinityTech's KalmanFilter code is in the org.firstinspires.ftc.teamcode.guidance package, and it allows us to combine measurements from the wheel motor encoders and the IMU to determine the robot's position and heading during autonomous mode.  We then use the estimated position and heading to feed the GuidanceController described below and our State Machine Compiler scripts.
+The Kalman Filter is a signal processing software technique that was originally designed for the Apollo program during the NASA moon missions in the 1960s.  Kalman Filters are now used widely in almost all navigation systems in robots, autonomous vehicles, etc..  
+
+InfinityTech's KalmanFilter code is in the org.firstinspires.ftc.teamcode.guidance package, and it allows us to combine measurements from the wheel motor encoders and the IMU to determine the robot's position and heading during autonomous mode.  We then use the estimated position and heading to feed the GuidanceController described below and our State Machine Compiler scripts.
 
 There is a Word doc technical description of our Kalman Filter in the .guidance package if you are interested in the gritty details or want to read further as you continue your engineering studies.
 
 #### EJML Library and Setup Notes
-The Kalman Filter equations are computed using a mathematics technique called _Matrix Algebra_.  There are open source software packages that implement these complex routines.  InfinityTech uses the _Efficient Java Matrix Library_ or _ejml_ which has a website here:  [ejml.org website](https://ejml.org/wiki/index.php?title=Main_Page).
+The Kalman Filter equations are computed using _Matrix Algebra_ for which many different open source software packages are available.  InfinityTech uses the _Efficient Java Matrix Library_ or _ejml_ project which has a website here:  [ejml.org website](https://ejml.org/wiki/index.php?title=Main_Page).
 
 The pre-built _ejml_ release from the website won't work with our robot because it was compiled for an Android Java version that is newer than the one supported by the control hub software.  We had to modify the source very slightly from the libejml-0.39 version to get ejml to compile with the older Android K version on the control hub.  The source for the _libejml.jar_ re-compiled library is inside our Github repo for archive purposes, but we don't expect anyone will ever need to touch it or rebuild the library again.  
 
@@ -141,3 +144,9 @@ However, future teams will likely need to set up a new Github fork in Android.  
     The default is VERSION_1_7 which won't work.
 
 ### Guidance Controller
+The GuidanceController is also located in the _org.firstinspires.ftc.teamcode.guidance_ package and is a Java class that implements PID, or _ProportionalIntegralDerivative_, control of the robot motion using the estimate robot position and heading from the KalmanFilter.  The GuidanceController implements the following critical functions in autonomous mode:
+
+1. Computes rotation and movement commands based on the difference between the Kalman Filter's estimated heading and position and the commanded heading and position.
+2. Send the rotation and movement commands to the Drivetrain motors.
+3. Send events to "listeners" such as the Autonomous mode state machine when the rotation has completed (evRotationComplate) or a linear/strafe movement has been completed (evMoveComplete)
+
