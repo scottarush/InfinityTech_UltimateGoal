@@ -150,32 +150,29 @@ public class RingNeuralNetworkTrainer {
     @Test
     public void main() {
         RingNeuralNetworkTrainer trainer = new RingNeuralNetworkTrainer();
+        int networkConfig = RingDetectorNeuralNetwork.TOP_BOTTOM_COLOR_SENSORS_ONLY;
 
+        // Get the path to the data directory
         Path currentRelativePath = Paths.get("");
         String dataPath = currentRelativePath.toAbsolutePath().toString() + "/src/test/java/org/firstinspires/ftc/teamcode/ringdetect/data";
-        String trainingFileName = "15DEC20_training_data.csv";
-        String testingFileName = "15DEC20_testing_data.csv";
-
-        File trainingFile = new File(dataPath, trainingFileName);
-        File neuralNetFilePath = new File(dataPath);
-
-        boolean TRAIN = false;
-        int networkConfig = RingDetectorNeuralNetwork.ALL_SENSORS;
         // Form training and testing log filenames using the configuration filename as a prefix
         String fileprefix = RingDetectorNeuralNetwork.getNeuralNetworkFilename(networkConfig);
         fileprefix = fileprefix.substring(0,fileprefix.length()-4);      // Strip .bin extension
-        String trainingLogFilename= fileprefix+"_training_log.cvs";
+        File neuralNetFilePath = new File(dataPath);
+
+        boolean TRAIN = false;
         if (TRAIN) {
-            File logFile = new File(dataPath,trainingLogFilename);
+            File trainingFile = new File(dataPath, "15DEC20_training_data.csv");
+            File trainingLogFile = new File(dataPath,fileprefix+"_training_log.cvs");
             trainer.trainNewNetwork(RingDetectorNeuralNetwork.getNeuralNetworkFilename(networkConfig),
-                    trainingFile,neuralNetFilePath,networkConfig,logFile);
+                    trainingFile,neuralNetFilePath,networkConfig,trainingLogFile);
         }
 
         boolean test = true;
-        String testingLogFilename = fileprefix +"_testing_log.cvs";
         if (test){
-            File logFile = new File(dataPath,testingLogFilename);
-            trainer.testNetwork(trainingFile,neuralNetFilePath,networkConfig,logFile,1.0);
+            File testingLogFile = new File(dataPath, fileprefix +"_testing_log.cvs");
+            File testingDataFile = new File(dataPath,"15DEC20_testing_data.csv");
+            trainer.testNetwork(testingDataFile,neuralNetFilePath,networkConfig,testingLogFile,1.0);
         }
 
     }
