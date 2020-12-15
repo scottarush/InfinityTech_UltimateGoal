@@ -152,7 +152,7 @@ public class RingNeuralNetworkDataCollectionOpMode extends OpMode {
         if (mLightOn) {
             lightstatus = "Yes";
         }
- //       telemetry.addData("Light Status", lightstatus);
+        telemetry.addData("Light Status", lightstatus);
         telemetry.addData("Status",  mCurrentTag+" "+message);
         telemetry.addData("Top", tops);
         telemetry.addData("Mid", mids);

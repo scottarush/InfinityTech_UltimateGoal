@@ -98,16 +98,16 @@ public class RingDetectorNeuralNetwork extends NeuralNetwork {
     //------------------------------------------------------
     public static final String TOP_BOTTOM_ONLY_NEURAL_NETWORK_FILE = "top_bottom_ringnn.bin";
 
-    public static final int TOP_BOTTOM_ONLY_INPUT_ROWS = 9;
+    public static final int TOP_BOTTOM_ONLY_INPUT_ROWS = 8;
     // Columns in the X INPUT DATA for the all sensor configuration
     public static final int TOP_BOTTOM_ONLY_TOP_RED_ROW_INDEX = 0;
     public static final int TOP_BOTTOM_ONLY_TOP_GREEN_ROW_INDEX = 1;
     public static final int TOP_BOTTOM_ONLY_TOP_BLUE_ROW_INDEX = 2;
     public static final int TOP_BOTTOM_ONLY_TOP_DISTANCE_ROW_INDEX = 3;
-    public static final int TOP_BOTTOM_ONLY_BOTTOM_RED_ROW_INDEX = 5;
-    public static final int TOP_BOTTOM_ONLY_BOTTOM_GREEN_ROW_INDEX = 6;
-    public static final int TOP_BOTTOM_ONLY_BOTTOM_BLUE_ROW_INDEX = 7;
-    public static final int TOP_BOTTOM_ONLY_BOTTOM_DISTANCE_ROW_INDEX = 8;
+    public static final int TOP_BOTTOM_ONLY_BOTTOM_RED_ROW_INDEX = 4;
+    public static final int TOP_BOTTOM_ONLY_BOTTOM_GREEN_ROW_INDEX = 5;
+    public static final int TOP_BOTTOM_ONLY_BOTTOM_BLUE_ROW_INDEX = 6;
+    public static final int TOP_BOTTOM_ONLY_BOTTOM_DISTANCE_ROW_INDEX = 7;
 
     private static final String TOP_BOTTOM_ONLY_LOGGING_HEADER = "Result,y0,y1,y2,TopR,TopG,TopB,TopDist,BottomR,BottomG,BottomB,BottomDist";
 
@@ -116,22 +116,23 @@ public class RingDetectorNeuralNetwork extends NeuralNetwork {
     private FileWriter mLogWriter = null;
 
     /**
+     * @param nnFilePath path to neural network files
      * @param sensorConfig enum of current sensor config.
+     * @param logFile path to logging file or null if logging disable
      * @throws Exception if neural network cannot be read from the file
      */
-    public RingDetectorNeuralNetwork(int sensorConfig) throws Exception {
+    public RingDetectorNeuralNetwork(File nnFilePath,int sensorConfig,File logFile) throws Exception {
         mSensorConfiguration = sensorConfig;
-
-         File nnFile = getNeuralNetworkFile(mSensorConfiguration);
+        File nnFile = new File(nnFilePath,getNeuralNetworkFilename(mSensorConfiguration));
         try {
             // Open the file and deserialize the network
             InputStream is = new FileInputStream(nnFile);
             deserializeNetwork(is);
 
             // And initialize the logging files
-            File logPath = new File("/sdcard/logs");
-            File logFile = new File(logPath, "nnlog.csv");
-            initLogFile(logFile);
+            if (logFile != null) {
+                initLogFile(logFile);
+            }
         }
         catch (Exception e) {
             throw new Exception("Error reading neural network file:" + e.getMessage());
@@ -140,28 +141,67 @@ public class RingDetectorNeuralNetwork extends NeuralNetwork {
     }
 
     /**
-     * Utility to retrieve the neural network File for a specific network configuration
-     * @param networkConfiguration the neural network configuration
-     * @throws IOException
+     * called to close the log file on shutdown
      */
-    public static File getNeuralNetworkFile(int networkConfiguration){
-        File nnPath = new File("/sdcard/neural_networks");
-        File nnFile = null;
-        switch(networkConfiguration){
-            case ALL_SENSORS:
-                nnFile = new File(nnPath,ALL_SENSORS_NEURAL_NETWORK_FILE);
+    public void closeLogFile(){
+        try{
+            if (mLogWriter != null){
+                mLogWriter.close();
+            }
+        }
+        catch(IOException e){
+
+        }
+    }
+
+    /**
+     * Utility used by the RingNeuralNetworkTrainer returns a network topology array based on sensor config
+     */
+    public static int[] getNetworkNodes(int sensorConfig) {
+        int[] nodes = null;
+        switch (sensorConfig) {
+            case RingDetectorNeuralNetwork.ALL_SENSORS:
+                nodes = new int[]{RingDetectorNeuralNetwork.ALL_SENSORS_INPUT_ROWS,
+                        (int) Math.round(RingDetectorNeuralNetwork.ALL_SENSORS_INPUT_ROWS * 1.25), 3};
                 break;
-            case NO_MID_COLOR_SENSOR:
-                nnFile = new File(nnPath,NO_MID_COLOR_SENSOR_NEURAL_NETWORK_FILE);
+            case RingDetectorNeuralNetwork.NO_MID_COLOR_SENSOR:
+                nodes = new int[]{RingDetectorNeuralNetwork.NO_MID_COLOR_SENSOR_INPUT_ROWS,
+                        (int) Math.round(RingDetectorNeuralNetwork.NO_MID_COLOR_SENSOR_INPUT_ROWS * 1.25), 3};
                 break;
-            case NO_DISTANCE_SENSOR:
-                nnFile = new File(nnPath,NO_DISTANCE_SENSOR_NEURAL_NETWORK_FILE);
+            case RingDetectorNeuralNetwork.NO_DISTANCE_SENSOR:
+                nodes = new int[]{RingDetectorNeuralNetwork.NO_DISTANCE_SENSOR_INPUT_ROWS,
+                        (int) Math.round(RingDetectorNeuralNetwork.NO_DISTANCE_SENSOR_INPUT_ROWS * 1.25), 3};
                 break;
-            case TOP_BOTTOM_COLOR_SENSORS_ONLY:
-                nnFile = new File(nnPath,TOP_BOTTOM_ONLY_NEURAL_NETWORK_FILE);
+            case RingDetectorNeuralNetwork.TOP_BOTTOM_COLOR_SENSORS_ONLY:
+                nodes = new int[]{RingDetectorNeuralNetwork.TOP_BOTTOM_ONLY_INPUT_ROWS,
+                        (int) Math.round(RingDetectorNeuralNetwork.TOP_BOTTOM_ONLY_INPUT_ROWS * 1.25), 3};
                 break;
         }
-        return nnFile;
+        return nodes;
+    }
+
+    /**
+     * Return the neural network filename.y
+     * @param networkConfiguration the neural network configuration
+     * @return filename of the neural network file
+     */
+    public static String getNeuralNetworkFilename(int networkConfiguration){
+        String name = null;
+        switch(networkConfiguration){
+            case ALL_SENSORS:
+                name = ALL_SENSORS_NEURAL_NETWORK_FILE;
+                break;
+            case NO_MID_COLOR_SENSOR:
+                name = NO_MID_COLOR_SENSOR_NEURAL_NETWORK_FILE;
+                break;
+            case NO_DISTANCE_SENSOR:
+                name = NO_DISTANCE_SENSOR_NEURAL_NETWORK_FILE;
+                break;
+            case TOP_BOTTOM_COLOR_SENSORS_ONLY:
+                name = TOP_BOTTOM_ONLY_NEURAL_NETWORK_FILE;
+                break;
+        }
+        return name;
     }
     private void initLogFile(File logFile) throws IOException{
         if (logFile.exists()) {
@@ -298,7 +338,7 @@ public class RingDetectorNeuralNetwork extends NeuralNetwork {
      * @returns NO_RING, ONE_RING, or FOUR_RINGS, or UNKNOWN
      */
     public int doInference(NoDistanceSensorInputData measurementData) {
-        SimpleMatrix x = new SimpleMatrix(ALL_SENSORS_INPUT_ROWS, 1);
+        SimpleMatrix x = new SimpleMatrix(NO_DISTANCE_SENSOR_INPUT_ROWS, 1);
         x.set(NO_DISTANCE_SENSOR_TOP_RED_ROW_INDEX, measurementData.topColorRed);
         x.set(NO_DISTANCE_SENSOR_TOP_BLUE_ROW_INDEX, measurementData.topColorBlue);
         x.set(NO_DISTANCE_SENSOR_TOP_GREEN_ROW_INDEX, measurementData.topColorGreen);
@@ -319,7 +359,7 @@ public class RingDetectorNeuralNetwork extends NeuralNetwork {
      * @returns NO_RING, ONE_RING, or FOUR_RINGS, or UNKNOWN
      */
     public int doInference(TopBottomOnlyInputData measurementData) {
-        SimpleMatrix x = new SimpleMatrix(ALL_SENSORS_INPUT_ROWS, 1);
+        SimpleMatrix x = new SimpleMatrix(TOP_BOTTOM_ONLY_INPUT_ROWS, 1);
         x.set(TOP_BOTTOM_ONLY_TOP_RED_ROW_INDEX, measurementData.topColorRed);
         x.set(TOP_BOTTOM_ONLY_TOP_BLUE_ROW_INDEX, measurementData.topColorBlue);
         x.set(TOP_BOTTOM_ONLY_TOP_GREEN_ROW_INDEX, measurementData.topColorGreen);
@@ -336,21 +376,21 @@ public class RingDetectorNeuralNetwork extends NeuralNetwork {
      * @param x input vector that must be in the format for the current configuration
      * @returns NO_RING, ONE_RING, or FOUR_RINGS, or UNKNOWN
      */
-    private int doInference(SimpleMatrix x){
+    private int doInference(SimpleMatrix x) {
         SimpleMatrix y = feedForward(x);
         int inference = decodeOutput(y);
 
-        if (mLogWriter != null){
-            if (mLastInference != inference) {
-                logInference(x, y, inference);
-                mLastInference = inference;
-            }
+        if (mLastInference != inference) {
+            logInference(x, y, inference);
+            mLastInference = inference;
         }
 
         return inference;
     }
 
     private void logInference(SimpleMatrix x, SimpleMatrix y,int inference){
+        if (mLogWriter == null)
+            return;  // logging disabled
         try{
             mLogWriter.write(RingDetectorNeuralNetwork.convertToString(inference));
             mLogWriter.write(",");

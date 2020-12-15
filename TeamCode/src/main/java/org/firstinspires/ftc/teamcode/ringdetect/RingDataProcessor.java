@@ -236,19 +236,19 @@ public class RingDataProcessor {
     }
     private void parseTopBottomOnlyConfigLine(SimpleMatrix x,int columnIndex,StringTokenizer tokenizer){
         tokenizer.nextToken();  // skip distance
-        x.set(RingDetectorNeuralNetwork.ALL_SENSORS_TOP_RED_ROW_INDEX, columnIndex,Float.parseFloat(tokenizer.nextToken()));
-        x.set(RingDetectorNeuralNetwork.ALL_SENSORS_TOP_BLUE_ROW_INDEX, columnIndex,Float.parseFloat(tokenizer.nextToken()));
-        x.set(RingDetectorNeuralNetwork.ALL_SENSORS_TOP_GREEN_ROW_INDEX,columnIndex,Float.parseFloat(tokenizer.nextToken()));
-        x.set(RingDetectorNeuralNetwork.ALL_SENSORS_TOP_DISTANCE_ROW_INDEX,columnIndex,Float.parseFloat(tokenizer.nextToken()));
+        x.set(RingDetectorNeuralNetwork.TOP_BOTTOM_ONLY_TOP_RED_ROW_INDEX, columnIndex,Float.parseFloat(tokenizer.nextToken()));
+        x.set(RingDetectorNeuralNetwork.TOP_BOTTOM_ONLY_TOP_BLUE_ROW_INDEX, columnIndex,Float.parseFloat(tokenizer.nextToken()));
+        x.set(RingDetectorNeuralNetwork.TOP_BOTTOM_ONLY_TOP_GREEN_ROW_INDEX,columnIndex,Float.parseFloat(tokenizer.nextToken()));
+        x.set(RingDetectorNeuralNetwork.TOP_BOTTOM_ONLY_TOP_DISTANCE_ROW_INDEX,columnIndex,Float.parseFloat(tokenizer.nextToken()));
         // Skip Mid values
         tokenizer.nextToken();
         tokenizer.nextToken();
         tokenizer.nextToken();
         tokenizer.nextToken();
-        x.set(RingDetectorNeuralNetwork.ALL_SENSORS_BOTTOM_RED_ROW_INDEX, columnIndex,Float.parseFloat(tokenizer.nextToken()));
-        x.set(RingDetectorNeuralNetwork.ALL_SENSORS_BOTTOM_BLUE_ROW_INDEX, columnIndex,Float.parseFloat(tokenizer.nextToken()));
-        x.set(RingDetectorNeuralNetwork.ALL_SENSORS_BOTTOM_GREEN_ROW_INDEX,columnIndex,Float.parseFloat(tokenizer.nextToken()));
-        x.set(RingDetectorNeuralNetwork.ALL_SENSORS_BOTTOM_DISTANCE_ROW_INDEX, columnIndex,Float.parseFloat(tokenizer.nextToken()));
+        x.set(RingDetectorNeuralNetwork.TOP_BOTTOM_ONLY_BOTTOM_RED_ROW_INDEX, columnIndex,Float.parseFloat(tokenizer.nextToken()));
+        x.set(RingDetectorNeuralNetwork.TOP_BOTTOM_ONLY_BOTTOM_BLUE_ROW_INDEX, columnIndex,Float.parseFloat(tokenizer.nextToken()));
+        x.set(RingDetectorNeuralNetwork.TOP_BOTTOM_ONLY_BOTTOM_GREEN_ROW_INDEX,columnIndex,Float.parseFloat(tokenizer.nextToken()));
+        x.set(RingDetectorNeuralNetwork.TOP_BOTTOM_ONLY_BOTTOM_DISTANCE_ROW_INDEX, columnIndex,Float.parseFloat(tokenizer.nextToken()));
     }
 
 

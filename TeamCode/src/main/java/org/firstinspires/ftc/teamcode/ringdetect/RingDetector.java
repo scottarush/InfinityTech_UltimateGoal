@@ -17,7 +17,7 @@ import java.io.InputStream;
  */
 public class RingDetector {
 
-    private int mRingDetectorConfiguration = RingDetectorNeuralNetwork.TOP_BOTTOM_COLOR_SENSORS_ONLY;
+    private int mRingDetectorConfiguration = -1;
 
     private boolean mDistanceSensorEnabled = false;
     private boolean mMidColorSensorEnabled = false;
@@ -29,10 +29,9 @@ public class RingDetector {
     private RevColorSensorV3 mMidColorSensor;
     private DistanceSensor mDistanceSensor;
 
-    private FileWriter mLogWriter = null;
-
-    public RingDetector(OpMode opMode) {
+    public RingDetector(int ringDetectorConfiguration,OpMode opMode) {
         mOpMode = opMode;
+        mRingDetectorConfiguration = ringDetectorConfiguration;
     }
 
     public void init() throws Exception {
@@ -57,7 +56,9 @@ public class RingDetector {
                 break;
         }
         try {
-           mNetwork = new RingDetectorNeuralNetwork(mRingDetectorConfiguration);
+            File nnFilePath = new File("/sdcard/nnfiles");
+            File nnLogFile = new File("/sdcard/logs/ringnnlog.csv");
+            mNetwork = new RingDetectorNeuralNetwork(nnFilePath, mRingDetectorConfiguration, nnLogFile);
         } catch (Exception e) {
             initErrString += e.getMessage();
         }
@@ -97,12 +98,12 @@ public class RingDetector {
 
     }
 
-    public void stop() {
-        try {
-            mLogWriter.close();
-        } catch (IOException e) {
+    public int getRingDetectorConfiguration(){
+        return mRingDetectorConfiguration;
+    }
 
-        }
+    public void stop() {
+            mNetwork.closeLogFile();
     }
 
     private void configureColorSensor(RevColorSensorV3 sensor) {
@@ -118,22 +119,22 @@ public class RingDetector {
         String s = "{" + formatSensorValue(mTopColorSensor.getNormalizedColors().red) +
                 ", " + formatSensorValue(mTopColorSensor.getNormalizedColors().green) +
                 ", " + formatSensorValue(mTopColorSensor.getNormalizedColors().blue) +
-                "," +formatColorDistance(mTopColorSensor)+
+                "," + formatColorDistance(mTopColorSensor) +
                 "}";
         s += "\nBottom: {" + formatSensorValue(mBottomColorSensor.getNormalizedColors().red) +
                 ", " + formatSensorValue(mBottomColorSensor.getNormalizedColors().green) +
                 ", " + formatSensorValue(mBottomColorSensor.getNormalizedColors().blue) +
-                "," +formatColorDistance(mBottomColorSensor)+
+                "," + formatColorDistance(mBottomColorSensor) +
                 "}";
         if (mMidColorSensorEnabled) {
             s += "\nMiddle: {" + formatSensorValue(mMidColorSensor.getNormalizedColors().red) +
                     ", " + formatSensorValue(mMidColorSensor.getNormalizedColors().green) +
                     ", " + formatSensorValue(mMidColorSensor.getNormalizedColors().blue) +
-                    "," +formatColorDistance(mMidColorSensor)+
+                    "," + formatColorDistance(mMidColorSensor) +
                     "}";
         }
         if (mDistanceSensorEnabled) {
-            s+= "\nDistance="+String.format("%.01f mm", mDistanceSensor.getDistance(DistanceUnit.MM));
+            s += "\nDistance=" + String.format("%.01f mm", mDistanceSensor.getDistance(DistanceUnit.MM));
         }
         return s;
     }
@@ -203,6 +204,7 @@ public class RingDetector {
         data.bottomDistanceMM = mBottomColorSensor.getDistance(DistanceUnit.MM);
         return mNetwork.doInference(data);
     }
+
     private int doNoMidSensorReadDetector() {
         RingDetectorNeuralNetwork.NoMidInputData data = new RingDetectorNeuralNetwork.NoMidInputData();
         data.topColorRed = mTopColorSensor.getNormalizedColors().red;
@@ -216,6 +218,7 @@ public class RingDetector {
         data.distanceSensorMM = mDistanceSensor.getDistance(DistanceUnit.MM);
         return mNetwork.doInference(data);
     }
+
     private int doTopBottomOnlyReadDetector() {
         RingDetectorNeuralNetwork.TopBottomOnlyInputData data = new RingDetectorNeuralNetwork.TopBottomOnlyInputData();
         data.topColorRed = mTopColorSensor.getNormalizedColors().red;
