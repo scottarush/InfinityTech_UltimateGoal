@@ -15,22 +15,14 @@ import java.nio.file.Paths;
  */
 public class RingNeuralNetworkTrainer {
 
-    RingDataProcessor mDataProcessor = null;
-
     /**
-     * Reads data into the pre-processor for both training and testing.
-     */
-    public void readData(File trainingDataFile,double testFraction,boolean normalize){
-        mDataProcessor.processData(trainingDataFile,testFraction,normalize);
-    }
-    /**
-     * Called to train the network
+     * Called to train a new network
      */
     public void trainNewNetwork(String description, File trainingDataFile, File neuralNetworkFilePath,int networkConfig, File logFile){
-        mDataProcessor = new RingDataProcessor(networkConfig);
+        RingDataProcessor processor = new RingDataProcessor(networkConfig);
         File networkFile = new File(neuralNetworkFilePath,RingDetectorNeuralNetwork.getNeuralNetworkFilename(networkConfig));
 
-        readData(trainingDataFile,0.10,true);
+        processor.processData(trainingDataFile,0.10 ,true,true);
 
         // Now create the node structure according to the configuration
         int[] nodes = RingDetectorNeuralNetwork.getNetworkNodes(networkConfig);
@@ -38,17 +30,25 @@ public class RingNeuralNetworkTrainer {
         NeuralNetwork ringnn = new NeuralNetwork(nodes);
 
         final StringBuffer logBuffer = new StringBuffer();
-        logBuffer.append("Epoch#,Normal Error\n");
+        logBuffer.append("Epoch#,del_L[0],del_L[1],delL[2],Normal Error\n");
 
         ringnn.addTrainingStatusListener(new NeuralNetwork.ITrainingStatusListener() {
             @Override
-            public void trainingStatus(int epochNumber, double normalError) {
-                logBuffer.append(epochNumber+","+ normalError +"\n");
+            public void trainingStatus(int epochNumber, double[]del_L, double normalError) {
+                StringBuffer buffer = new StringBuffer();
+                buffer.append(epochNumber+",");
+                for(int i=0;i < del_L.length;i++){
+                    buffer.append(del_L[i]);
+                    buffer.append(",");
+                }
+                buffer.append(normalError);
+                buffer.append("\n");
+                logBuffer.append(buffer.toString());
             }
         });
 
-        ringnn.train(description,mDataProcessor.getXTrainingData(), mDataProcessor.getYTrainingData(),
-                mDataProcessor.getScaleFactors(), 10,0.1d,50000,false);
+        ringnn.train(description,processor.getXTrainingData(), processor.getYTrainingData(),
+                processor.getScaleFactors(), 10,0.1d,5000,true);
          // Write out the network
         try {
             if (networkFile.exists()){
@@ -76,7 +76,8 @@ public class RingNeuralNetworkTrainer {
 
     }
 
-    public void testNetwork(File trainingDataFile,File neuralNetworkFilePath,int networkConfig,File logFile,double testFraction){
+    public void testNetwork(File testDataFile,File neuralNetworkFilePath,int networkConfig,File logFile,double testFraction){
+        RingDataProcessor processor = new RingDataProcessor(networkConfig);
        // Read the network
         RingDetectorNeuralNetwork ringnn=null;
         try {
@@ -89,12 +90,12 @@ public class RingNeuralNetworkTrainer {
 
         // Init the log buffer
         final StringBuffer logBuffer = new StringBuffer();
-        logBuffer.append("Data#,Truth,yTruth,Detection,yDetection\n");
+        logBuffer.append("#,Status,Truth,yTruth,Detection,yDetection\n");
 
-        // Read the test data but do not scale it
-        readData(trainingDataFile,testFraction,false);
-        SimpleMatrix x = mDataProcessor.getXTestData();
-        SimpleMatrix y = mDataProcessor.getYTestData();
+        // Read the test data but do not scale or shuffle it
+        processor.processData(testDataFile,testFraction ,false,false);
+        SimpleMatrix x = processor.getXTestData();
+        SimpleMatrix y = processor.getYTestData();
 
         // And loop through the test data
         int pass = 0;
@@ -107,13 +108,14 @@ public class RingNeuralNetworkTrainer {
             int truth = ringnn.decodeOutput(ytruth);
             int inference = ringnn.decodeOutput(output);
 
+            logBuffer.append(column+1+",");
             if (truth != inference){
                 fail++;
-                logBuffer.append("Fail:");
+                logBuffer.append("Fail");
             }
             else {
                 pass++;
-                logBuffer.append("Pass:");
+                logBuffer.append("Pass");
 
             }
 
@@ -151,25 +153,29 @@ public class RingNeuralNetworkTrainer {
 
         Path currentRelativePath = Paths.get("");
         String trainingDataPath = currentRelativePath.toAbsolutePath().toString() + "/src/test/java/org/firstinspires/ftc/teamcode/ringdetect";
-        File trainingFile = new File(trainingDataPath, "13DEC20_training_data.csv");
+        String trainingFileName = "15DEC20_training_data.csv";
+        String testingFileName = "15DEC20_testing_data.csv";
+
+        File trainingFile = new File(trainingDataPath, trainingFileName);
         File neuralNetFilePath = new File(trainingDataPath);
 
-        boolean train = true;
+        boolean TRAIN = false;
         int networkConfig = RingDetectorNeuralNetwork.ALL_SENSORS;
         // Form training and testing log filenames using the configuration filename as a prefix
-        String trainingLogFilename = RingDetectorNeuralNetwork.getNeuralNetworkFilename(networkConfig);
-        trainingLogFilename = trainingLogFilename.substring(0,trainingLogFilename.length()-4);      // Strip .bin extension
-        String testingLogFilename = trainingLogFilename+"_testing_log.cvs";
-        trainingLogFilename= trainingLogFilename+"_training_log.cvs";
-        if (train) {
+        String fileprefix = RingDetectorNeuralNetwork.getNeuralNetworkFilename(networkConfig);
+        fileprefix = fileprefix.substring(0,fileprefix.length()-4);      // Strip .bin extension
+        String trainingLogFilename= fileprefix+"_training_log.cvs";
+        if (TRAIN) {
             File logFile = new File(trainingDataPath,trainingLogFilename);
             trainer.trainNewNetwork(RingDetectorNeuralNetwork.getNeuralNetworkFilename(networkConfig),
                     trainingFile,neuralNetFilePath,networkConfig,logFile);
         }
+
         boolean test = true;
+        String testingLogFilename = fileprefix +"_testing_log.cvs";
         if (test){
             File logFile = new File(trainingDataPath,testingLogFilename);
-            trainer.testNetwork(trainingFile,neuralNetFilePath,networkConfig,logFile,0.10);
+            trainer.testNetwork(trainingFile,neuralNetFilePath,networkConfig,logFile,1.0);
         }
 
     }

@@ -17,9 +17,9 @@ import org.firstinspires.ftc.teamcode.util.OneShotTimer;
 
 @TeleOp(name="NeuralNetworkDataCollection", group="Robot")
 public class RingNeuralNetworkDataCollectionOpMode extends OpMode {
-    public static final String LOG_PATHNAME = "/sdcard";
+    public static final String LOG_PATHNAME = "/sdcard/logs";
 
-    public static final String LOG_FILENAME = "13DEC20_training_data.csv";
+    public static final String LOG_FILENAME = "15DEC20_testing_data.csv";
     public static final String[] LOG_COLUMNS = {"Record#","tag", "light status","distance", "top_red", "top_green", "top_blue", "top_distance", "mid_red", "mid_green", "mid_blue", "mid_distance", "bottom_red", "bottom_green", "bottom_blue", "bottom_distance"};
     private LogFile mLogFile;
     private RevColorSensorV3 mBottomColorSensor;

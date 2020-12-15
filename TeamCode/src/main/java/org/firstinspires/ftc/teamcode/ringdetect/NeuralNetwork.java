@@ -29,7 +29,7 @@ import static org.ejml.dense.row.CommonOps_DDRM.fill;
 public class NeuralNetwork implements Serializable {
 
     public interface ITrainingStatusListener{
-        void trainingStatus(int epochNumber, double normalError);
+        void trainingStatus(int epochNumber, double[]del_L, double normalError);
     }
     private String mDescription = "No Description";
     // List weight matrices in each layer from layer 2..L (total of L-1 elements)
@@ -394,11 +394,15 @@ public class NeuralNetwork implements Serializable {
             // Compute and save the output error for this epoch to the log array using
             // the error deltas from the last layer of the last entry in the last batch
             DMatrixRMaj lastDelta = mDeltas[lastBatchSize - 1].get(mNetwork.length - 1);
+            double del_L[] = new double[lastDelta.numRows];
+            for(int i=0;i < lastDelta.numRows;i++){
+                del_L[i] = lastDelta.get(i,0);
+            }
             double normalError = SimpleMatrix.wrap(lastDelta).normF();
             // And notify the status listeners
             for(Iterator<ITrainingStatusListener>iter=mTrainingStatusListeners.iterator();iter.hasNext();){
                 ITrainingStatusListener listener = iter.next();
-                listener.trainingStatus(epochIndex+1,normalError);
+                listener.trainingStatus(epochIndex+1,del_L,normalError);
             }
         }
     }

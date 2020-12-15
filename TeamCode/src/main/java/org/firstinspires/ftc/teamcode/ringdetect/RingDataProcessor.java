@@ -59,7 +59,7 @@ public class RingDataProcessor {
      * @param testFraction
      * @param normalize
      */
-    public void processData(File inputFile,double testFraction,boolean normalize) {
+    public void processData(File inputFile,double testFraction,boolean shuffle,boolean normalize) {
         mInputFile = inputFile;
         if (!mInputFile.exists()) {
             System.out.println("Cannot find input file.");
@@ -125,11 +125,12 @@ public class RingDataProcessor {
             mScaleFactors.fill(1.0d);
         }
 
-        // Shuffle the data to randomize the split between training and test
-        int columns[] = MatrixUtils.genShuffleColumnIndexVector(mXTrainingData.numCols());
-        mXTrainingData = MatrixUtils.shuffleMatrix(mXTrainingData,columns);
-        mYTrainingData = MatrixUtils.shuffleMatrix(mYTrainingData,columns);
-
+        // Shuffle the data if requested to randomize the split between training and test
+        if (shuffle) {
+            int columns[] = MatrixUtils.genShuffleColumnIndexVector(mXTrainingData.numCols());
+            mXTrainingData = MatrixUtils.shuffleMatrix(mXTrainingData, columns);
+            mYTrainingData = MatrixUtils.shuffleMatrix(mYTrainingData, columns);
+        }
         // Compute the split between training and test data
         int testCount = (int)Math.round((double)mXTrainingData.numCols()*testFraction);
         int testColumnStart = mXTrainingData.numCols()-testCount;

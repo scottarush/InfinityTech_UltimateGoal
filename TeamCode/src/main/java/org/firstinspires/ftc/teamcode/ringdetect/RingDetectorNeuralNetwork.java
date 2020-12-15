@@ -111,8 +111,6 @@ public class RingDetectorNeuralNetwork extends NeuralNetwork {
 
     private static final String TOP_BOTTOM_ONLY_LOGGING_HEADER = "Result,y0,y1,y2,TopR,TopG,TopB,TopDist,BottomR,BottomG,BottomB,BottomDist";
 
-    private int mLastInference = RingDetectorNeuralNetwork.UNKNOWN;
-
     private FileWriter mLogWriter = null;
 
     /**
@@ -162,19 +160,19 @@ public class RingDetectorNeuralNetwork extends NeuralNetwork {
         switch (sensorConfig) {
             case RingDetectorNeuralNetwork.ALL_SENSORS:
                 nodes = new int[]{RingDetectorNeuralNetwork.ALL_SENSORS_INPUT_ROWS,
-                        (int) Math.round(RingDetectorNeuralNetwork.ALL_SENSORS_INPUT_ROWS * 1.25), 3};
+                        (int) Math.round(RingDetectorNeuralNetwork.ALL_SENSORS_INPUT_ROWS * 0.67), 3};
                 break;
             case RingDetectorNeuralNetwork.NO_MID_COLOR_SENSOR:
                 nodes = new int[]{RingDetectorNeuralNetwork.NO_MID_COLOR_SENSOR_INPUT_ROWS,
-                        (int) Math.round(RingDetectorNeuralNetwork.NO_MID_COLOR_SENSOR_INPUT_ROWS * 1.25), 3};
+                        (int) Math.round(RingDetectorNeuralNetwork.NO_MID_COLOR_SENSOR_INPUT_ROWS * 0.67), 3};
                 break;
             case RingDetectorNeuralNetwork.NO_DISTANCE_SENSOR:
                 nodes = new int[]{RingDetectorNeuralNetwork.NO_DISTANCE_SENSOR_INPUT_ROWS,
-                        (int) Math.round(RingDetectorNeuralNetwork.NO_DISTANCE_SENSOR_INPUT_ROWS * 1.25), 3};
+                        (int) Math.round(RingDetectorNeuralNetwork.NO_DISTANCE_SENSOR_INPUT_ROWS * 0.67), 3};
                 break;
             case RingDetectorNeuralNetwork.TOP_BOTTOM_COLOR_SENSORS_ONLY:
                 nodes = new int[]{RingDetectorNeuralNetwork.TOP_BOTTOM_ONLY_INPUT_ROWS,
-                        (int) Math.round(RingDetectorNeuralNetwork.TOP_BOTTOM_ONLY_INPUT_ROWS * 1.25), 3};
+                        (int) Math.round(RingDetectorNeuralNetwork.TOP_BOTTOM_ONLY_INPUT_ROWS * 0.67), 3};
                 break;
         }
         return nodes;
@@ -380,10 +378,7 @@ public class RingDetectorNeuralNetwork extends NeuralNetwork {
         SimpleMatrix y = feedForward(x);
         int inference = decodeOutput(y);
 
-        if (mLastInference != inference) {
-            logInference(x, y, inference);
-            mLastInference = inference;
-        }
+        logInference(x, y, inference);
 
         return inference;
     }

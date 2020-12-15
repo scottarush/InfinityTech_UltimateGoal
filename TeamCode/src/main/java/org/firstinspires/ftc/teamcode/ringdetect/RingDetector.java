@@ -116,21 +116,21 @@ public class RingDetector {
      * @return formatted string of current color sensor readings
      */
     public String getTelemetryString() {
-        String s = "{" + formatSensorValue(mTopColorSensor.getNormalizedColors().red) +
-                ", " + formatSensorValue(mTopColorSensor.getNormalizedColors().green) +
-                ", " + formatSensorValue(mTopColorSensor.getNormalizedColors().blue) +
-                "," + formatColorDistance(mTopColorSensor) +
+        String s = "Top: {" + formatSensorValue(mTopColorSensor.getNormalizedColors().red) +
+                ":" + formatSensorValue(mTopColorSensor.getNormalizedColors().green) +
+                ":" + formatSensorValue(mTopColorSensor.getNormalizedColors().blue) +
+                ":" + formatColorDistance(mTopColorSensor) +
                 "}";
         s += "\nBottom: {" + formatSensorValue(mBottomColorSensor.getNormalizedColors().red) +
-                ", " + formatSensorValue(mBottomColorSensor.getNormalizedColors().green) +
-                ", " + formatSensorValue(mBottomColorSensor.getNormalizedColors().blue) +
+                ":" + formatSensorValue(mBottomColorSensor.getNormalizedColors().green) +
+                ":" + formatSensorValue(mBottomColorSensor.getNormalizedColors().blue) +
                 "," + formatColorDistance(mBottomColorSensor) +
                 "}";
         if (mMidColorSensorEnabled) {
             s += "\nMiddle: {" + formatSensorValue(mMidColorSensor.getNormalizedColors().red) +
-                    ", " + formatSensorValue(mMidColorSensor.getNormalizedColors().green) +
-                    ", " + formatSensorValue(mMidColorSensor.getNormalizedColors().blue) +
-                    "," + formatColorDistance(mMidColorSensor) +
+                    ":" + formatSensorValue(mMidColorSensor.getNormalizedColors().green) +
+                    ":" + formatSensorValue(mMidColorSensor.getNormalizedColors().blue) +
+                    ":" + formatColorDistance(mMidColorSensor) +
                     "}";
         }
         if (mDistanceSensorEnabled) {

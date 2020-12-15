@@ -57,7 +57,7 @@ public class NetworkVerifier {
 
         ringnn.addTrainingStatusListener(new NeuralNetwork.ITrainingStatusListener() {
             @Override
-            public void trainingStatus(int epochNumber, double normalError) {
+            public void trainingStatus(int epochNumber, double[] del_L,double normalError) {
                 logBuffer.append(epochNumber+","+ normalError +"\n");
             }
         });
