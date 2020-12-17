@@ -49,20 +49,20 @@ public class NetworkVerifier {
     public void
     trainNetwork(File networkFile,File logFile){
         // Now create and pass training data to neural network
-        NeuralNetwork ringnn = new NeuralNetwork(new int[]{3,5,3});
+        NeuralNetwork ringnn = new NeuralNetwork(new int[]{3,5,3},NeuralNetwork.QUADRATIC_COST);
 
         final StringBuffer logBuffer = new StringBuffer();
         logBuffer.append("Epoch#,Normal Error\n");
 
         ringnn.addTrainingStatusListener(new NeuralNetwork.ITrainingStatusListener() {
             @Override
-            public void trainingStatus(int epochNumber, double[] del_L,double normalError) {
+            public void trainingStatus(int epochNumber, double cost,double[] del_L,double normalError) {
                 logBuffer.append(epochNumber+","+ normalError +"\n");
             }
         });
 
         genData();
-        ringnn.train("NetworkVerifier",mX,mY,mScale, 10,0.1d,5000,true);
+        ringnn.train("NetworkVerifier",mX,mY,mScale, 10,0.1d,5000);
          // Write out the network
         try {
             if (networkFile.exists()){

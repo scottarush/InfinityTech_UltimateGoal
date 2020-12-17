@@ -95,7 +95,7 @@ public class NeuralNetworkMatrixUtils {
 
     /**
      * Utility to print a column of a matrix
-     *
+     * Uses semicolon in between dimensions to allow for use in csv files
      * @param matrix
      * @return
      */
@@ -106,7 +106,7 @@ public class NeuralNetworkMatrixUtils {
             double value = matrix.get(row, column);
             buffer.append(String.format("%1.5f", value));
             if (row < matrix.numRows() - 1) {
-                buffer.append(",");
+                buffer.append(":");
             } else {
                 buffer.append("}");
             }

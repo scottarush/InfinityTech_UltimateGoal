@@ -21,6 +21,7 @@
 package org.firstinspires.ftc.teamcode.ringdetect;
 
 import org.ejml.data.DMatrixRMaj;
+import org.ejml.dense.row.NormOps_DDRM;
 import org.ejml.simple.SimpleMatrix;
 
 import java.io.FileOutputStream;
@@ -51,7 +52,7 @@ import static org.ejml.dense.row.CommonOps_DDRM.fill;
 public class NeuralNetwork implements Serializable {
 
     public interface ITrainingStatusListener{
-        void trainingStatus(int epochNumber, double[]del_L, double normalError);
+        void trainingStatus(int epochNumber, double cost, double[]del_L,double normDel_L);
     }
     private String mDescription = "No Description";
     // List weight matrices in each layer from layer 2..L (total of L-1 elements)
@@ -70,8 +71,18 @@ public class NeuralNetwork implements Serializable {
     // Array of delta arrays used in backpropogation.  Each element contains L layers
     private ArrayList<DMatrixRMaj>[] mDeltas = null;
 
-    // Learning Rate
-    private double mETA = 0.005d;
+    public static final int QUADRATIC_COST = 0;
+    public static final int CROSS_ENTROPY_COST = 1;
+
+    // parameters class
+    static class Parameters implements Serializable{
+        // Learning Rate
+        public double eta = 0.005d;
+        // Cost function for this network
+        public int costFunction = CROSS_ENTROPY_COST;
+    }
+
+    Parameters mParameters = new Parameters();
 
     // Number of nodes in each layer starting from the input layer to the output
     int[] mNetwork = null;
@@ -101,6 +112,7 @@ public class NeuralNetwork implements Serializable {
             mWeights = (ArrayList<DMatrixRMaj>) ois.readObject();
             mBiases = (ArrayList<DMatrixRMaj>) ois.readObject();
             mInputScaleVector = (DMatrixRMaj) ois.readObject();
+            mParameters = (Parameters)ois.readObject();
         }
         catch(IOException e){
             throw new Exception("IOException reading neural network:"+e.getMessage());
@@ -123,6 +135,7 @@ public class NeuralNetwork implements Serializable {
             oos.writeObject(mWeights);
             oos.writeObject(mBiases);
             oos.writeObject(mInputScaleVector);
+            oos.writeObject(mParameters);
             oos.close();
         }
          catch(IOException e) {
@@ -139,9 +152,11 @@ public class NeuralNetwork implements Serializable {
      * Creates a new neural network with randomized weights.   This constructor is
      * used only for training a new network.
      * @param network array containing number of nodes in each layer
+     * @param costFunction to use either QUADRATIC_COST or CROSS_ENTROPY_COST
      */
-    public NeuralNetwork(int network[]) {
+    public NeuralNetwork(int network[],int costFunction) {
         mNetwork = network;
+        mParameters.costFunction = costFunction;
         mWeights = new ArrayList<>();
         mBiases = new ArrayList<>();
 
@@ -225,46 +240,117 @@ public class NeuralNetwork implements Serializable {
         // Return last computed activation matrix as the output node values.
         return a_xlm1;
     }
+
+    /**
+     * Computes current cost in the network.  This method is used for testing only.
+     * @param a_xL Layer L activations returned from feedForward function
+     * @param yk ground truth vector
+     * @return current cost in network
+     */
+    public double computeCurrentCost(DMatrixRMaj yk,DMatrixRMaj a_xL){
+        DMatrixRMaj dela_C = yk.createLike();
+        subtract(a_xL, yk, dela_C);
+        double cost = computeUnscaledCostTerm(dela_C,a_xL,yk);
+        if (mParameters.costFunction == QUADRATIC_COST){
+            // Scale by 1/2
+            cost = cost/2d;
+        }
+        return cost;
+    }
+
+    /**
+     * Utility computes the unscaled cost term.  Separate function called during both
+     * backpropogation as well as feedforward testing
+     * @param dela_C vector of∇aC
+     * @param a_xL Lth layer activation vector
+     * @param yk truth vector
+     * @return current cost in network.
+     */
+    private double computeUnscaledCostTerm(DMatrixRMaj dela_C, DMatrixRMaj a_xL, DMatrixRMaj yk){
+        double cost = 0;
+        // Now compute and accumulate the cost on this cycle
+        switch (mParameters.costFunction) {
+            case QUADRATIC_COST:
+                // quadratic cost according to:
+                // C=1/2n * ∑ ∥y(x)−a^L(x)∥2 = 1/2n * ∑ ∥dela_C∥2
+                cost = NormOps_DDRM.normF(dela_C);
+                break;
+            case CROSS_ENTROPY_COST:
+            default:
+                // Compute and accumulate the cross-entropy cost for this iteration according to:
+                // C=−1/n ∑x ∑j [y,j *ln(a^L,j)+(1−y,j)ln(1−a^L,j)]
+                cost = 0d;
+                for (int j = 0; j < yk.numCols; j++) {
+                    cost = cost + (yk.get(j) * Math.log(a_xL.get(j)) + (1d - yk.get(j)) * Math.log(1d - a_xL.get(j)));
+                }
+                break;
+        }
+        return cost;
+    }
     /**
      * backpropogate
      * @param x numInputs X batchsize matrix of input batch
      * @param y numOutputs x batchsize matrix of output values
+     * @return cost computed for this minibatch
      */
-    private void backprop(DMatrixRMaj x, DMatrixRMaj y) {
+    private double backprop(DMatrixRMaj x, DMatrixRMaj y) {
         // Loop through the mini-batch one sample at a time saving the activations and
         // error deltas along the way
-        for(int column=0;column < x.numCols;column++) {
-            // Do the feedforward with a single column from x
-            DMatrixRMaj inputVector = new DMatrixRMaj(x.numRows,1);
-            extractColumn(x,column,inputVector);
-            feedForward(inputVector,mActivations[column]);
 
-            // Step 1.  Compute the output error delta according to δ^x,L=∇aCx ⊙ σ′(z^x,L)
-            // ∇aCx is just the difference between the output activations and the y vector
-            DMatrixRMaj outputVector = new DMatrixRMaj(y.numRows,1);
-            extractColumn(y,column,outputVector);
-            DMatrixRMaj cost = new DMatrixRMaj(outputVector);
+        // Allocate the cost sum for the batch cost.
+        double costSum = 0;
+
+        for (int column = 0; column < x.numCols; column++) {
+            // Do the feedforward with a single column from x
+            DMatrixRMaj inputVector = new DMatrixRMaj(x.numRows, 1);
+            extractColumn(x, column, inputVector);
+            feedForward(inputVector, mActivations[column]);
+
+            // Step 1.  Compute the output error delta according to the cost function
+            // used for this network:
+            // For quadratic cost:  δ^x,L=∇aCx ⊙ σ′(z^x,L)
+            // For cross-entropy:  δ^x,L=∇aCx
+
+            // ∇aCx is just a^L(x)-y(x), the difference between the output activations and the y vector
+            DMatrixRMaj yk = new DMatrixRMaj(y.numRows, 1);
+            extractColumn(y, column, yk);
+            DMatrixRMaj dela_C = yk.createLike();
             DMatrixRMaj a_xL = mActivations[column].get(mNetwork.length - 1);
-            subtract(a_xL,outputVector,cost);
-            // the last term is just the output layer activation primed
+            subtract(a_xL, yk, dela_C);
+
+            // Now compute δ^x,L according to the cost function.
+            // Compute reused vectors first
+            DMatrixRMaj del_xl = new DMatrixRMaj(mNetwork[mNetwork.length - 1], 1);
             DMatrixRMaj sigma_prime = sigma_prime(a_xL);
-            // Compute and save the layer L error
-            DMatrixRMaj del_xl = new DMatrixRMaj(mNetwork[mNetwork.length-1],1);
-            elementMult(cost,sigma_prime,del_xl);
+            switch (mParameters.costFunction) {
+                case QUADRATIC_COST:
+                    // For quadratic, complete ⊙ σ′(z^x,L)
+                    elementMult(dela_C, sigma_prime, del_xl);
+                     break;
+                case CROSS_ENTROPY_COST:
+                default:
+                    // for cross entropy,  δ^x,L=∇aCx
+                    del_xl = dela_C;
+                    break;
+            }
+            //  save δ^x,L to the mDeltas matrix
             mDeltas[column].set(mNetwork.length - 1, del_xl);
+
+            // Now compute and accumulate the cost on this cycle
+            costSum += computeUnscaledCostTerm(dela_C,a_xL,yk);
 
             // Step 2. back propogate the error from L-1,...2 according to
             // δ^x,l=((w^l+1)^T * δ^x,l+1) ⊙ σ′(z^x,l)
             // where σ′(z^x,l) = σ(z^x,l)(1-σ(z^x,l)) = a^x,l(1-a^x,l)
             for (int l = mNetwork.length - 2; l >= 0; l--) {
-                DMatrixRMaj wl1_T = new DMatrixRMaj(mNetwork[l],mNetwork[l+1]);
-                transpose(mWeights.get(l),wl1_T);
+                DMatrixRMaj wl1_T = new DMatrixRMaj(mNetwork[l], mNetwork[l + 1]);
+                transpose(mWeights.get(l), wl1_T);
 
-                DMatrixRMaj del_xlm1 = new DMatrixRMaj(mNetwork[l],1);
-                mult(wl1_T,del_xl,del_xlm1);
+                DMatrixRMaj del_xlm1 = new DMatrixRMaj(mNetwork[l], 1);
+                mult(wl1_T, del_xl, del_xlm1);
 
                 sigma_prime = sigma_prime(mActivations[column].get(l));
-                elementMult(del_xlm1,sigma_prime);
+                elementMult(del_xlm1, sigma_prime);
 
                 // Save error delta for use in Step 3
                 mDeltas[column].set(l, del_xlm1);
@@ -272,11 +358,23 @@ public class NeuralNetwork implements Serializable {
                 del_xl = del_xlm1;
             }
         }
+        // complete finalize cost sum and return
+        double n = (double) x.numCols;
+        switch (mParameters.costFunction) {
+            case QUADRATIC_COST:
+                costSum = costSum / (2.0d * n);
+                return costSum;
+            case CROSS_ENTROPY_COST:
+            default:
+                costSum = -1d * costSum / n;
+                return costSum;
+        }
     }
+
     /**
      * stochastic gradient descent
      * Step 3.  Gradient descent, for each l=L,L−1,…,2
-     * update weights according to: w^l→w^l−η/m * ∑ δ^x,l(a^x,l−1)^T
+     * update weights according to: w^l→w^l−η/m * ∑ δ^x,l * (a^x,l−1)^T
      * and biases according to:  b^l→b^l−η/m ∑ δ^x,l
      *
      * Upon entry mActivations and mDeltas contain lists of the activation and delta matrices
@@ -284,32 +382,37 @@ public class NeuralNetwork implements Serializable {
      * @param batchSize The number of valid values in this batches mActivations and mDeltas lists
      */
     private void sgd(int batchSize) {
-        double eta_m = mETA/batchSize;
+        double eta_m = mParameters.eta /batchSize;
 
-        // Loop through the layers in reverse from layer=L, L-1,...,2
+        // Loop through the layers in reverse from L, L-1,...,2
         // index l=0 corresponds to Layer 1
+        // Start with l->L-1 (then l+1 -> L)
         for(int l=mNetwork.length-2;l >= 0;l--){
             // Create sum matrices for this layer
-            DMatrixRMaj wsum = new DMatrixRMaj(mWeights.get(l));
+            DMatrixRMaj wsum = mWeights.get(l).createLike();
             wsum.zero();
-            DMatrixRMaj bsum = new DMatrixRMaj(mBiases.get(l));
+            DMatrixRMaj bsum = mBiases.get(l).createLike();
             bsum.zero();
             for(int i=0;i < batchSize;i++){
                 // Do the weights first
                 DMatrixRMaj del_xl = mDeltas[i].get(l+1);
                 DMatrixRMaj a_xlm1 = mActivations[i].get(l);
 
+                // compute (a^x,l−1)^T
                 DMatrixRMaj a_xlm1_T = new DMatrixRMaj(a_xlm1.numCols,a_xlm1.numRows);
                 transpose(a_xlm1,a_xlm1_T);
-
-                DMatrixRMaj wtemp = new DMatrixRMaj(wsum);
+                // δ^x,l * (a^x,l−1)^T
+                DMatrixRMaj wtemp = wsum.createLike();
                 mult(del_xl,a_xlm1_T,wtemp);
+                // And add the product
                 add(wsum,wtemp,wsum);
+                // multiply by eta/m
                 scale(eta_m,wsum,wtemp);
+                // and subtract off of the weight layer
                 subtract(mWeights.get(l),wtemp,mWeights.get(l));
 
                 // Now the bias updates
-                DMatrixRMaj btemp = new DMatrixRMaj(bsum);
+                DMatrixRMaj btemp = bsum.createLike();
                 add(bsum,del_xl,bsum);
                 scale(eta_m,bsum,btemp);
 
@@ -326,7 +429,7 @@ public class NeuralNetwork implements Serializable {
      */
     private DMatrixRMaj sigma(DMatrixRMaj z) {
         // sigma = 1 / (1+e^-z)
-        DMatrixRMaj retsigma = new DMatrixRMaj(z);
+        DMatrixRMaj retsigma = z.createLike();
         for (int row = 0; row < z.numRows; row++) {
             double s = 1d / (1d + Math.exp(-z.get(row, 0)));
             retsigma.set(row, 0, s);
@@ -357,10 +460,9 @@ public class NeuralNetwork implements Serializable {
      * @param batchSize number of samples per epoch
      * @param eta       learning rate
      * @param numEpochs
-     * @param shuffleEachEpoch shuffle training data on each Epoch when true (usually need to do this)
      */
-    public void train(String description,SimpleMatrix x, SimpleMatrix y, SimpleMatrix xscale,int batchSize, double eta, int numEpochs,boolean shuffleEachEpoch) {
-        mETA = eta;
+    public void train(String description,SimpleMatrix x, SimpleMatrix y, SimpleMatrix xscale,int batchSize, double eta, int numEpochs) {
+        mParameters.eta = eta;
         mInputScaleVector = xscale.getDDRM();
         mDescription = description;
 
@@ -380,18 +482,17 @@ public class NeuralNetwork implements Serializable {
         for (int epochIndex = 0; epochIndex < numEpochs; epochIndex++) {
             // Start a new epoch
 
-             // Normally we want to shuffle data every epoch, but allow the caller to
-            // determine.
-            if (shuffleEachEpoch) {
-                // shuffle the training data to randomize the batch picks
-                int[] columns = NeuralNetworkMatrixUtils.genShuffleColumnIndexVector(y.numCols());
-                x = NeuralNetworkMatrixUtils.shuffleMatrix(x, columns);
-                y = NeuralNetworkMatrixUtils.shuffleMatrix(y, columns);
-            }
+            // shuffle data every epoch
+            // shuffle the training data to randomize the batch picks
+            int[] columns = NeuralNetworkMatrixUtils.genShuffleColumnIndexVector(y.numCols());
+            x = NeuralNetworkMatrixUtils.shuffleMatrix(x, columns);
+            y = NeuralNetworkMatrixUtils.shuffleMatrix(y, columns);
+
             int batchColumnIndex = 0;
 
             boolean continueBatch = true;
             int lastBatchSize = 0;
+            double cost = 0d;
             while (continueBatch) {
                 // Get next batch of training data
                 int remain = x.numCols() - batchColumnIndex;
@@ -404,27 +505,27 @@ public class NeuralNetwork implements Serializable {
                 int batchEndColumn = batchColumnIndex + lastBatchSize;
                 DMatrixRMaj xbatch = x.cols(batchColumnIndex, batchEndColumn).getDDRM();
                 DMatrixRMaj ybatch = y.cols(batchColumnIndex, batchEndColumn).getDDRM();
-                // backprop the batch passing the activations
-                backprop(xbatch, ybatch);
+                // backprop the batch and accumulate the cost on this batch for the epoch
+                cost += backprop(xbatch, ybatch);
 
                 // do stochastic gradient descent iteration on this batch
                 sgd(lastBatchSize);
 
                 // Update the batchColumnIndex for next run
                 batchColumnIndex = batchEndColumn;
-             }
+            }
             // Compute and save the output error for this epoch to the log array using
             // the error deltas from the last layer of the last entry in the last batch
             DMatrixRMaj lastDelta = mDeltas[lastBatchSize - 1].get(mNetwork.length - 1);
             double del_L[] = new double[lastDelta.numRows];
-            for(int i=0;i < lastDelta.numRows;i++){
-                del_L[i] = lastDelta.get(i,0);
+            for (int i = 0; i < lastDelta.numRows; i++) {
+                del_L[i] = lastDelta.get(i, 0);
             }
             double normalError = SimpleMatrix.wrap(lastDelta).normF();
             // And notify the status listeners
-            for(Iterator<ITrainingStatusListener>iter=mTrainingStatusListeners.iterator();iter.hasNext();){
+            for (Iterator<ITrainingStatusListener> iter = mTrainingStatusListeners.iterator(); iter.hasNext(); ) {
                 ITrainingStatusListener listener = iter.next();
-                listener.trainingStatus(epochIndex+1,del_L,normalError);
+                listener.trainingStatus(epochIndex + 1, cost,del_L, normalError);
             }
         }
     }

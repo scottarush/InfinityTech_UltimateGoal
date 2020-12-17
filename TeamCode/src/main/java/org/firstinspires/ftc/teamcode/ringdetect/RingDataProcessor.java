@@ -71,7 +71,7 @@ public class RingDataProcessor {
             reader = new BufferedReader(fr);
 
             // First count the number of training samples
-            int count = 1;
+            int count = 0;
              String line = reader.readLine();  // throw away header line
             line = reader.readLine();
             while(line != null){
