@@ -1,5 +1,6 @@
 package org.firstinspires.ftc.teamcode.ringdetect;
 
+import android.os.Environment;
 import android.util.Log;
 
 import com.qualcomm.hardware.rev.RevColorSensorV3;
@@ -16,16 +17,16 @@ import org.firstinspires.ftc.teamcode.util.OneShotTimer;
 
 @TeleOp(name="NeuralNetworkDataCollection", group="Robot")
 public class RingNeuralNetworkDataCollectionOpMode extends OpMode {
-    public static final String LOG_PATHNAME = "/sdcard";
+    public static final String LOG_PATHNAME = "/sdcard/logs";
 
-    public static final String LOG_FILENAME = "nndata.csv";
+    public static final String LOG_FILENAME = "15DEC20_testing_data.csv";
     public static final String[] LOG_COLUMNS = {"Record#","tag", "light status","distance", "top_red", "top_green", "top_blue", "top_distance", "mid_red", "mid_green", "mid_blue", "mid_distance", "bottom_red", "bottom_green", "bottom_blue", "bottom_distance"};
     private LogFile mLogFile;
     private RevColorSensorV3 mBottomColorSensor;
     private RevColorSensorV3 mTopColorSensor;
     private RevColorSensorV3 mMiddleSensor;
     private DistanceSensor mProximitySensor;
-    private String mCurrentTag = "No Rings";
+    private String mCurrentTag = NO_RING_TAG;
     private int mRecordNumber = 0;
     private OneShotTimer mCaptureMessageTimer = new OneShotTimer(1000, new OneShotTimer.IOneShotTimerCallback() {
         @Override
@@ -36,9 +37,9 @@ public class RingNeuralNetworkDataCollectionOpMode extends OpMode {
     private boolean mLastTagButtonState = false;
     private boolean mLastTriggerButtonState = false;
     private boolean mLastLightButtonState = false;
-    public static final String NO_RING_TAG = "NoRing";
-    public static final String ONE_RING_TAG = "OneRing";
-    public static final String FOUR_RING_TAG = "FourRings";
+    public static final String NO_RING_TAG = "No Rings";
+    public static final String ONE_RING_TAG = "One Ring";
+    public static final String FOUR_RING_TAG = "Four Rings";
 
     @Override
     public void init() {
@@ -87,12 +88,12 @@ public class RingNeuralNetworkDataCollectionOpMode extends OpMode {
 
         // if we had a rising edge, cycle to the next tag
         if (edgeDetect == true) {
-            if (mCurrentTag == "No Rings") {
-                mCurrentTag = "One Ring";
-            } else if (mCurrentTag == "One Ring") {
-                mCurrentTag = "Four Rings";
+            if (mCurrentTag == NO_RING_TAG) {
+                mCurrentTag = ONE_RING_TAG;
+            } else if (mCurrentTag == ONE_RING_TAG) {
+                mCurrentTag = FOUR_RING_TAG;
             } else {
-                mCurrentTag = "No Rings";
+                mCurrentTag = NO_RING_TAG;
             }
         }
         // check for x button triggered to toggle the light flag
@@ -131,15 +132,16 @@ public class RingNeuralNetworkDataCollectionOpMode extends OpMode {
         if (mCaptureMessageTimer.isRunning()){
             message = "Captured record "+mRecordNumber;
         }
-        telemetry.addData("Status",  mCurrentTag+" "+message);
-        // Now build the logging data output
-        String s = "{"+ formatSensorValue(mTopColorSensor.getNormalizedColors().red)+
+         // Now build the logging data output
+        String tops = "{"+ formatSensorValue(mTopColorSensor.getNormalizedColors().red)+
                 ", " + formatSensorValue(mTopColorSensor.getNormalizedColors().green)+
                 ", " + formatSensorValue(mTopColorSensor.getNormalizedColors().blue)+
-                "}\nBottom: {" + formatSensorValue(mBottomColorSensor.getNormalizedColors().red)+
+                "}";
+        String bottoms = "Bottom: {" + formatSensorValue(mBottomColorSensor.getNormalizedColors().red)+
                 ", " + formatSensorValue(mBottomColorSensor.getNormalizedColors().green)+
                 ", " + formatSensorValue(mBottomColorSensor.getNormalizedColors().blue)+
-                "}\nMiddle: {"+ formatSensorValue(mMiddleSensor.getNormalizedColors().red)+
+                "}";
+        String mids = "Middle: {"+ formatSensorValue(mMiddleSensor.getNormalizedColors().red)+
                 ", " + formatSensorValue(mMiddleSensor.getNormalizedColors().green)+
                 ", " + formatSensorValue(mMiddleSensor.getNormalizedColors().blue) + "}";
 
@@ -151,7 +153,10 @@ public class RingNeuralNetworkDataCollectionOpMode extends OpMode {
             lightstatus = "Yes";
         }
         telemetry.addData("Light Status", lightstatus);
-        telemetry.addData("Top", s);
+        telemetry.addData("Status",  mCurrentTag+" "+message);
+        telemetry.addData("Top", tops);
+        telemetry.addData("Mid", mids);
+        telemetry.addData("Bottom", bottoms);
         telemetry.addData("Proximity Sensor Distance", String.format("%.01f mm", mProximitySensor.getDistance(DistanceUnit.MM)));
         telemetry.addData("Color sensor Distances", distance);
         telemetry.update();
@@ -161,8 +166,9 @@ public class RingNeuralNetworkDataCollectionOpMode extends OpMode {
      private String formatSensorValue(float value){
         return String.format("%.4f",value);
      }
+
      private String formatColorDistance(RevColorSensorV3 sensor){
-        return formatSensorValue((float) ((DistanceSensor) sensor).getDistance(DistanceUnit.MM));
+        return formatSensorValue((float) sensor.getDistance(DistanceUnit.MM));
      }
     /**
      * Saves the capture data
@@ -193,7 +199,7 @@ public class RingNeuralNetworkDataCollectionOpMode extends OpMode {
         logRecord[logIndex++] = formatSensorValue(mBottomColorSensor.getNormalizedColors().blue);
         logRecord[logIndex] = formatColorDistance(mBottomColorSensor);
 
-                mLogFile.writeLogRow(logRecord);
+        mLogFile.writeLogRow(logRecord);
 
     }
 
