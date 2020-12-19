@@ -51,7 +51,14 @@ public class Shooter{
      * Shoots a ring if the shooter is ready.
      * @return True if the shooter shot a ring. False if the shooter isn't ready to shoot.
      */
+    boolean shot = false;
     public boolean shoot() {
-        return false;
+        if (shot) {
+            shot = false;
+            return true;
+        } else {
+            shot = true;
+            return false;
+        }
     }
 }
