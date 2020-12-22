@@ -62,7 +62,7 @@ public class NetworkVerifier {
         });
 
         genData();
-        ringnn.train("NetworkVerifier",mX,mY,mScale, 10,0.1d,5000);
+        ringnn.train("NetworkVerifier",mX,mY,mScale, 10,0.1d,1.0d,5000);
          // Write out the network
         try {
             if (networkFile.exists()){

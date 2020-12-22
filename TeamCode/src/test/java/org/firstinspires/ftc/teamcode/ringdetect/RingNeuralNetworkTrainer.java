@@ -26,7 +26,7 @@ public class RingNeuralNetworkTrainer {
         // Now create the node structure according to the configuration
         int[] nodes = RingDetectorNeuralNetwork.getNetworkNodes(networkConfig);
 
-        NeuralNetwork ringnn = new NeuralNetwork(nodes,NeuralNetwork.QUADRATIC_COST);
+        NeuralNetwork ringnn = new NeuralNetwork(nodes,NeuralNetwork.CROSS_ENTROPY_COST);
 
         final StringBuffer logBuffer = new StringBuffer();
         logBuffer.append("Epoch#,Cost,del_L[0],del_L[1],delL[2],Normal Error\n");
@@ -48,7 +48,7 @@ public class RingNeuralNetworkTrainer {
         });
 
         ringnn.train(description,processor.getXTrainingData(), processor.getYTrainingData(),
-                processor.getScaleFactors(), 10,0.1d,5000);
+                processor.getScaleFactors(), 10,0.1d,0d,5000);
          // Write out the network
         try {
             if (networkFile.exists()){
@@ -107,7 +107,7 @@ public class RingNeuralNetworkTrainer {
             int truth = ringnn.decodeOutput(ytruth);
             int inference = ringnn.decodeOutput(output);
 
-            double cost = ringnn.computeCurrentCost(ytruth.getDDRM(),output.getDDRM());
+            double cost = ringnn.computeTotalCost(input.getDDRM(),ytruth.getDDRM(),true);
 
             logBuffer.append(column+1+",");
             if (truth != inference){
@@ -150,7 +150,7 @@ public class RingNeuralNetworkTrainer {
     @Test
     public void main() {
         RingNeuralNetworkTrainer trainer = new RingNeuralNetworkTrainer();
-        int networkConfig = RingDetectorNeuralNetwork.ALL_SENSORS;
+        int networkConfig = RingDetectorNeuralNetwork.NO_MID_COLOR_SENSOR;
 
         // Get the path to the data directory
         Path currentRelativePath = Paths.get("");
@@ -160,19 +160,19 @@ public class RingNeuralNetworkTrainer {
         fileprefix = fileprefix.substring(0,fileprefix.length()-4);      // Strip .bin extension
         File neuralNetFilePath = new File(dataPath);
 
-        boolean TRAIN = false;
+        boolean TRAIN = true;
         if (TRAIN) {
-            File trainingFile = new File(dataPath, "15DEC20_training_data.csv");
-            File trainingLogFile = new File(dataPath,fileprefix+"_training_log.cvs");
+            File trainingFile = new File(dataPath, "21DEC20_training_data.csv");
+            File trainingLogFile = new File(dataPath,fileprefix+"_training_log.csv");
             trainer.trainNewNetwork(RingDetectorNeuralNetwork.getNeuralNetworkFilename(networkConfig),
                     trainingFile,neuralNetFilePath,networkConfig,trainingLogFile);
         }
 
         boolean test = true;
         if (test){
-            File testingLogFile = new File(dataPath, fileprefix +"_testing_log.cvs");
-            File testingDataFile = new File(dataPath,"15DEC20_testing_data.csv");
- //           File testingDataFile = new File(dataPath,"15DEC20_training_data.csv");
+            File testingLogFile = new File(dataPath, fileprefix +"_testing_log.csv");
+            File testingDataFile = new File(dataPath,"21DEC20_testing_data.csv");
+ //           File testingDataFile = new File(dataPath,"15DEC20_training_data with old setup.csv");
             trainer.testNetwork(testingDataFile,neuralNetFilePath,networkConfig,testingLogFile,1.0);
         }
 

@@ -21,6 +21,7 @@
 package org.firstinspires.ftc.teamcode.ringdetect;
 
 import org.ejml.data.DMatrixRMaj;
+import org.ejml.dense.row.CommonOps_DDRM;
 import org.ejml.dense.row.NormOps_DDRM;
 import org.ejml.simple.SimpleMatrix;
 
@@ -41,7 +42,8 @@ import static org.ejml.dense.row.CommonOps_DDRM.transpose;
 import static org.ejml.dense.row.CommonOps_DDRM.scale;
 import static org.ejml.dense.row.CommonOps_DDRM.extractColumn;
 import static org.ejml.dense.row.CommonOps_DDRM.fill;
-
+import static org.ejml.dense.row.CommonOps_DDRM.elementPower;
+import static org.ejml.dense.row.CommonOps_DDRM.elementSum;
 /**
  * This class implements the neural network.  Comments notation is from:
  * http://neuralnetworksanddeeplearning.com/chap2.html
@@ -78,7 +80,9 @@ public class NeuralNetwork implements Serializable {
     static class Parameters implements Serializable{
         // Learning Rate
         public double eta = 0.005d;
-        // Cost function for this network
+        // L2 regularization lambda
+        public double lambda = 0d;
+         // Cost function for this network
         public int costFunction = CROSS_ENTROPY_COST;
     }
 
@@ -200,6 +204,7 @@ public class NeuralNetwork implements Serializable {
         SimpleMatrix output = SimpleMatrix.wrap(feedForward(dm,null));
         return output;
     }
+
     /**
      * Training  feedfordward method. This method is used for training back-propogation only.
      * This method does NOT scale the data and must have normalized input data.
@@ -242,63 +247,13 @@ public class NeuralNetwork implements Serializable {
     }
 
     /**
-     * Computes current cost in the network.  This method is used for testing only.
-     * @param a_xL Layer L activations returned from feedForward function
-     * @param yk ground truth vector
-     * @return current cost in network
-     */
-    public double computeCurrentCost(DMatrixRMaj yk,DMatrixRMaj a_xL){
-        DMatrixRMaj dela_C = yk.createLike();
-        subtract(a_xL, yk, dela_C);
-        double cost = computeUnscaledCostTerm(dela_C,a_xL,yk);
-        if (mParameters.costFunction == QUADRATIC_COST){
-            // Scale by 1/2
-            cost = cost/2d;
-        }
-        return cost;
-    }
-
-    /**
-     * Utility computes the unscaled cost term.  Separate function called during both
-     * backpropogation as well as feedforward testing
-     * @param dela_C vector of∇aC
-     * @param a_xL Lth layer activation vector
-     * @param yk truth vector
-     * @return current cost in network.
-     */
-    private double computeUnscaledCostTerm(DMatrixRMaj dela_C, DMatrixRMaj a_xL, DMatrixRMaj yk){
-        double cost = 0;
-        // Now compute and accumulate the cost on this cycle
-        switch (mParameters.costFunction) {
-            case QUADRATIC_COST:
-                // quadratic cost according to:
-                // C=1/2n * ∑ ∥y(x)−a^L(x)∥2 = 1/2n * ∑ ∥dela_C∥2
-                cost = NormOps_DDRM.normF(dela_C);
-                break;
-            case CROSS_ENTROPY_COST:
-            default:
-                // Compute and accumulate the cross-entropy cost for this iteration according to:
-                // C=−1/n ∑x ∑j [y,j *ln(a^L,j)+(1−y,j)ln(1−a^L,j)]
-                cost = 0d;
-                for (int j = 0; j < yk.numCols; j++) {
-                    cost = cost + (yk.get(j) * Math.log(a_xL.get(j)) + (1d - yk.get(j)) * Math.log(1d - a_xL.get(j)));
-                }
-                break;
-        }
-        return cost;
-    }
-    /**
      * backpropogate
      * @param x numInputs X batchsize matrix of input batch
      * @param y numOutputs x batchsize matrix of output values
-     * @return cost computed for this minibatch
      */
-    private double backprop(DMatrixRMaj x, DMatrixRMaj y) {
+    private void backprop(DMatrixRMaj x, DMatrixRMaj y) {
         // Loop through the mini-batch one sample at a time saving the activations and
         // error deltas along the way
-
-        // Allocate the cost sum for the batch cost.
-        double costSum = 0;
 
         for (int column = 0; column < x.numCols; column++) {
             // Do the feedforward with a single column from x
@@ -318,8 +273,7 @@ public class NeuralNetwork implements Serializable {
             DMatrixRMaj a_xL = mActivations[column].get(mNetwork.length - 1);
             subtract(a_xL, yk, dela_C);
 
-            // Now compute δ^x,L according to the cost function.
-            // Compute reused vectors first
+            // Now compute δ^x,L according to the selected cost function.
             DMatrixRMaj del_xl = new DMatrixRMaj(mNetwork[mNetwork.length - 1], 1);
             DMatrixRMaj sigma_prime = sigma_prime(a_xL);
             switch (mParameters.costFunction) {
@@ -335,9 +289,6 @@ public class NeuralNetwork implements Serializable {
             }
             //  save δ^x,L to the mDeltas matrix
             mDeltas[column].set(mNetwork.length - 1, del_xl);
-
-            // Now compute and accumulate the cost on this cycle
-            costSum += computeUnscaledCostTerm(dela_C,a_xL,yk);
 
             // Step 2. back propogate the error from L-1,...2 according to
             // δ^x,l=((w^l+1)^T * δ^x,l+1) ⊙ σ′(z^x,l)
@@ -358,32 +309,86 @@ public class NeuralNetwork implements Serializable {
                 del_xl = del_xlm1;
             }
         }
-        // complete finalize cost sum and return
-        double n = (double) x.numCols;
+     }
+    /**
+     * Computes total cost in the network.
+     * For quadratic cost:
+     *      C = 1/2n * ∑x (∥y−aL∥^22) + λ/2n * ∑w (w^2)
+     *      which is equation 86 in Neural Networks and Deep Learning
+     * For cross entropy cost:
+     *      C=  −1/n ∑x ∑j [y,j *ln(a^L,j)+(1−y,j)ln(1−a^L,j)]+λ/2n * ∑w (w^2)
+     * @param x matrix of input data
+     * @param y matrix of output truth data
+     * @param scaleData true if data should be scaled or not in cost computation
+     * @return current cost in network
+     */
+    public double computeTotalCost(DMatrixRMaj x, DMatrixRMaj y, boolean scaleData){
+        DMatrixRMaj xk = new DMatrixRMaj(x.numRows,1);
+        DMatrixRMaj yk = new DMatrixRMaj(y.numRows,1);
+        DMatrixRMaj a_xL = yk.createLike();
+        DMatrixRMaj dela_C = a_xL.createLike();
+
+        double c0 = 0d;
+        for(int col=0;col < x.numCols;col++){
+            extractColumn(x,col,xk);
+            extractColumn(y,col,yk);
+            // Compute output activations
+            a_xL = feedForward(xk,null);
+            // Compute ∇aCx = a^L(x)-y(x)
+            subtract(a_xL, yk, dela_C);
+            // Compute the cost according tot the cost function
+            switch (mParameters.costFunction) {
+                case QUADRATIC_COST:
+                    c0 += NormOps_DDRM.normF(dela_C);
+                    break;
+                case CROSS_ENTROPY_COST:
+                default:
+                    for (int j = 0; j < yk.numCols; j++) {
+                        c0 += (yk.get(j) * Math.log(a_xL.get(j)) + (1d - yk.get(j)) * Math.log(1d - a_xL.get(j)));
+                    }
+                    break;
+            }
+        }
+        //  scale the c0 sum
         switch (mParameters.costFunction) {
             case QUADRATIC_COST:
-                costSum = costSum / (2.0d * n);
-                return costSum;
+                c0 *= 1/(2d * (double)x.numCols);
+                break;
             case CROSS_ENTROPY_COST:
+                c0 += -1d/(double)x.numCols;
             default:
-                costSum = -1d * costSum / n;
-                return costSum;
+                break;
         }
-    }
+        // compute the L2 regularization term
+        double l2sum = 0d;
+        for(int l=0;l < mNetwork.length-1;l++){
+            DMatrixRMaj w2 = mWeights.get(l).createLike();
+            elementPower(w2,2d,w2);
+            l2sum += elementSum(w2);
+        }
+        double l2cost = mParameters.lambda/(2d * (double)x.numCols);
+        l2cost *= l2sum;
+
+        double cost = c0 + l2cost;
+        return cost;
+     }
 
     /**
      * stochastic gradient descent
      * Step 3.  Gradient descent, for each l=L,L−1,…,2
-     * update weights according to: w^l→w^l−η/m * ∑ δ^x,l * (a^x,l−1)^T
-     * and biases according to:  b^l→b^l−η/m ∑ δ^x,l
+     * update weights according to: w^l→(1−ηλ/n)* w^l−η/m * ∑x δ^x,l * (a^x,l−1)^T
+     * Equation 93 in Neural Networks and Deep Learning where ∂Cx/∂w = δ^x,l * (a^x,l−1)^T
+     * and biases according to:  b^l→b^l−η/m ∑ δ^x,l where ∂Cx/∂b = δ^x,l
+     * Equation 94
      *
      * Upon entry mActivations and mDeltas contain lists of the activation and delta matrices
      * from the last backpropogated network.
      * @param batchSize The number of valid values in this batches mActivations and mDeltas lists
+     * @param trainingDataSize number of total training samples
      */
-    private void sgd(int batchSize) {
+    private void sgd(int batchSize,int trainingDataSize) {
         double eta_m = mParameters.eta /batchSize;
-
+        double weight_scale = (1d-mParameters.eta*mParameters.lambda/(double)trainingDataSize);
         // Loop through the layers in reverse from L, L-1,...,2
         // index l=0 corresponds to Layer 1
         // Start with l->L-1 (then l+1 -> L)
@@ -393,6 +398,7 @@ public class NeuralNetwork implements Serializable {
             wsum.zero();
             DMatrixRMaj bsum = mBiases.get(l).createLike();
             bsum.zero();
+
             for(int i=0;i < batchSize;i++){
                 // Do the weights first
                 DMatrixRMaj del_xl = mDeltas[i].get(l+1);
@@ -404,20 +410,26 @@ public class NeuralNetwork implements Serializable {
                 // δ^x,l * (a^x,l−1)^T
                 DMatrixRMaj wtemp = wsum.createLike();
                 mult(del_xl,a_xlm1_T,wtemp);
-                // And add the product
+                // And add the product to the sum
                 add(wsum,wtemp,wsum);
-                // multiply by eta/m
-                scale(eta_m,wsum,wtemp);
-                // and subtract off of the weight layer
-                subtract(mWeights.get(l),wtemp,mWeights.get(l));
 
-                // Now the bias updates
-                DMatrixRMaj btemp = bsum.createLike();
+                // And accumulate the bias sum
                 add(bsum,del_xl,bsum);
-                scale(eta_m,bsum,btemp);
-
-                subtract(mBiases.get(l),btemp,mBiases.get(l));
             }
+            // scale the weight sum term by eta/m
+            scale(eta_m,wsum);
+
+            // Scale the current layer weight vector by (1−ηλ/n)
+            DMatrixRMaj w_l = new DMatrixRMaj(mWeights.get(l));
+            scale(weight_scale,w_l);
+
+            //  subtract the weight sum from the scaled weight to get the updated weight
+            subtract(w_l,wsum,mWeights.get(l));
+
+            // Scale the bias sum
+            scale(eta_m,bsum);
+            // And subtract off the curent biases
+            subtract(mBiases.get(l),bsum,mBiases.get(l));
         }
     }
 
@@ -461,8 +473,9 @@ public class NeuralNetwork implements Serializable {
      * @param eta       learning rate
      * @param numEpochs
      */
-    public void train(String description,SimpleMatrix x, SimpleMatrix y, SimpleMatrix xscale,int batchSize, double eta, int numEpochs) {
+    public void train(String description,SimpleMatrix x, SimpleMatrix y, SimpleMatrix xscale,int batchSize, double eta, double lambda, int numEpochs) {
         mParameters.eta = eta;
+        mParameters.lambda = lambda;
         mInputScaleVector = xscale.getDDRM();
         mDescription = description;
 
@@ -492,7 +505,6 @@ public class NeuralNetwork implements Serializable {
 
             boolean continueBatch = true;
             int lastBatchSize = 0;
-            double cost = 0d;
             while (continueBatch) {
                 // Get next batch of training data
                 int remain = x.numCols() - batchColumnIndex;
@@ -505,22 +517,25 @@ public class NeuralNetwork implements Serializable {
                 int batchEndColumn = batchColumnIndex + lastBatchSize;
                 DMatrixRMaj xbatch = x.cols(batchColumnIndex, batchEndColumn).getDDRM();
                 DMatrixRMaj ybatch = y.cols(batchColumnIndex, batchEndColumn).getDDRM();
-                // backprop the batch and accumulate the cost on this batch for the epoch
-                cost += backprop(xbatch, ybatch);
+                // backprop the batch
+                backprop(xbatch, ybatch);
 
                 // do stochastic gradient descent iteration on this batch
-                sgd(lastBatchSize);
+                sgd(lastBatchSize,x.numCols());
 
                 // Update the batchColumnIndex for next run
                 batchColumnIndex = batchEndColumn;
             }
-            // Compute and save the output error for this epoch to the log array using
-            // the error deltas from the last layer of the last entry in the last batch
+            // Comute total cost in the network after this epoch
+            double cost = computeTotalCost(x.getDDRM(),y.getDDRM(),false);
+
+            // Extract the output layer error log array from the end of the last batch
             DMatrixRMaj lastDelta = mDeltas[lastBatchSize - 1].get(mNetwork.length - 1);
             double del_L[] = new double[lastDelta.numRows];
             for (int i = 0; i < lastDelta.numRows; i++) {
                 del_L[i] = lastDelta.get(i, 0);
             }
+            // And compute the normalized error
             double normalError = SimpleMatrix.wrap(lastDelta).normF();
             // And notify the status listeners
             for (Iterator<ITrainingStatusListener> iter = mTrainingStatusListeners.iterator(); iter.hasNext(); ) {
