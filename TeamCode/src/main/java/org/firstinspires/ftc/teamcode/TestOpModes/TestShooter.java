@@ -1,20 +1,23 @@
 package org.firstinspires.ftc.teamcode.TestOpModes;
 
-import com.qualcomm.robotcore.eventloop.opmode.Disabled;
 import com.qualcomm.robotcore.eventloop.opmode.OpMode;
 import com.qualcomm.robotcore.eventloop.opmode.TeleOp;
 
 import org.firstinspires.ftc.teamcode.shooter.Shooter;
+import org.firstinspires.ftc.teamcode.shooter.ShooterController;
 
 @TeleOp(name="TestShooter", group="robot")
 //@Disabled
 public class TestShooter extends OpMode {
+    private ShooterController mShooterController = null;
     private Shooter mShooter = null;
     // Make sure the left motor is called "shooterL" in the configuration and "shooterR" for the right motor
     // the servo needs to be called "pusherServo", and can be disabled. see init() for more info
+
     @Override
     public void init() {
         mShooter = new Shooter();
+        mShooterController = new ShooterController(mShooter);
         // to disable the servos, uncomment (take out "//") this next line:
 
         //mShooter.disableServo();
@@ -41,7 +44,7 @@ public class TestShooter extends OpMode {
         boolean gpy = gamepad1.y;
         if (gpx) {
             // start shooter and print telemetry
-            mShooter.activateShooter();
+            mShooter.activateShooter(Shooter.SHOOTER_MIDFIELD_HIGH_SETTING);
             telemetry.addData("status:", "ready to shoot!");
             telemetry.update();
         }
@@ -72,5 +75,8 @@ public class TestShooter extends OpMode {
                 telemetry.update();
             }
         }
+        // Service the shooter controller loop
+        mShooterController.loop();
+
     }
 }

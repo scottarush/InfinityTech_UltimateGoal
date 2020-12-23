@@ -1,0 +1,48 @@
+%class ShooterController
+%package org.firstinspires.ftc.teamcode.shooter
+// http://smc.sourceforge.net/
+%start ShooterStateMachine::Idle
+
+%map ShooterStateMachine
+%%
+    Idle
+    {
+        evInit Init{ }
+    }
+    Init
+        Entry {
+            retractLoader();
+        }
+    {
+       evTimeout Deactivated {}
+    }
+    Deactivated
+        Entry {
+            deactivateShooter();
+        }
+    {
+        evActivate Activating {}
+    }
+    Activating
+        Entry {
+            activateShooter();
+        }
+    {
+        evReady ReadyToShoot {}
+        evDeactivate Deactivated {}
+    }
+    ReadyToShoot
+    {
+        evShoot Shooting {}
+        evDeactivate Deactivated {}
+    }
+    Shooting
+        Entry {
+            shoot();
+            startTimer(1250);
+        }
+    {
+        evTimeout Activating {}
+        evDeactivate Deactivated {}
+    }
+%%

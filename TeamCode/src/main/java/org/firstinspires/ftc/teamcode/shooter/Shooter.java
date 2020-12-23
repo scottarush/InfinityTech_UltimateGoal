@@ -8,11 +8,27 @@ public class Shooter{
     // left motor is to the left when looking directly at the robot from the front and vice versa for right
     private DcMotor mLeftMotor = null;
     private DcMotor mRightMotor = null;
+
     private Servo mPusherServo = null;
     private boolean servoActuated = false;
     public boolean servoEnabled = true;
+
     public static final int PUSHER_RETRACTED = 0;
     public static final int PUSHER_EXTENDED = 1;
+
+    // Shooter wheel settings
+    public static final int SHOOTER_DEACTIVATED = 0;
+    public static final int SHOOTER_MIDFIELD_HIGH_SETTING = 1;
+    public static final int SHOOTER_MIDFIELD_LOW_SETTING = 2;
+    private int mShooterSetting = SHOOTER_DEACTIVATED;
+
+    // Power values for shooter settings
+    private static final double SHOOTER_MIDFIELD_LOW_POWER = 0.5d;
+    private static final double SHOOTER_MIDFIELD_HIGH_POWER = 1d;
+
+    // Speed thresholds for shooter wheels in RPM
+    private static final int SHOOTER_MIDFIELD_LOW_SPEED = 750;
+    private static final int SHOOTER_MIDFIELD_HIGH_SPEED = 1500;
 
     public Shooter() {}
 
@@ -56,28 +72,44 @@ public class Shooter{
             throw new Exception(initErrString);
         }
     }
-    // TODO: add an led on the robot
-    boolean readyToShoot = false;
-    public void activateShooter() {
-        if (readyToShoot) return;
-        readyToShoot = true;
-        mLeftMotor.setPower(1.0d);
-        mRightMotor.setPower(1.0d);
+
+    // TODO: add an LED on the robot
+
+    public void activateShooter(int setting) {
+        double power = 0;
+        switch (setting) {
+            case SHOOTER_MIDFIELD_HIGH_SETTING:
+                power = SHOOTER_MIDFIELD_HIGH_POWER;
+                break;
+            case SHOOTER_MIDFIELD_LOW_SETTING:
+                power = SHOOTER_MIDFIELD_LOW_POWER;
+                break;
+            default:
+                return;  // Invalid setting
+        }
+        mShooterSetting = setting;
+       setPower(power);
+    }
+
+    public boolean isShooterReady() {
+        return true;
+    }
+
+    public void deactivateShooter() {
+        mLeftMotor.setPower(0d);
+        mRightMotor.setPower(0d);
         if (servoEnabled) {
             servoActuated = false;
             setPusher(PUSHER_RETRACTED);
         }
     }
-    public void deactivateShooter() {
-        if (readyToShoot == false) return;
-        readyToShoot = false;
-        mLeftMotor.setPower(0d);
-        mLeftMotor.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
-        mRightMotor.setPower(0d);
-        mRightMotor.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
-        if (servoEnabled) {
-            servoActuated = false;
-            setPusher(PUSHER_RETRACTED);
+
+    private void setPower(double power){
+        if (mLeftMotor != null){
+            mLeftMotor.setPower(power);
+        }
+        if (mRightMotor != null){
+            mRightMotor.setPower(power);
         }
     }
 
@@ -86,8 +118,6 @@ public class Shooter{
      * @return True if the shooter shot a ring. False if the shooter isn't ready to shoot.
      */
     public boolean shoot() {
-        if (readyToShoot == false) return false;
-        readyToShoot = false;
         if (servoEnabled) {
             setPusher(PUSHER_EXTENDED);
         }
@@ -112,5 +142,9 @@ public class Shooter{
                 break;
         }
         mPusherServo.setPosition(position);
+    }
+
+    public void activate() {
+
     }
 }
