@@ -14,7 +14,7 @@ import java.util.LinkedList;
  * this is the controller for the shooter state machine that coordinates the loading and firing for
  * the shooter
  */
-public class ShooterController {
+public class ShooterController implements IShooterStatusListener {
 
     private ShooterStateMachineContext mStateMachineContext = null;
     private Shooter mShooter = null;
@@ -41,6 +41,8 @@ public class ShooterController {
         mShooter = shooter;
         mStateMachineContext = new ShooterStateMachineContext(this);
         mStateTimers.add(mTimer);
+        // add this class as a listener for shooter status updates.
+        mShooter.addShooterStatusListener(this);
     }
 
     /**
@@ -81,6 +83,14 @@ public class ShooterController {
         return;
     }
 
+    @Override
+    public void shooterReady(boolean ready) {
+        transition("evShooterReady");
+    }
+
+    public boolean isShooterReady(){
+        return mShooter.isShooterReady();
+    }
     /**
      * Called from the opMode's init method to initialize the shooter
      */
@@ -88,32 +98,37 @@ public class ShooterController {
         transition("evInit");
     }
     /**
-     * Called from the OpMode loop to allow the controller service timers and other functions
+     * Called from the OpMode loop to service timers
      */
     public void loop() {
-        // If activating, then check if shooter ready
-        if (mStateMachineContext.getState() == ShooterStateMachineContext.ShooterStateMachine.Activating) {
-            if (mShooter.isShooterReady()) {
-                transition("evReady");
-            }
-        }
-        // Service all the timers in order to trigger any timeout callbacks/events
+
         serviceTimers();
     }
 
     /**
-     * This method starts the motors up, or is called when the shooter is not ready, called
-     * by the shoot() function
+     * called from opmodes to trigger the evActivate event
      */
-    public void activateShooter() {
-        mShooter.setPusher(Shooter.PUSHER_RETRACTED);
+    public void evActivate() {
+        transition("evActivate");
     }
 
     /**
-     * This method brakes the motors if they are spinning, and doesn't do anything if the motors
-     * are not moving
+     * called from opmodes to trigger the evDeactivate event
      */
-    public void deactivateShooter() {
+    public void evDeactivate() {
+        transition("evDeactivate");
+    }
+    /**
+     * Called from the state machine to activate the shooter
+     */
+    public void activateShooter(){
+        mShooter.enableShooter();
+    }
+
+    /**
+     * Called from the state machine to deactivate the shooter
+     */
+    public void deactivateShooter(){
         mShooter.deactivateShooter();
     }
 
@@ -122,14 +137,14 @@ public class ShooterController {
      * and waits for the function to be called a second time
      */
     public void shoot() {
-        mShooter.setPusher(Shooter.PUSHER_EXTENDED);
+        mShooter.setLoaderPosition(Shooter.LOADER_EXTENDED);
     }
 
     /**
      * Starts the retraction of the loader and sets a timer to trigger the end of the retraction
      */
     public void retractLoader() {
-        mShooter.setPusher(Shooter.PUSHER_RETRACTED);
+        mShooter.setLoaderPosition(Shooter.LOADER_RETRACTED);
         startTimer(1000);
     }
     /**

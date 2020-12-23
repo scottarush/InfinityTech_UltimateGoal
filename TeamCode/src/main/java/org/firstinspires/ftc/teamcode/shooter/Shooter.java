@@ -4,43 +4,74 @@ import com.qualcomm.robotcore.hardware.DcMotor;
 import com.qualcomm.robotcore.hardware.HardwareMap;
 import com.qualcomm.robotcore.hardware.Servo;
 
-public class Shooter{
+import org.firstinspires.ftc.teamcode.util.MiniPID;
+
+import java.util.ArrayList;
+import java.util.Iterator;
+
+/**
+ * This class encapsulates the shooter and loader.  It is primarily called by the ShooterController
+ * that coordinates the activation/deactivation of the motors.
+ */
+public class Shooter {
     // left motor is to the left when looking directly at the robot from the front and vice versa for right
     private DcMotor mLeftMotor = null;
     private DcMotor mRightMotor = null;
 
-    private Servo mPusherServo = null;
-    private boolean servoActuated = false;
-    public boolean servoEnabled = true;
+    private MiniPID mLeftMotorSpeedPID = null;
+    private MiniPID mRightMotorSpeedPID = null;
 
-    public static final int PUSHER_RETRACTED = 0;
-    public static final int PUSHER_EXTENDED = 1;
+    private double mLeftMotorSpeed = 0d;
+    private int mLastLeftMotorPosition = 0;
+    private double mRightMotorSpeed = 0d;
+    private int mLastRightMotorPosition = 0;
+
+    private static final int NUM_ENCODER_COUNTS_PER_REV = 72;
+    private static final double PER_NS_TO_PER_MINUTE = 1e9*60d;
+    private long mLastSystemTimeNS = 0;
+
+    private Servo mPusherServo = null;
+
+    public static final int LOADER_RETRACTED = 0;
+    public static final int LOADER_EXTENDED = 1;
 
     // Shooter wheel settings
-    public static final int SHOOTER_DEACTIVATED = 0;
-    public static final int SHOOTER_MIDFIELD_HIGH_SETTING = 1;
-    public static final int SHOOTER_MIDFIELD_LOW_SETTING = 2;
-    private int mShooterSetting = SHOOTER_DEACTIVATED;
+    public static final int SETTING_MIDFIELD_HIGH = 1;
+    public static final int SETTING_MIDFIELD_LOW = 20;
+    private int mShooterSetting = SETTING_MIDFIELD_HIGH;
 
-    // Power values for shooter settings
-    private static final double SHOOTER_MIDFIELD_LOW_POWER = 0.5d;
-    private static final double SHOOTER_MIDFIELD_HIGH_POWER = 1d;
+    private boolean mShooterEnabled = false;
 
     // Speed thresholds for shooter wheels in RPM
     private static final int SHOOTER_MIDFIELD_LOW_SPEED = 750;
     private static final int SHOOTER_MIDFIELD_HIGH_SPEED = 1500;
 
-    public Shooter() {}
+    private double mSetSpeed = 0;
 
-    public void disableServo() { servoEnabled = false; }
+    private boolean mShooterReady = false;
 
-    public boolean checkServoStatus() {
-        if (servoEnabled) {
-            return true;
-        } else {
-            return false;
-        }
+    private static final double SPEED_PROP_GAIN = 1d;
+    private static final double SPEED_INTEGRAL_GAIN = 0d;
+    private static final double SPEED_DERIVATIVE_GAIN = 0d;
+
+    private ArrayList<IShooterStatusListener> mShooterStatusListeners = new ArrayList<>();
+
+    private ShooterController mShooterController = null;
+
+    public Shooter() {
+        // Create the PIDs for speed control
+        mLeftMotorSpeedPID = new MiniPID(SPEED_PROP_GAIN,SPEED_INTEGRAL_GAIN,SPEED_DERIVATIVE_GAIN);
+        mLeftMotorSpeedPID.setOutputLimits(0d,1.0d);
+        mRightMotorSpeedPID = new MiniPID(SPEED_PROP_GAIN,SPEED_INTEGRAL_GAIN,SPEED_DERIVATIVE_GAIN);
+        mRightMotorSpeedPID.setOutputLimits(0d,1.0d);
+        // Create the shooter controller
+        mShooterController = new ShooterController(this);
     }
+
+    public ShooterController getShooterController(){
+        return mShooterController;
+    }
+
     // init the devices
     public void init(HardwareMap ahwMap) throws Exception {
         String initErrString = "";
@@ -58,93 +89,207 @@ public class Shooter{
         } catch (Exception e) {
             initErrString += ", Right Shooter Motor error";
         }
-        if (servoEnabled) {
-            try {
-                mPusherServo = ahwMap.get(Servo.class, "pusherServo");
-                mPusherServo.setPosition(1.0d);
-            } catch (Exception e) {
-                initErrString += ", Pusher servo error";
-            }
-        } else {
-            initErrString += "WARNING: PusherServo not enabled!";
+        try {
+            mPusherServo = ahwMap.get(Servo.class, "loader");
+            mPusherServo.setPosition(1.0d);
+        } catch (Exception e) {
+            initErrString += ", loader servo error";
         }
-        if (initErrString.length() > 0){
+
+        if (initErrString.length() > 0) {
             throw new Exception(initErrString);
         }
     }
 
+    public void addShooterStatusListener(IShooterStatusListener listener){
+        if (!mShooterStatusListeners.contains(listener)){
+            mShooterStatusListeners.add(listener);
+        }
+    }
+
+    /**
+     * Must be called from opmode loop to service PID speed control on the motors and
+     * service the controller loop
+     */
+    public void serviceShooterLoop() {
+        // Call the shooter controller loop first
+        mShooterController.loop();
+
+        // Now do the service for the shooter
+
+        // Compute the delta since the last read
+        long systemTime = System.nanoTime();
+
+        // Compute the delta T and quantize to
+        int deltat_ns = (int)(systemTime-mLastSystemTimeNS);
+        // Compute the delta
+        int position = getLeftCurrentPosition();
+        double countsDelta = Math.abs(position-mLastLeftMotorPosition);
+        // Convert to revolutions
+        countsDelta = countsDelta / (double)NUM_ENCODER_COUNTS_PER_REV;
+        // Divide by the delta and convert to Rev/Min
+        mLeftMotorSpeed = countsDelta/deltat_ns * PER_NS_TO_PER_MINUTE;
+        mLastLeftMotorPosition = position;
+
+        // Now the right motor speed
+        position = getRightCurrentPosition();
+        countsDelta = Math.abs(getRightCurrentPosition()-mLastRightMotorPosition);
+        // Convert to revolutions
+        countsDelta = countsDelta / (double)NUM_ENCODER_COUNTS_PER_REV;
+        // Divide by the delta and convert to Rev/Min
+        mRightMotorSpeed = countsDelta/deltat_ns * PER_NS_TO_PER_MINUTE;
+        mLastRightMotorPosition = position;
+
+        // compute the power from the PID unless we are deactivated
+        if (mShooterEnabled){
+            double left = mLeftMotorSpeedPID.getOutput(mLeftMotorSpeed,mSetSpeed);
+            double right = mLeftMotorSpeedPID.getOutput(mRightMotorSpeed,mSetSpeed);
+            setPower(left,right);
+            // Compute and update the shooter ready status if it has changed
+            updateShooterStatus();
+        }
+
+    }
+
+    private void updateShooterStatus() {
+        double highThreshold = 0;
+        double lowThreshold = 0;
+        double delta = 20;
+        switch (mShooterSetting) {
+            case SETTING_MIDFIELD_HIGH:
+                highThreshold = SHOOTER_MIDFIELD_HIGH_SPEED + delta;
+                lowThreshold = SHOOTER_MIDFIELD_HIGH_SPEED - delta;
+                break;
+            case SETTING_MIDFIELD_LOW:
+                highThreshold = SHOOTER_MIDFIELD_HIGH_SPEED + delta;
+                lowThreshold = SHOOTER_MIDFIELD_HIGH_SPEED - delta;
+                break;
+       }
+        // Now check if the speeds are within the delta
+        boolean left = checkSpeedThreshold(mLeftMotorSpeed,highThreshold,lowThreshold);
+        boolean right = checkSpeedThreshold(mRightMotorSpeed,highThreshold,lowThreshold);
+        if (left && right) {
+            // shooter is ready.  check if status has changed
+            if (!mShooterReady){
+                mShooterReady = true;
+                updateShooterStatusListeners();
+            }
+        }
+        else{
+            // not ready.  check if status changed
+            if (mShooterReady){
+                mShooterReady = false;
+                updateShooterStatusListeners();
+            }
+        }
+    }
+
+    /**
+     * returns whether shooter is ready or not
+     */
+    public boolean isShooterReady(){
+        return mShooterReady;
+    }
+
+    /**
+     * utility to check if a speed is within two limits
+     * @param lowThreshold
+     * @param highThreshold
+     * @param speed
+     * @return
+     */
+    private boolean checkSpeedThreshold(double lowThreshold,double highThreshold,double speed){
+        if (speed >= lowThreshold){
+            if (speed <= highThreshold){
+                return true;
+            }
+            else{
+                return false;
+            }
+        }
+        return false;
+    }
+
     // TODO: add an LED on the robot
 
-    public void activateShooter(int setting) {
-        double power = 0;
+    /**
+     * public function to set the activation speed of the shooter
+     * @param setting to either SETTING_MIDFIELD_HIGH or SETTING_MIDFIELD_LOW
+     */
+    public void setShooterSpeed(int setting) {
         switch (setting) {
-            case SHOOTER_MIDFIELD_HIGH_SETTING:
-                power = SHOOTER_MIDFIELD_HIGH_POWER;
+            case SETTING_MIDFIELD_HIGH:
+                mSetSpeed = SHOOTER_MIDFIELD_HIGH_SPEED;
                 break;
-            case SHOOTER_MIDFIELD_LOW_SETTING:
-                power = SHOOTER_MIDFIELD_LOW_POWER;
+            case SETTING_MIDFIELD_LOW:
+                mSetSpeed = SHOOTER_MIDFIELD_LOW_SPEED;
                 break;
             default:
                 return;  // Invalid setting
         }
         mShooterSetting = setting;
-       setPower(power);
     }
 
-    public boolean isShooterReady() {
-        return true;
-    }
-
-    public void deactivateShooter() {
-        mLeftMotor.setPower(0d);
-        mRightMotor.setPower(0d);
-        if (servoEnabled) {
-            servoActuated = false;
-            setPusher(PUSHER_RETRACTED);
-        }
-    }
-
-    private void setPower(double power){
-        if (mLeftMotor != null){
-            mLeftMotor.setPower(power);
-        }
-        if (mRightMotor != null){
-            mRightMotor.setPower(power);
-        }
+    public void enableShooter(){
+        mShooterEnabled = true;
     }
 
     /**
-     * Shoots a ring if the shooter is ready.
-     * @return True if the shooter shot a ring. False if the shooter isn't ready to shoot.
+     * Public function deactivates the shooter in order to stop the wheels between shooting.
+     * Stops the motors and retracts the pusher.
      */
-    public boolean shoot() {
-        if (servoEnabled) {
-            setPusher(PUSHER_EXTENDED);
-        }
-        return true;
+    public void deactivateShooter() {
+        mShooterEnabled = false;
+        mSetSpeed = 0;
+        setPower(0d,0d);
+        setLoaderPosition(LOADER_RETRACTED);
+        // If the shooter was ready than mark it not ready and notify listeners.
+        if (mShooterReady){
+            mShooterReady = false;
+            updateShooterStatusListeners();
+         }
     }
-    public void actuateServo() {
-        if (servoActuated) {
-            setPusher(PUSHER_RETRACTED);
-        } else {
-            servoActuated = true;
-            setPusher(PUSHER_EXTENDED);
+
+    private void updateShooterStatusListeners(){
+        for(Iterator<IShooterStatusListener>iter=mShooterStatusListeners.iterator();iter.hasNext();){
+            IShooterStatusListener listener = iter.next();
+            listener.shooterReady(mShooterReady);
         }
     }
-    public void setPusher(int state) {
+
+    private void setPower(double leftPower,double rightPower){
+        if (mLeftMotor != null){
+            mLeftMotor.setPower(leftPower);
+        }
+        if (mRightMotor != null){
+            mRightMotor.setPower(rightPower);
+        }
+    }
+
+    private int getLeftCurrentPosition(){
+        if (mLeftMotor != null){
+            return mLeftMotor.getCurrentPosition();
+        }
+        return 0;
+    }
+    private int getRightCurrentPosition(){
+        if (mRightMotor != null){
+            return mRightMotor.getCurrentPosition();
+        }
+        return 0;
+    }
+
+    public void setLoaderPosition(int state) {
         float position = 0;
         switch (state) {
-            case PUSHER_RETRACTED:
+            case LOADER_RETRACTED:
                 position = 1.0f;
                 break;
-            case PUSHER_EXTENDED:
+            case LOADER_EXTENDED:
                 position = -1.0f;
                 break;
         }
         mPusherServo.setPosition(position);
     }
 
-    public void activate() {
-
-    }
 }

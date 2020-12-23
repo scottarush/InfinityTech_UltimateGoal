@@ -25,24 +25,41 @@
     }
     Activating
         Entry {
+            retractLoader();
             activateShooter();
         }
     {
-        evReady ReadyToShoot {}
+        evShooterReady ReadyToShoot {}
         evDeactivate Deactivated {}
+    }
+    Reload
+        Entry{
+            retractLoader();
+            startTimer(1000);
+        }
+    {
+        evTimeout ReadyToShoot { }
+        evDeactivate Deactivated { }
     }
     ReadyToShoot
     {
         evShoot Shooting {}
         evDeactivate Deactivated {}
     }
+
     Shooting
         Entry {
             shoot();
             startTimer(1250);
         }
     {
-        evTimeout Activating {}
+        // After timeout if shooter is already ready then go to reloading state to retract
+        // the loader and shoot again
+        evTimeout [ctxt.isShooterReady()] Reload { }
+        // If shooter is not ready after the timeout, then go back to Activating to
+        // wait until it is ready
+        evTimeout [!ctxt.isShooterReady()] Activating { }
         evDeactivate Deactivated {}
     }
+
 %%
