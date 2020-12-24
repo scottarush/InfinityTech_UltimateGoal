@@ -14,7 +14,7 @@ public class TestShooter extends OpMode {
 
     @Override
     public void init() {
-        mShooter = new Shooter();
+        mShooter = new Shooter(this);
         // check for initialization errors
         try {
             mShooter.init(hardwareMap);

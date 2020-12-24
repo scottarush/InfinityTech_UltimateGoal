@@ -2,13 +2,20 @@ package org.firstinspires.ftc.teamcode.shooter;
 
 import android.util.Log;
 
+import com.qualcomm.robotcore.eventloop.opmode.OpMode;
+
 import org.firstinspires.ftc.teamcode.util.OneShotTimer;
 
+import java.beans.PropertyChangeEvent;
+import java.beans.PropertyChangeListener;
 import java.lang.reflect.Method;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.LinkedList;
+
+import statemap.FSMContext;
+import statemap.State;
 
 /**
  * this is the controller for the shooter state machine that coordinates the loading and firing for
@@ -20,6 +27,10 @@ public class ShooterController implements IShooterStatusListener {
     private Shooter mShooter = null;
 
     private ArrayList<OneShotTimer> mStateTimers = new ArrayList<>();
+
+    private static boolean TELEMETRY_STATE_LOGGING_ENABLED = true;
+
+    private OpMode mOpMode = null;
 
     /**
      * Common timer used to retract the loader
@@ -37,8 +48,10 @@ public class ShooterController implements IShooterStatusListener {
     private static HashMap<String, Method> mTransition_map;
     private LinkedList<String> mTransition_queue;
 
-    public ShooterController(Shooter shooter) {
+    public ShooterController(Shooter shooter, OpMode opMode) {
         mShooter = shooter;
+        mOpMode = opMode;
+
         mStateMachineContext = new ShooterStateMachineContext(this);
         mStateTimers.add(mTimer);
         // add this class as a listener for shooter status updates.
@@ -96,6 +109,17 @@ public class ShooterController implements IShooterStatusListener {
      */
     public void init() {
         transition("evInit");
+        // And add a listener to the state machine to send the state transitions to telemtry
+        mStateMachineContext.addStateChangeListener(new PropertyChangeListener() {
+            @Override
+            public void propertyChange(PropertyChangeEvent event) {
+                FSMContext fsm = (FSMContext) event.getSource();
+//                String propertyName = event.getPropertyName();
+//                State previousStatus = (State) event.getOldValue();
+                State newState = (State) event.getNewValue();
+                setLogMessage("CurrentState="+newState.getName());
+             }
+        });
     }
     /**
      * Called from the OpMode loop to service timers
@@ -163,6 +187,13 @@ public class ShooterController implements IShooterStatusListener {
         for(Iterator<OneShotTimer> iter = mStateTimers.iterator(); iter.hasNext();){
             OneShotTimer timer = iter.next();
             timer.checkTimer();
+        }
+    }
+
+    public void setLogMessage(String msg){
+        if (TELEMETRY_STATE_LOGGING_ENABLED) {
+            mOpMode.telemetry.addData("Status", msg);
+            mOpMode.telemetry.update();
         }
     }
 }

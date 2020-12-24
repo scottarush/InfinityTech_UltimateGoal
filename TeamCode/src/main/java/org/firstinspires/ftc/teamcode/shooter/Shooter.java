@@ -1,5 +1,6 @@
 package org.firstinspires.ftc.teamcode.shooter;
 
+import com.qualcomm.robotcore.eventloop.opmode.OpMode;
 import com.qualcomm.robotcore.hardware.DcMotor;
 import com.qualcomm.robotcore.hardware.HardwareMap;
 import com.qualcomm.robotcore.hardware.Servo;
@@ -30,7 +31,7 @@ public class Shooter {
     private static final double PER_NS_TO_PER_MINUTE = 1e9*60d;
     private long mLastSystemTimeNS = 0;
 
-    private Servo mPusherServo = null;
+    private Servo mLoaderServo = null;
 
     public static final int LOADER_RETRACTED = 0;
     public static final int LOADER_EXTENDED = 1;
@@ -58,14 +59,18 @@ public class Shooter {
 
     private ShooterController mShooterController = null;
 
-    public Shooter() {
+    /**
+     * Constructor
+     * @param opMode needed for state machine logging in ShooterController
+     */
+    public Shooter(OpMode opMode) {
         // Create the PIDs for speed control
         mLeftMotorSpeedPID = new MiniPID(SPEED_PROP_GAIN,SPEED_INTEGRAL_GAIN,SPEED_DERIVATIVE_GAIN);
         mLeftMotorSpeedPID.setOutputLimits(0d,1.0d);
         mRightMotorSpeedPID = new MiniPID(SPEED_PROP_GAIN,SPEED_INTEGRAL_GAIN,SPEED_DERIVATIVE_GAIN);
         mRightMotorSpeedPID.setOutputLimits(0d,1.0d);
         // Create the shooter controller
-        mShooterController = new ShooterController(this);
+        mShooterController = new ShooterController(this,opMode);
     }
 
     public ShooterController getShooterController(){
@@ -90,8 +95,8 @@ public class Shooter {
             initErrString += ", Right Shooter Motor error";
         }
         try {
-            mPusherServo = ahwMap.get(Servo.class, "loader");
-            mPusherServo.setPosition(1.0d);
+            mLoaderServo = ahwMap.get(Servo.class, "loader");
+            mLoaderServo.setPosition(1.0d);
         } catch (Exception e) {
             initErrString += ", loader servo error";
         }
@@ -289,7 +294,8 @@ public class Shooter {
                 position = -1.0f;
                 break;
         }
-        mPusherServo.setPosition(position);
+        if (mLoaderServo != null)
+            mLoaderServo.setPosition(position);
     }
 
 }
