@@ -56,6 +56,8 @@ public class ShooterController implements IShooterStatusListener {
         mStateTimers.add(mTimer);
         // add this class as a listener for shooter status updates.
         mShooter.addShooterStatusListener(this);
+
+        buildTransitionTable();
     }
 
     /**
@@ -95,7 +97,37 @@ public class ShooterController implements IShooterStatusListener {
 
         return;
     }
+    /**
+     * helper method to build the transition table so that we can trigger events from
+     * within state machine handlers.
+     */
+    private void buildTransitionTable(){
+        // Initialize the transition table for use in queueing events
+        mTransition_map = new HashMap<>();
+        try
+        {
+            Class context = mStateMachineContext.getClass();
+            Method[] transitions = context.getDeclaredMethods();
+            String name;
+            int i;
 
+            for (i = 0; i < transitions.length; ++i)
+            {
+                name = transitions[i].getName();
+
+                // Ignore the getState and getOwner methods.
+                if (name.compareTo("getState") != 0 &&
+                        name.compareTo("getOwner") != 0)
+                {
+                    mTransition_map.put(name, transitions[i]);
+                }
+            }
+        }
+        catch (Exception ex)
+        {}
+
+        mTransition_queue = new LinkedList<>();
+    }
     @Override
     public void shooterReady(boolean ready) {
         transition("evShooterReady");
