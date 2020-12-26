@@ -2,6 +2,7 @@ package org.firstinspires.ftc.teamcode.shooter;
 
 import com.qualcomm.robotcore.eventloop.opmode.OpMode;
 import com.qualcomm.robotcore.hardware.DcMotor;
+import com.qualcomm.robotcore.hardware.DcMotorSimple;
 import com.qualcomm.robotcore.hardware.HardwareMap;
 import com.qualcomm.robotcore.hardware.Servo;
 
@@ -41,7 +42,7 @@ public class Shooter {
     public static final int SETTING_MIDFIELD_LOW = 20;
     private int mShooterSetting = SETTING_MIDFIELD_HIGH;
 
-    private boolean mShooterEnabled = false;
+    private boolean mShooterActivated = false;
 
     // Speed thresholds for shooter wheels in RPM
     private static final int SHOOTER_MIDFIELD_LOW_SPEED = 750;
@@ -73,7 +74,7 @@ public class Shooter {
         mShooterController = new ShooterController(this,opMode);
     }
 
-    public ShooterController getShooterController(){
+    public IShooterController getShooterController(){
         return mShooterController;
     }
 
@@ -84,6 +85,7 @@ public class Shooter {
             mLeftMotor = ahwMap.get(DcMotor.class, "shooterL");
             mLeftMotor.setMode(DcMotor.RunMode.RUN_USING_ENCODER);
             mLeftMotor.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
+            mLeftMotor.setDirection(DcMotorSimple.Direction.REVERSE);
         } catch (Exception e) {
             initErrString += "Left Shooter Motor error";
         }
@@ -91,6 +93,7 @@ public class Shooter {
             mRightMotor = ahwMap.get(DcMotor.class, "shooterR");
             mRightMotor.setMode(DcMotor.RunMode.RUN_USING_ENCODER);
             mRightMotor.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
+            mRightMotor.setDirection(DcMotorSimple.Direction.FORWARD);
         } catch (Exception e) {
             initErrString += ", Right Shooter Motor error";
         }
@@ -100,6 +103,7 @@ public class Shooter {
         } catch (Exception e) {
             initErrString += ", loader servo error";
         }
+        mShooterController.init();
 
         if (initErrString.length() > 0) {
             throw new Exception(initErrString);
@@ -146,7 +150,7 @@ public class Shooter {
         mLastRightMotorPosition = position;
 
         // compute the power from the PID unless we are deactivated
-        if (mShooterEnabled){
+        if (mShooterActivated){
             double left = mLeftMotorSpeedPID.getOutput(mLeftMotorSpeed,mSetSpeed);
             double right = mLeftMotorSpeedPID.getOutput(mRightMotorSpeed,mSetSpeed);
             setPower(left,right);
@@ -235,8 +239,8 @@ public class Shooter {
         mShooterSetting = setting;
     }
 
-    public void enableShooter(){
-        mShooterEnabled = true;
+    public void activateShooter(){
+        mShooterActivated = true;
     }
 
     /**
@@ -244,8 +248,7 @@ public class Shooter {
      * Stops the motors and retracts the pusher.
      */
     public void deactivateShooter() {
-        mShooterEnabled = false;
-        mSetSpeed = 0;
+        mShooterActivated = false;
         setPower(0d,0d);
         setLoaderPosition(LOADER_RETRACTED);
         // If the shooter was ready than mark it not ready and notify listeners.

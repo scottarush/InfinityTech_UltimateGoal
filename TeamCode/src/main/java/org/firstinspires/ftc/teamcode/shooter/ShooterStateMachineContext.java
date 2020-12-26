@@ -342,7 +342,7 @@ public class ShooterStateMachineContext
             {
                 ShooterController ctxt = context.getOwner();
 
-            ctxt.deactivateShooter();
+            ctxt.setShooterActivation(false);
             return;
         }
 
@@ -385,7 +385,7 @@ public class ShooterStateMachineContext
                 ShooterController ctxt = context.getOwner();
 
             ctxt.retractLoader();
-            ctxt.activateShooter();
+            ctxt.setShooterActivation(true);
             return;
         }
 

@@ -21,7 +21,7 @@ import statemap.State;
  * this is the controller for the shooter state machine that coordinates the loading and firing for
  * the shooter
  */
-public class ShooterController implements IShooterStatusListener {
+public class ShooterController implements IShooterStatusListener, IShooterController {
 
     private ShooterStateMachineContext mStateMachineContext = null;
     private Shooter mShooter = null;
@@ -149,9 +149,10 @@ public class ShooterController implements IShooterStatusListener {
 //                String propertyName = event.getPropertyName();
 //                State previousStatus = (State) event.getOldValue();
                 State newState = (State) event.getNewValue();
-                setLogMessage("CurrentState="+newState.getName());
+                setLogMessage(newState.getName());
              }
         });
+
     }
     /**
      * Called from the OpMode loop to service timers
@@ -174,23 +175,26 @@ public class ShooterController implements IShooterStatusListener {
     public void evDeactivate() {
         transition("evDeactivate");
     }
-    /**
-     * Called from the state machine to activate the shooter
-     */
-    public void activateShooter(){
-        mShooter.enableShooter();
-    }
 
     /**
-     * Called from the state machine to deactivate the shooter
+     * Called only from state machine to activate and deactivate the shooter.
      */
-    public void deactivateShooter(){
-        mShooter.deactivateShooter();
+    public void setShooterActivation(boolean active){
+        if (active)
+            mShooter.activateShooter();
+        else
+            mShooter.deactivateShooter();
+    }
+    /**
+     * called from opmodes to trigger the evShoot event
+     */
+    public void evShoot() {
+        transition("evShoot");
     }
 
+
     /**
-     * This method actuates the servo and shoots a ring, or calls the activateShooter() function
-     * and waits for the function to be called a second time
+     * called by the state machine to shoot the ring.
      */
     public void shoot() {
         mShooter.setLoaderPosition(Shooter.LOADER_EXTENDED);
@@ -224,7 +228,7 @@ public class ShooterController implements IShooterStatusListener {
 
     public void setLogMessage(String msg){
         if (TELEMETRY_STATE_LOGGING_ENABLED) {
-            mOpMode.telemetry.addData("Status", msg);
+            mOpMode.telemetry.addData("State", msg);
             mOpMode.telemetry.update();
         }
     }

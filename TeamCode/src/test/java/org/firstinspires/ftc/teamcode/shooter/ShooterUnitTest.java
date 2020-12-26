@@ -26,7 +26,7 @@ public class ShooterUnitTest {
     }
 
     public void doTest(){
-        mShooter.enableShooter();
+        mShooter.activateShooter();
         wait(2000);
 
      }

@@ -18,7 +18,7 @@
     }
     Deactivated
         Entry {
-            deactivateShooter();
+            setShooterActivation(false);
         }
     {
         evActivate Activating {}
@@ -26,7 +26,7 @@
     Activating
         Entry {
             retractLoader();
-            activateShooter();
+            setShooterActivation(true);
         }
     {
         evShooterReady ReadyToShoot {}
