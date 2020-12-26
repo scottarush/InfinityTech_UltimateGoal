@@ -1,5 +1,8 @@
 package org.firstinspires.ftc.teamcode.shooter;
 
+import android.graphics.Path;
+
+import com.qualcomm.robotcore.eventloop.opmode.OpMode;
 import com.qualcomm.robotcore.hardware.HardwareMap;
 
 import org.junit.Test;
@@ -16,7 +19,17 @@ public class ShooterUnitTest {
         map.put("shooterL", new DummyDcMotor());
         map.put("shooterR", new DummyDcMotor());
         map.put("loader",new DummyServo());
-        mShooter = new Shooter();
+        mShooter = new Shooter(new OpMode() {
+            @Override
+            public void init() {
+
+            }
+
+            @Override
+            public void loop() {
+
+            }
+        });
         try {
             mShooter.init(map);
         }
