@@ -5,7 +5,7 @@
  * from file : HookStateMachine.sm
  */
 
-package org.firstinspires.ftc.teamcode.hook;
+package org.firstinspires.ftc.teamcode.grabber;
 
 
 public class HookStateMachineContext
@@ -216,28 +216,28 @@ public class HookStateMachineContext
         {
             HookController ctxt = context.getOwner();
 
-            if (ctxt.getHookPosition() == Hook.HOOK_POSITION_UNKNOWN)
+            if (ctxt.getHookPosition() == Grabber.HOOK_POSITION_UNKNOWN)
             {
                 (context.getState()).exit(context);
                 // No actions.
                 context.setState(Calibrate.Start);
                 (context.getState()).entry(context);
             }
-            else if (ctxt.getHookPosition() == Hook.HOOK_POSITION_RETRACTED)
+            else if (ctxt.getHookPosition() == Grabber.HOOK_POSITION_RETRACTED)
             {
                 (context.getState()).exit(context);
                 // No actions.
                 context.setState(Run.Retracted);
                 (context.getState()).entry(context);
             }
-            else if (ctxt.getHookPosition() == Hook.HOOK_POSITION_LOWERED)
+            else if (ctxt.getHookPosition() == Grabber.HOOK_POSITION_LOWERED)
             {
                 (context.getState()).exit(context);
                 // No actions.
                 context.setState(Run.Lowered);
                 (context.getState()).entry(context);
             }
-            else if (ctxt.getHookPosition() == Hook.HOOK_POSITION_VERTICAL)
+            else if (ctxt.getHookPosition() == Grabber.HOOK_POSITION_VERTICAL)
             {
                 (context.getState()).exit(context);
                 // No actions.
@@ -436,7 +436,7 @@ public class HookStateMachineContext
             {
                 HookController ctxt = context.getOwner();
 
-            ctxt.setHookPosition(Hook.HOOK_POSITION_RETRACTED);
+            ctxt.setHookPosition(Grabber.HOOK_POSITION_RETRACTED);
             return;
         }
 

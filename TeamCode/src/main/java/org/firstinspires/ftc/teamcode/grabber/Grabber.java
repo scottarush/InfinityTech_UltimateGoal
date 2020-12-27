@@ -1,4 +1,4 @@
-package org.firstinspires.ftc.teamcode.hook;
+package org.firstinspires.ftc.teamcode.grabber;
 
 import com.qualcomm.robotcore.eventloop.opmode.OpMode;
 import com.qualcomm.robotcore.hardware.DcMotor;
@@ -10,7 +10,7 @@ import com.qualcomm.robotcore.hardware.Servo;
  * This class encapsulates front hook assembly that picks up rings on the front of the
  * robot.
  */
-public class Hook {
+public class Grabber {
 
     /**
      * Retracted hook position.
@@ -49,7 +49,7 @@ public class Hook {
     private static final double CLOSED_POSITION = 1.0d;
     private double mServoPosition = OPEN_POSITION;
 
-    public Hook(OpMode opMode) {
+    public Grabber(OpMode opMode) {
         opMode = mOpMode;
     }
 
