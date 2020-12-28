@@ -4,7 +4,6 @@ import com.qualcomm.robotcore.eventloop.opmode.OpMode;
 import com.qualcomm.robotcore.hardware.DcMotor;
 import com.qualcomm.robotcore.hardware.DcMotorSimple;
 import com.qualcomm.robotcore.hardware.HardwareMap;
-import com.qualcomm.robotcore.hardware.Servo;
 
 import org.firstinspires.ftc.teamcode.util.MiniPID;
 
@@ -32,10 +31,7 @@ public class Shooter {
     private static final double PER_NS_TO_PER_MINUTE = 1e9*60d;
     private long mLastSystemTimeNS = 0;
 
-    private Servo mLoaderServo = null;
-
-    public static final int LOADER_RETRACTED = 0;
-    public static final int LOADER_EXTENDED = 1;
+    private DcMotor mLoaderPully = null;
 
     // Shooter wheel settings
     public static final int SETTING_MIDFIELD_HIGH = 1;
@@ -98,12 +94,13 @@ public class Shooter {
             initErrString += ", Right Shooter Motor error";
         }
         try {
-            mLoaderServo = ahwMap.get(Servo.class, "loader");
-            mLoaderServo.setPosition(1.0d);
+            mLoaderPully = ahwMap.get(DcMotor.class, "loader");
+            mLoaderPully.setMode(DcMotor.RunMode.RUN_USING_ENCODER);
+            mLoaderPully.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
+            mLoaderPully.setDirection(DcMotorSimple.Direction.FORWARD);
         } catch (Exception e) {
-            initErrString += ", loader servo error";
+            initErrString += ", Loader Pully Motor error";
         }
-        mShooterController.init();
 
         if (initErrString.length() > 0) {
             throw new Exception(initErrString);
@@ -250,7 +247,7 @@ public class Shooter {
     public void deactivateShooter() {
         mShooterActivated = false;
         setPower(0d,0d);
-        setLoaderPosition(LOADER_RETRACTED);
+        stopLoaderPully();
         // If the shooter was ready than mark it not ready and notify listeners.
         if (mShooterReady){
             mShooterReady = false;
@@ -287,18 +284,21 @@ public class Shooter {
         return 0;
     }
 
-    public void setLoaderPosition(int state) {
-        float position = 0;
-        switch (state) {
-            case LOADER_RETRACTED:
-                position = 1.0f;
-                break;
-            case LOADER_EXTENDED:
-                position = -1.0f;
-                break;
+    /**
+     * Starts the loader pully to shoot a ring
+     */
+    public void startLoaderPully(){
+        if (mLoaderPully != null) {
+            mLoaderPully.setPower(1.0d);
         }
-        if (mLoaderServo != null)
-            mLoaderServo.setPosition(position);
     }
 
+    /**
+     * Starts the loader pully
+     */
+    public void stopLoaderPully(){
+        if (mLoaderPully != null) {
+            mLoaderPully.setPower(0d);
+        }
+    }
 }

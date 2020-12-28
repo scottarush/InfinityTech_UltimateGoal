@@ -58,6 +58,18 @@ public class ShooterController implements IShooterStatusListener, IShooterContro
         mShooter.addShooterStatusListener(this);
 
         buildTransitionTable();
+
+        // And add a listener to the state machine to send the state transitions to telemtry
+        mStateMachineContext.addStateChangeListener(new PropertyChangeListener() {
+            @Override
+            public void propertyChange(PropertyChangeEvent event) {
+                FSMContext fsm = (FSMContext) event.getSource();
+//                String propertyName = event.getPropertyName();
+//                State previousStatus = (State) event.getOldValue();
+                State newState = (State) event.getNewValue();
+                setLogMessage(newState.getName());
+            }
+        });
     }
 
     /**
@@ -136,24 +148,7 @@ public class ShooterController implements IShooterStatusListener, IShooterContro
     public boolean isShooterReady(){
         return mShooter.isShooterReady();
     }
-    /**
-     * Called from the opMode's init method to initialize the shooter
-     */
-    public void init() {
-        transition("evInit");
-        // And add a listener to the state machine to send the state transitions to telemtry
-        mStateMachineContext.addStateChangeListener(new PropertyChangeListener() {
-            @Override
-            public void propertyChange(PropertyChangeEvent event) {
-                FSMContext fsm = (FSMContext) event.getSource();
-//                String propertyName = event.getPropertyName();
-//                State previousStatus = (State) event.getOldValue();
-                State newState = (State) event.getNewValue();
-                setLogMessage(newState.getName());
-             }
-        });
 
-    }
     /**
      * Called from the OpMode loop to service timers
      */
@@ -180,10 +175,12 @@ public class ShooterController implements IShooterStatusListener, IShooterContro
      * Called only from state machine to activate and deactivate the shooter.
      */
     public void setShooterActivation(boolean active){
-        if (active)
+        if (active) {
             mShooter.activateShooter();
-        else
+        }
+        else {
             mShooter.deactivateShooter();
+        }
     }
     /**
      * called from opmodes to trigger the evShoot event
@@ -192,20 +189,18 @@ public class ShooterController implements IShooterStatusListener, IShooterContro
         transition("evShoot");
     }
 
-
     /**
-     * called by the state machine to shoot the ring.
+     * Starts the loader pully to shoot the ring
      */
-    public void shoot() {
-        mShooter.setLoaderPosition(Shooter.LOADER_EXTENDED);
+    public void startLoaderPully() {
+        mShooter.startLoaderPully();
     }
 
     /**
-     * Starts the retraction of the loader and sets a timer to trigger the end of the retraction
+     * Stops the loader pully
      */
-    public void retractLoader() {
-        mShooter.setLoaderPosition(Shooter.LOADER_RETRACTED);
-        startTimer(1000);
+    public void stopLoaderPully(){
+        mShooter.stopLoaderPully();
     }
     /**
      * Starts a timer that will fire the evTimeout event

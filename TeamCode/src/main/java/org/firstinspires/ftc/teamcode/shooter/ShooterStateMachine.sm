@@ -1,23 +1,13 @@
 %class ShooterController
 %package org.firstinspires.ftc.teamcode.shooter
 // http://smc.sourceforge.net/
-%start ShooterStateMachine::Idle
+%start ShooterStateMachine::Deactivated
 
 %map ShooterStateMachine
 %%
-    Idle
-    {
-        evInit Init{ }
-    }
-    Init
-        Entry {
-            retractLoader();
-        }
-    {
-       evTimeout Deactivated {}
-    }
     Deactivated
         Entry {
+            stopLoaderPully();
             setShooterActivation(false);
         }
     {
@@ -25,7 +15,6 @@
     }
     Activating
         Entry {
-            retractLoader();
             setShooterActivation(true);
         }
     {
@@ -34,13 +23,14 @@
     }
     Reload
         Entry{
-            retractLoader();
+            stopLoaderPully();
             startTimer(1000);
         }
     {
         evTimeout ReadyToShoot { }
         evDeactivate Deactivated { }
     }
+
     ReadyToShoot
     {
         evShoot Shooting {}
@@ -49,16 +39,16 @@
 
     Shooting
         Entry {
-            shoot();
+            startLoaderPully();
             startTimer(1250);
         }
     {
-        // After timeout if shooter is already ready then go to reloading state to retract
-        // the loader and shoot again
-        evTimeout [ctxt.isShooterReady()] Reload { }
-        // If shooter is not ready after the timeout, then go back to Activating to
-        // wait until it is ready
-        evTimeout [!ctxt.isShooterReady()] Activating { }
+        // After timeout if shooter is already ready then go to ReadyToShoot directly
+        // First stop the loader pully
+        evTimeout [ctxt.isShooterReady()] ReadyToShoot { stopLoaderPully();  }
+        // If shooter is not ready after the timeout, then go back to Reload to
+        // wait until the wheels have spun back up
+        evTimeout [!ctxt.isShooterReady()] Reload { }
         evDeactivate Deactivated {}
     }
 
