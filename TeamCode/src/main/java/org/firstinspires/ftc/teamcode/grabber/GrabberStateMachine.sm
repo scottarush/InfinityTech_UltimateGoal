@@ -1,0 +1,53 @@
+%class GrabberController
+%package org.firstinspires.ftc.teamcode.grabber
+// http://smc.sourceforge.net/
+%start GrabberStateMachine::Start
+
+/**
+This is a small state machine for controlling the front grabber assembly to handle the following
+sequence actions:
+1. Calibrating the grabber motor encoder position at startup.
+2. Changing grabber positions.
+3. Grabbing, raising, and releasing a ring in a controlled sequence.
+**/
+%map GrabberStateMachine
+%%
+    Start
+    {
+        evInit [ctxt.getGrabberPosition() == Grabber.GRABBER_POSITION_UNKNOWN] Calibrate { }
+
+    }
+    Stopped
+    {
+        evGrabberMoving Moving {}
+        evGrabberStopped nil {}
+    }
+
+    Moving
+    {
+        evGrabberStopped Stopped { }
+        evGrabberMoving nil {}
+    }
+
+    Calibrate
+        Entry {
+            // Set the hook position to lowered and wait for the limit switch
+            setGrabberPosition(Grabber.GRABBER_POSITION_LOWERED);
+            startTimer(2000);
+        }
+    {
+        evTimeoutError  CalibrateError {  }
+        evLimitSwitchClosed Stopped {  stopTimer(); }
+    }
+
+    CalibrateError
+        Entry{
+            // Send a telemetry message for the error.  Nothing we can do here to recover
+            setLogMessage("Calibration timer expired before evLimitSwitchClosed received.");
+        }
+    {
+        // If switch is triggered later, then transition to stopped
+        evLimitSwitchClosed Stopped { }
+    }
+
+%%

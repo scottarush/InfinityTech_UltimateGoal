@@ -1,0 +1,1 @@
+java -jar ../../../../../../../../lib/Smc.jar -java GrabberStateMachine.sm

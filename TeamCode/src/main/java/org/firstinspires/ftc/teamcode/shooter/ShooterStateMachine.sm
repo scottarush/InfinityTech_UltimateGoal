@@ -8,32 +8,28 @@
     Deactivated
         Entry {
             stopLoaderPully();
-            setShooterActivation(false);
         }
     {
         evActivate Activating {}
     }
     Activating
         Entry {
-            setShooterActivation(true);
-        }
-    {
-        evShooterReady ReadyToShoot {}
-        evDeactivate Deactivated {}
-    }
-    Reload
-        Entry{
+            // Stop the loader pully if we entered this tate from Shooting
             stopLoaderPully();
-            startTimer(1000);
         }
     {
-        evTimeout ReadyToShoot { }
-        evDeactivate Deactivated { }
+        // Triggered when motors are ready to shoot
+        evReadyToShoot ReadyToShoot {}
+        evDeactivate Deactivated {}
     }
 
     ReadyToShoot
     {
+        evReadyToShoot nil {}
         evShoot Shooting {}
+        // Triggered when speed setting has been changed and we need to wait for motor
+        // speed to stabilize first
+        evActivate Activating {}
         evDeactivate Deactivated {}
     }
 

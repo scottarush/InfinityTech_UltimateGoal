@@ -13,76 +13,163 @@ import com.qualcomm.robotcore.hardware.Servo;
 public class Grabber {
 
     /**
-     * Retracted hook position.
+     * Retracted position.
      */
-    public static final int HOOK_POSITION_RETRACTED = 0;
+    public static final int GRABBER_POSITION_RETRACTED = 0;
 
     /**
-     * vertical hook position.
+     * carry position.
      */
-    public static final int HOOK_POSITION_VERTICAL = 1;
+    public static final int GRABBER_POSITION_CARRY = 1;
 
     /**
-     * lowered hook position.
+     * lowered position.
      */
-    public static final int HOOK_POSITION_LOWERED = 2;
+    public static final int GRABBER_POSITION_LOWERED = 2;
+
+    /**
+     * Number of counts per 360 degree rotation for the grabber motor
+     */
+    private static final int GRABBER_MOTOR_COUNTS_PER_ROTATION = 288;
 
     /**
      * position for hook unknown which requires collapse to the limit switch to recalibrate.
      **/
-    public static final int HOOK_POSITION_UNKNOWN = 3;
-    private int mHookPosition = HOOK_POSITION_UNKNOWN;
+    public static final int GRABBER_POSITION_UNKNOWN = 3;
 
-    private Servo mClampServo = null;
+    /**
+     * encoder position at fully lowered.  Set during calibration.  All
+     * other positions are relative to this one.
+     */
+    private int mLoweredEncoderPosition = 0;
+
+    /**
+     * delta angle in degrees from LOWERED to CARRY
+     */
+    private static final int CARRY_POSITION_ANGLE = 20;
+
+    /**
+     * delta angle in degrees from LOWERED to RETRACTED
+     */
+    private static final int RETRACTED_POSITION_ANGLE = 150;
+
+    private int mGrabberPosition = GRABBER_POSITION_UNKNOWN;
+
+    private Servo mLeftServo = null;
+    private Servo mRightServo = null;
     private HardwareMap mHWMap = null;
 
-    private DcMotor mHookMotor = null;
+    private DcMotor mGrabberMotor = null;
     private OpMode mOpMode = null;
 
-    private DigitalChannel mHookLimitSwitch = null;
+    private IGrabberController mGrabberController = null;
 
-    public static final String CLAMP_SERVO_NAME = "clampservo";
+    private DigitalChannel mLimitSwitch = null;
 
-    public static final String HOOK_MOTOR_NAME = "hookmotor";
-    public static final String HOOK_LIMIT_SWITCH_NAME = "hooklsw";
-    private static final double OPEN_POSITION = 0.0d;
-    private static final double CLOSED_POSITION = 1.0d;
-    private double mServoPosition = OPEN_POSITION;
+    private static final double LEFT_SERVO_OPEN_POSITION = 0.0d;
+    private static final double LEFT_SERVO_CLOSED_POSITION = 1.0d;
+    private double mLeftServoPosition = LEFT_SERVO_OPEN_POSITION;
+
+    private static final double RIGHT_SERVO_OPEN_POSITION = 0d;
+    private static final double RIGHT_SERVO_CLOSED_POSITION = 1.0d;
+    private double mRightServoPosition = RIGHT_SERVO_CLOSED_POSITION;
 
     public Grabber(OpMode opMode) {
         opMode = mOpMode;
     }
 
+    /**
+     * Initializes the grabber
+     * @param ahwMap hardwareMap
+     * @throws Exception on any hardware detect error.
+     */
     public void init(HardwareMap ahwMap) throws Exception {
         mHWMap = ahwMap;
         String initErrString = "";
         try {
-            mClampServo = mHWMap.get(Servo.class, CLAMP_SERVO_NAME);
-            mClampServo.setPosition(OPEN_POSITION);
+            mLeftServo = mHWMap.get(Servo.class, "lgrabberservo");
+            mLeftServo.setPosition(LEFT_SERVO_OPEN_POSITION);
         } catch (Exception e) {
-            initErrString += "clamp hook servo err";
+            initErrString += "left grabber servo err";
         }
         try {
-            mHookMotor = mHWMap.get(DcMotor.class, HOOK_MOTOR_NAME);
-            mHookMotor.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
-            mHookMotor.setMode(DcMotor.RunMode.RUN_TO_POSITION);
+            mRightServo = mHWMap.get(Servo.class, "rgrabberservo");
+            mRightServo.setPosition(RIGHT_SERVO_OPEN_POSITION);
         } catch (Exception e) {
-            initErrString += "hook motor error";
+            initErrString += "right grabber servo err";
         }
         try {
-            mHookLimitSwitch = mHWMap.get(DigitalChannel.class, HOOK_LIMIT_SWITCH_NAME);
-            mHookLimitSwitch.setMode(DigitalChannel.Mode.INPUT);
+            mGrabberMotor = mHWMap.get(DcMotor.class, "grabbermotor");
+            mGrabberMotor.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
+            mGrabberMotor.setMode(DcMotor.RunMode.RUN_TO_POSITION);
         } catch (Exception e) {
-            initErrString += "hook limit sw error";
+            initErrString += "grabber motor error";
         }
+        try {
+            mLimitSwitch = mHWMap.get(DigitalChannel.class, "grabberlsw");
+            mLimitSwitch.setMode(DigitalChannel.Mode.INPUT);
+        } catch (Exception e) {
+            initErrString += "grabber limit sw error";
+        }
+
+        // Initialize the grabber controller
+        mGrabberController = new GrabberController(this, mOpMode);
+        // Trigger the calibration initialization in the controller
+        mGrabberController.evInit();
 
         if (initErrString.length() > 0) {
             throw new Exception(initErrString);
         }
     }
+    /**
+     * must be called from overridden init_loop function within Opmode to drive the
+     * calibration timer and limit switch checking.
+     *
+     */
+    public void init_loop(){
+        mGrabberController.loop();
+        checkLimitSwitch();
+    }
 
-    public boolean isClampOpen() {
-        if (mServoPosition == OPEN_POSITION) {
+    /**
+     * checks the limit switch during both calibration as well as continuously from the loop
+     * to compensate for drift
+     */
+    private void checkLimitSwitch(){
+        if (mLimitSwitch != null){
+            if (mLimitSwitch.getState()){
+                // limit switch trigger closed.  notify the controller
+                mGrabberController.evLimitSwitchClosed();
+                // and save the encoder position to set the reference
+                if (mGrabberMotor != null) {
+                    mLoweredEncoderPosition = mGrabberMotor.getCurrentPosition();
+                    mGrabberPosition = GRABBER_POSITION_LOWERED;
+                }
+            }
+        }
+    }
+
+    /**
+     * must be called from OpMode loop function when using automatic mode.
+     */
+    public void loop(){
+        if (mGrabberController != null){
+            mGrabberController.loop();
+        }
+        // Check the limit switch each loop time to reset the reference encoder position
+        checkLimitSwitch();
+        // Check if grabber has stopped and notify the grabber
+        if (!mGrabberMotor.isBusy()){
+            mGrabberController.evGrabberStopped();
+        }
+    }
+
+    /**
+     *
+     * @return true if grabbber is open, false if close
+     */
+    public boolean isGrabberOpen() {
+        if (mLeftServoPosition == LEFT_SERVO_OPEN_POSITION) {
             return true;
         } else {
             return false;
@@ -90,25 +177,99 @@ public class Grabber {
     }
 
     /**
-     *
-     * @return current hook position
+     * sets the grabber position automatically.  This function cannot be used in all manual mode.
+     * @return true if position set was attempted, false if position currently unknown and cannot be set
      */
-    public int getHookPosition() {
-        return mHookPosition;
+    public boolean setGrabberPosition(int position){
+        if (mGrabberPosition == GRABBER_POSITION_UNKNOWN){
+            // Error.  Can't set position when unknown
+            return false;
+        }
+        if (mGrabberPosition == position) {
+            return true;   // already at this position
+        }
+        // Otherwise it is a change.  Determine the angle delta to move relative to the
+        // reference (lowered) position
+        int deltaAngle = 0;
+        switch(mGrabberPosition){
+            case GRABBER_POSITION_RETRACTED:
+                switch(position){
+                    case GRABBER_POSITION_LOWERED:
+                        deltaAngle = -RETRACTED_POSITION_ANGLE;
+                        break;
+                    case GRABBER_POSITION_CARRY:
+                        deltaAngle = -RETRACTED_POSITION_ANGLE+CARRY_POSITION_ANGLE;
+                        break;
+                }
+                break;
+            case GRABBER_POSITION_LOWERED:
+                switch(position){
+                    case GRABBER_POSITION_RETRACTED:
+                        deltaAngle = RETRACTED_POSITION_ANGLE;
+                        break;
+                    case GRABBER_POSITION_CARRY:
+                        deltaAngle = CARRY_POSITION_ANGLE;
+                        break;
+                }
+                break;
+            case GRABBER_POSITION_CARRY:
+                switch(position){
+                    case GRABBER_POSITION_RETRACTED:
+                        deltaAngle = -RETRACTED_POSITION_ANGLE+CARRY_POSITION_ANGLE;
+                        break;
+                    case GRABBER_POSITION_LOWERED:
+                        deltaAngle = -CARRY_POSITION_ANGLE;
+                        break;
+                }
+                break;
+        }
+        // The delta angle to move has been determined now compute the target position for this
+        // delta
+        double angled = (double)GRABBER_MOTOR_COUNTS_PER_ROTATION * (double)deltaAngle/360d;
+        int deltaCounts = (int)Math.round(angled);
+
+        int targetPosition = mLoweredEncoderPosition +deltaCounts;
+        if (mGrabberMotor != null){
+            mGrabberMotor.setTargetPosition(targetPosition);
+            // And notify the controller
+            mGrabberController.evGrabberMoving();
+            return true;
+        }
+        else{
+            // motor init error, can't move it
+            return false;
+        }
     }
 
-    public void openClamp() {
-        setServoPosition(OPEN_POSITION);
+
+    /**
+     *
+     * @return current grabber position
+     */
+    public int getGrabberPosition() {
+        return mGrabberPosition;
     }
 
-    public void closeClamp() {
-        setServoPosition(CLOSED_POSITION);
+    public void openGrabber() {
+        setLeftServoPosition(LEFT_SERVO_OPEN_POSITION);
+        setRightServoPosition(RIGHT_SERVO_OPEN_POSITION);
     }
 
-    private void setServoPosition(double position) {
-        mServoPosition = position;
-        if (mClampServo != null) {
-            mClampServo.setPosition(mServoPosition);
+    public void closeGrabber() {
+        setLeftServoPosition(LEFT_SERVO_CLOSED_POSITION);
+        setRightServoPosition(RIGHT_SERVO_CLOSED_POSITION);
+    }
+
+    private void setLeftServoPosition(double position) {
+        mLeftServoPosition = position;
+        if (mLeftServo != null) {
+            mLeftServo.setPosition(mLeftServoPosition);
+        }
+    }
+    private void setRightServoPosition(double position) {
+        mRightServoPosition = position;
+        if (mRightServo != null) {
+            mRightServo.setPosition(mRightServoPosition);
         }
     }
 

@@ -5,15 +5,30 @@ package org.firstinspires.ftc.teamcode.shooter;
  */
 public interface IShooterController {
     /**
-     * triggers the evActivate method
+     * called to activate the shooter or when the speed setting has been changed by the user
      */
     void evActivate();
     /**
-     * triggers the evDeactivate method
+     * called to deactivate the shooter
      */
     void evDeactivate();
     /**
-     * triggers the evShoot method
+     * called to shoot
      */
     void evShoot();
+
+    /**
+     * called to indicate the shooter motor speeds are ready to shoot
+     */
+    void evReadyToShoot();
+
+    /**
+     * returns true if shooter is activated, false if deactivated.
+     */
+    boolean isActivated();
+
+    /**
+     * returns true if shooter is ready to shoot, false if not
+     */
+    boolean isShooterReady();
 }

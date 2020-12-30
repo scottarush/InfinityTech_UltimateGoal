@@ -1,0 +1,69 @@
+digraph ShooterStateMachine {
+
+    node
+        [shape=Mrecord width=1.5];
+
+    subgraph cluster_ShooterStateMachine {
+
+        label="ShooterStateMachine";
+
+        //
+        // States (Nodes)
+        //
+
+        "ShooterStateMachine::Deactivated"
+            [label="{Deactivated|Entry/\l&nbsp;&nbsp;&nbsp;stopLoaderPully();\l&nbsp;&nbsp;&nbsp;setShooterActivation(false);\l}"];
+
+        "ShooterStateMachine::Activating"
+            [label="{Activating|Entry/\l&nbsp;&nbsp;&nbsp;setShooterActivation(true);\l}"];
+
+        "ShooterStateMachine::Reload"
+            [label="{Reload|Entry/\l&nbsp;&nbsp;&nbsp;stopLoaderPully();\l&nbsp;&nbsp;&nbsp;startTimer(1000);\l}"];
+
+        "ShooterStateMachine::ReadyToShoot"
+            [label="{ReadyToShoot}"];
+
+        "ShooterStateMachine::Shooting"
+            [label="{Shooting|Entry/\l&nbsp;&nbsp;&nbsp;startLoaderPully();\l&nbsp;&nbsp;&nbsp;startTimer(1250);\l}"];
+
+        "%start"
+            [label="" shape=circle style=filled fillcolor=black width=0.25];
+
+        //
+        // Transitions (Edges)
+        //
+
+        "ShooterStateMachine::Deactivated" -> "ShooterStateMachine::Activating"
+            [label="evActivate()/\l"];
+
+        "ShooterStateMachine::Activating" -> "ShooterStateMachine::ReadyToShoot"
+            [label="evShooterReady()/\l"];
+
+        "ShooterStateMachine::Activating" -> "ShooterStateMachine::Deactivated"
+            [label="evDeactivate()/\l"];
+
+        "ShooterStateMachine::Reload" -> "ShooterStateMachine::ReadyToShoot"
+            [label="evTimeout()/\l"];
+
+        "ShooterStateMachine::Reload" -> "ShooterStateMachine::Deactivated"
+            [label="evDeactivate()/\l"];
+
+        "ShooterStateMachine::ReadyToShoot" -> "ShooterStateMachine::Shooting"
+            [label="evShoot()/\l"];
+
+        "ShooterStateMachine::ReadyToShoot" -> "ShooterStateMachine::Deactivated"
+            [label="evDeactivate()/\l"];
+
+        "ShooterStateMachine::Shooting" -> "ShooterStateMachine::ReadyToShoot"
+            [label="evTimeout()\l\[ctxt.isShooterReady()\]/\lstopLoaderPully();\l"];
+
+        "ShooterStateMachine::Shooting" -> "ShooterStateMachine::Reload"
+            [label="evTimeout()\l\[!ctxt.isShooterReady()\]/\l"];
+
+        "ShooterStateMachine::Shooting" -> "ShooterStateMachine::Deactivated"
+            [label="evDeactivate()/\l"];
+
+        "%start" -> "ShooterStateMachine::Deactivated"
+    }
+
+}

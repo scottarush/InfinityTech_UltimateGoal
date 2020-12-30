@@ -10,6 +10,7 @@ import org.firstinspires.ftc.teamcode.guidance.GuidanceController;
 import org.firstinspires.ftc.teamcode.guidance.IGuidanceControllerStatusListener;
 import org.firstinspires.ftc.teamcode.speedbot.BaseSpeedBot;
 import org.firstinspires.ftc.teamcode.speedbot.CraneSpeedBot;
+import org.firstinspires.ftc.teamcode.util.BaseStateMachineController;
 import org.firstinspires.ftc.teamcode.util.OneShotTimer;
 
 import java.beans.PropertyChangeEvent;
@@ -23,12 +24,7 @@ import java.util.LinkedList;
 import statemap.FSMContext;
 import statemap.State;
 
-public class AutonomousController implements IGuidanceControllerStatusListener {
-    private static boolean TELEMETRY_STATE_LOGGING_ENABLED = true;
-
-    private FilterDevStateMachineContext mStateMachineContext = null;
-
-    private OpMode opMode = null;
+public class AutonomousController extends BaseStateMachineController implements IGuidanceControllerStatusListener {
 
     /**
      * Max rotation power.
@@ -44,30 +40,13 @@ public class AutonomousController implements IGuidanceControllerStatusListener {
 
     private GuidanceController mGuidanceController;
 
-    private ArrayList<OneShotTimer> mStateTimers = new ArrayList<>();
-
-    /**
-     * Common timer used to open or close the hooks on either bot
-     */
-    private OneShotTimer mTimer = new OneShotTimer(1000, new OneShotTimer.IOneShotTimerCallback() {
-        @Override
-        public void timeoutComplete() {
-            transition("evTimeout");
-        }
-    });
-
     private OneShotTimer mRotationTimeoutTimer = new OneShotTimer(ROTATION_TIMEOUTMS, new OneShotTimer.IOneShotTimerCallback() {
         @Override
         public void timeoutComplete() {
             transition("evRotationTimeoutError");
         }
     });
-    /***
-     * Needed to queue events into the state machine
-     */
-    private static HashMap<String, Method> mTransition_map;
-    private LinkedList<String> mTransition_queue;
-     /**
+      /**
      * Constructor
      * @param opMode
      * @param speedBot
@@ -75,42 +54,15 @@ public class AutonomousController implements IGuidanceControllerStatusListener {
     public AutonomousController(final OpMode opMode,
                                 GuidanceController guidanceController,
                                 BaseSpeedBot speedBot) {
-        mStateMachineContext = new FilterDevStateMachineContext(this);
-        this.opMode = opMode;
         mGuidanceController = guidanceController;
         mSpeedBot = speedBot;
 
+        // initialize the base class
+        init(opMode,new FilterDevStateMachineContext(this));
+
         mGuidanceController.addGuidanceControllerStatusListener(this);
-        // Add timers to be checked
-        mStateTimers.add(mTimer);
+     }
 
-        // Now do common initializations
-        init();
-    }
-
-
-    /**
-     * Does initializations common to both robots.
-     */
-    private void init(){
-        buildTransitionTable();
-
-
-        // And add a listener to the state machine to send the state transitions to telemtry
-        mStateMachineContext.addStateChangeListener(new PropertyChangeListener() {
-            @Override
-            public void propertyChange(PropertyChangeEvent event) {
-                FSMContext fsm = (FSMContext) event.getSource();
-                String propertyName = event.getPropertyName();
-                State previousStatus = (State) event.getOldValue();
-                State newState = (State) event.getNewValue();
-                if (opMode != null){
-                    opMode.telemetry.addData("Current State: ",newState.getName());
-                    opMode.telemetry.update();
-                }
-            }
-        });
-    }
 
     @Override
     public void rotationComplete() {
@@ -170,77 +122,6 @@ public class AutonomousController implements IGuidanceControllerStatusListener {
         double meters = distance / 39.37d;
         mGuidanceController.strafe(meters,1.0d);
     }
-        /**
-         * helper method to build the transition table so that we can trigger events from
-         * within state machine handlers.
-         */
-    private void buildTransitionTable(){
-        // Initialize the transition table for use in queueing events
-        mTransition_map = new HashMap<>();
-        try
-        {
-            Class context = mStateMachineContext.getClass();
-            Method[] transitions = context.getDeclaredMethods();
-            String name;
-            int i;
-
-            for (i = 0; i < transitions.length; ++i)
-            {
-                name = transitions[i].getName();
-
-                // Ignore the getState and getOwner methods.
-                if (name.compareTo("getState") != 0 &&
-                        name.compareTo("getOwner") != 0)
-                {
-                    mTransition_map.put(name, transitions[i]);
-                }
-            }
-        }
-        catch (Exception ex)
-        {}
-
-        mTransition_queue = new LinkedList<>();
-    }
-
-
-    /**
-     * Transition method needed to make transition calls within the Controller
-     * @param trans_name
-     */
-    private synchronized void transition(String trans_name)
-    {
-        // Add the transition to the queue.
-        mTransition_queue.add(trans_name);
-
-        // Only if a transition is not in progress should a
-        // transition be issued.
-        if (mStateMachineContext.isInTransition() == false)
-        {
-            String name;
-            Method transition;
-            Object[] args = new Object[0];
-
-            while (mTransition_queue.isEmpty() == false)
-            {
-                name = (String) mTransition_queue.remove(0);
-                transition = (Method) mTransition_map.get(name);
-                try
-                {
-                    transition.invoke(mStateMachineContext, args);
-                }
-                catch (Exception ex)
-                {
-                    String msg = ex.getMessage();
-                    if (msg == null)
-                        msg = "exception in state machine";
-                    Log.e(getClass().getSimpleName(),msg);
-                }
-            }
-        }
-
-        return;
-    }
-
 
 
     /**
@@ -250,7 +131,8 @@ public class AutonomousController implements IGuidanceControllerStatusListener {
         // If we haven't started then kick if off.
         boolean triggerStart = false;
         if (mStateMachineContext != null){
-            if (mStateMachineContext.getState() == FilterDevStateMachineContext.FilterDevStateMachine.Idle){
+            if (((FilterDevStateMachineContext)mStateMachineContext).getState() ==
+                    FilterDevStateMachineContext.FilterDevStateMachine.Idle){
                 triggerStart = true;
             }
         }
@@ -270,29 +152,6 @@ public class AutonomousController implements IGuidanceControllerStatusListener {
     public void stop(){
         mSpeedBot.getDrivetrain().stop();
     }
-
-    /**
-     * Starts a timer that will fire the evTimeout event
-     * @param timeoutms
-     */
-    public void startTimer(int timeoutms){
-       mTimer.setTimeout(timeoutms);
-       mTimer.start();
-    }
-    private void serviceTimers(){
-        for(Iterator<OneShotTimer> iter = mStateTimers.iterator(); iter.hasNext();){
-            OneShotTimer timer = iter.next();
-            timer.checkTimer();
-        }
-    }
-
-    public void setLogMessage(String msg){
-        if (TELEMETRY_STATE_LOGGING_ENABLED) {
-            opMode.telemetry.addData("Status", msg);
-            opMode.telemetry.update();
-        }
-    }
-
 
 }
 

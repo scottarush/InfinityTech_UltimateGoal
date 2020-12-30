@@ -7,9 +7,6 @@ import com.qualcomm.robotcore.hardware.HardwareMap;
 
 import org.firstinspires.ftc.teamcode.util.MiniPID;
 
-import java.util.ArrayList;
-import java.util.Iterator;
-
 /**
  * This class encapsulates the shooter and loader.  It is primarily called by the ShooterController
  * that coordinates the activation/deactivation of the motors.
@@ -38,21 +35,21 @@ public class Shooter {
     public static final int SETTING_MIDFIELD_LOW = 20;
     private int mShooterSetting = SETTING_MIDFIELD_HIGH;
 
-    private boolean mShooterActivated = false;
-
     // Speed thresholds for shooter wheels in RPM
     private static final int SHOOTER_MIDFIELD_LOW_SPEED = 750;
     private static final int SHOOTER_MIDFIELD_HIGH_SPEED = 1500;
 
     private double mSetSpeed = 0;
 
-    private boolean mShooterReady = false;
+    /**
+     * Speed loop is closed in units of "RPM" where max output of 1.0 is ~1500 rpm
+     * and 0 is stopped.  Gains below should be scaled with the RPM units and max range in
+     * mind
+     */
 
-    private static final double SPEED_PROP_GAIN = 1d;
+    private static final double SPEED_PROP_GAIN = 0.05d;
     private static final double SPEED_INTEGRAL_GAIN = 0d;
     private static final double SPEED_DERIVATIVE_GAIN = 0d;
-
-    private ArrayList<IShooterStatusListener> mShooterStatusListeners = new ArrayList<>();
 
     private ShooterController mShooterController = null;
 
@@ -107,12 +104,6 @@ public class Shooter {
         }
     }
 
-    public void addShooterStatusListener(IShooterStatusListener listener){
-        if (!mShooterStatusListeners.contains(listener)){
-            mShooterStatusListeners.add(listener);
-        }
-    }
-
     /**
      * Must be called from opmode loop to service PID speed control on the motors and
      * service the controller loop
@@ -147,12 +138,16 @@ public class Shooter {
         mLastRightMotorPosition = position;
 
         // compute the power from the PID unless we are deactivated
-        if (mShooterActivated){
+        if (mShooterController.isActivated()){
             double left = mLeftMotorSpeedPID.getOutput(mLeftMotorSpeed,mSetSpeed);
             double right = mLeftMotorSpeedPID.getOutput(mRightMotorSpeed,mSetSpeed);
             setPower(left,right);
             // Compute and update the shooter ready status if it has changed
             updateShooterStatus();
+        }
+        else{
+            // Stop the motors
+            setPower(0d,0d);
         }
 
     }
@@ -163,38 +158,25 @@ public class Shooter {
         double delta = 20;
         switch (mShooterSetting) {
             case SETTING_MIDFIELD_HIGH:
-                highThreshold = SHOOTER_MIDFIELD_HIGH_SPEED + delta;
-                lowThreshold = SHOOTER_MIDFIELD_HIGH_SPEED - delta;
+                highThreshold = SHOOTER_MIDFIELD_HIGH_SPEED + delta/2;
+                lowThreshold = SHOOTER_MIDFIELD_HIGH_SPEED - delta/2;
                 break;
             case SETTING_MIDFIELD_LOW:
-                highThreshold = SHOOTER_MIDFIELD_HIGH_SPEED + delta;
-                lowThreshold = SHOOTER_MIDFIELD_HIGH_SPEED - delta;
+                highThreshold = SHOOTER_MIDFIELD_HIGH_SPEED + delta/2;
+                lowThreshold = SHOOTER_MIDFIELD_HIGH_SPEED - delta/2;
                 break;
        }
         // Now check if the speeds are within the delta
         boolean left = checkSpeedThreshold(mLeftMotorSpeed,highThreshold,lowThreshold);
         boolean right = checkSpeedThreshold(mRightMotorSpeed,highThreshold,lowThreshold);
         if (left && right) {
-            // shooter is ready.  check if status has changed
-            if (!mShooterReady){
-                mShooterReady = true;
-                updateShooterStatusListeners();
-            }
+            // shooter is ready.  trigger event to controller
+            mShooterController.evReadyToShoot();
         }
         else{
-            // not ready.  check if status changed
-            if (mShooterReady){
-                mShooterReady = false;
-                updateShooterStatusListeners();
-            }
+            // not ready.  call evActivate to wait until speed has stabilized again
+            mShooterController.evActivate();
         }
-    }
-
-    /**
-     * returns whether shooter is ready or not
-     */
-    public boolean isShooterReady(){
-        return mShooterReady;
     }
 
     /**
@@ -216,13 +198,17 @@ public class Shooter {
         return false;
     }
 
-    // TODO: add an LED on the robot
+    // TODO: add an LED on the robot to indicate when it is ready
 
     /**
      * public function to set the activation speed of the shooter
      * @param setting to either SETTING_MIDFIELD_HIGH or SETTING_MIDFIELD_LOW
      */
     public void setShooterSpeed(int setting) {
+        if (setting == mSetSpeed){
+            return;
+        }
+        // else this is a change
         switch (setting) {
             case SETTING_MIDFIELD_HIGH:
                 mSetSpeed = SHOOTER_MIDFIELD_HIGH_SPEED;
@@ -233,11 +219,17 @@ public class Shooter {
             default:
                 return;  // Invalid setting
         }
+        // valid change so change the setting
         mShooterSetting = setting;
+        // And update shooter status
+        updateShooterStatus();
     }
 
+    /**
+     * activates the shooter.
+     */
     public void activateShooter(){
-        mShooterActivated = true;
+        mShooterController.evActivate();
     }
 
     /**
@@ -245,21 +237,9 @@ public class Shooter {
      * Stops the motors and retracts the pusher.
      */
     public void deactivateShooter() {
-        mShooterActivated = false;
+        mShooterController.evDeactivate();
         setPower(0d,0d);
         stopLoaderPully();
-        // If the shooter was ready than mark it not ready and notify listeners.
-        if (mShooterReady){
-            mShooterReady = false;
-            updateShooterStatusListeners();
-         }
-    }
-
-    private void updateShooterStatusListeners(){
-        for(Iterator<IShooterStatusListener>iter=mShooterStatusListeners.iterator();iter.hasNext();){
-            IShooterStatusListener listener = iter.next();
-            listener.shooterReady(mShooterReady);
-        }
     }
 
     private void setPower(double leftPower,double rightPower){
@@ -301,4 +281,6 @@ public class Shooter {
             mLoaderPully.setPower(0d);
         }
     }
+
+
 }

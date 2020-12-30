@@ -149,11 +149,11 @@ public class SpeedBotDualDriverOpmode extends OpMode{
             // Use left bumper to raise and lower the front hooks
             boolean leftBumper = gamepad1.left_bumper || gamepad2.left_bumper;
             if (leftBumper){
-                if (robot.getFrontHooks().isClampOpen()){
-                    robot.getFrontHooks().closeClamp();
+                if (robot.getFrontHooks().isGrabberOpen()){
+                    robot.getFrontHooks().closeGrabber();
                 }
                 else{
-                    robot.getFrontHooks().openClamp();
+                    robot.getFrontHooks().openGrabber();
                 }
             }
 

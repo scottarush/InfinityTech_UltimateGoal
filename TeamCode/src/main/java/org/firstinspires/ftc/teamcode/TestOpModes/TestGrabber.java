@@ -3,25 +3,30 @@ package org.firstinspires.ftc.teamcode.TestOpModes;
 import com.qualcomm.robotcore.eventloop.opmode.OpMode;
 import com.qualcomm.robotcore.eventloop.opmode.TeleOp;
 
+import org.firstinspires.ftc.teamcode.grabber.Grabber;
 import org.firstinspires.ftc.teamcode.shooter.Shooter;
-import org.firstinspires.ftc.teamcode.shooter.ShooterController;
 
-@TeleOp(name="TestShooter", group="robot")
+@TeleOp(name="TestGrabber", group="robot")
 //@Disabled
-public class TestShooter extends OpMode {
-    private Shooter mShooter = null;
+public class TestGrabber extends OpMode {
+    private Grabber mGrabber = null;
 
     @Override
     public void init() {
-        mShooter = new Shooter(this);
+        mGrabber = new Grabber(this);
         // check for initialization errors
         try {
-            mShooter.init(hardwareMap);
+            mGrabber.init(hardwareMap);
         } catch (Exception e) {
             telemetry.addData("Initialization Error(s)", e.getMessage());
             telemetry.update();
         }
-        mShooter.setShooterSpeed(Shooter.SETTING_MIDFIELD_HIGH);
+    }
+
+    @Override
+    public void init_loop() {
+        super.init_loop();
+        mGrabber.init_loop();
     }
 
     @Override
@@ -35,18 +40,18 @@ public class TestShooter extends OpMode {
         boolean gpb = gamepad1.b;
         if (gpx) {
             // trigger the evActivate event to the shooter controller
-            mShooter.getShooterController().evActivate();
+            mGrabber.setGrabberPosition(Grabber.GRABBER_POSITION_RETRACTED);
         }
         if (gpa) {
             // trigger the evShoo event to the shooter controller
-            mShooter.getShooterController().evShoot();
+            mGrabber.setGrabberPosition(Grabber.GRABBER_POSITION_CARRY);
         }
         if (gpb) {
             // disable the shooter through the shooter controller
-            mShooter.getShooterController().evDeactivate();
+            mGrabber.setGrabberPosition(Grabber.GRABBER_POSITION_RETRACTED);
         }
-         // Call the shooter service loop
-        mShooter.serviceShooterLoop();
+         // Call the grabber service loop
+        mGrabber.loop();
 
     }
 }

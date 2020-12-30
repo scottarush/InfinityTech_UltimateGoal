@@ -1,1 +1,0 @@
-java -jar ../../../../../../../../lib/Smc.jar -java HookStateMachine.sm

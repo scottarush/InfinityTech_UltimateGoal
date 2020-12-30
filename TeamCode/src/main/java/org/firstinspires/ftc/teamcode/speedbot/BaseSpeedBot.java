@@ -7,7 +7,7 @@ import com.qualcomm.robotcore.util.ReadWriteFile;
 import org.firstinspires.ftc.robotcore.internal.system.AppUtil;
 import org.firstinspires.ftc.teamcode.drivetrain.BaseMecanumDrive;
 import org.firstinspires.ftc.teamcode.drivetrain.SpeedBotMecanumDrive;
-import org.firstinspires.ftc.teamcode.hook.Hook;
+import org.firstinspires.ftc.teamcode.grabber.Grabber;
 
 import java.io.File;
 
@@ -31,7 +31,7 @@ public class BaseSpeedBot {
 
     protected SpeedBotMecanumDrive mDrivetrain = null;
 
-    private Hook mFrontHooks = null;
+    private Grabber mFrontHooks = null;
 
     private boolean mEnableIMU = false;
 
@@ -45,7 +45,7 @@ public class BaseSpeedBot {
     }
 
 
-    public Hook getFrontHooks(){
+    public Grabber getFrontHooks(){
         return mFrontHooks;
     }
     /**
