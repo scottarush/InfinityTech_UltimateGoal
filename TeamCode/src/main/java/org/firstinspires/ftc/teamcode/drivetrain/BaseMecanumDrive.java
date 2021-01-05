@@ -399,8 +399,8 @@ public abstract class BaseMecanumDrive extends Drivetrain implements IGuidanceCo
             lrPower = lrPower / speedmax;
             rrPower = rrPower / speedmax;
         }
-//        mOpMode.telemetry.addData("power","lf %1.2f rf %1.2f lr %1.2f rr %1.2f",lfPower,rfPower,lrPower,rrPower);
-//        mOpMode.telemetry.update();
+          mOpMode.telemetry.addData("power","lf %1.2f rf %1.2f lr %1.2f rr %1.2f",lfPower,rfPower,lrPower,rrPower);
+          mOpMode.telemetry.update();
 
         setPower(lfPower,rfPower,lrPower,rrPower);
     }
