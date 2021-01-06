@@ -61,7 +61,7 @@ public class SpeedBotMecanumDrive extends BaseMecanumDrive {
             motor = tryMapMotor("lf");
 //            lfMotor = new WrappedDCMotor(motor,ENCODER_COUNTS_PER_MOTOR_SHAFT_ROTATION, PIMOTOR_KP, PIMOTOR_KI);
             mLFMotor = motor;
-            mLFMotor.setDirection(DcMotorSimple.Direction.REVERSE);
+            mLFMotor.setDirection(DcMotorSimple.Direction.FORWARD);
             mLFMotor.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
         }
         catch (Exception e){
@@ -71,6 +71,7 @@ public class SpeedBotMecanumDrive extends BaseMecanumDrive {
             motor = tryMapMotor("rf");
 //            rfMotor = new WrappedDCMotor(motor,ENCODER_COUNTS_PER_MOTOR_SHAFT_ROTATION, PIMOTOR_KP, PIMOTOR_KI);
             mRFMotor = motor;
+            mRFMotor.setDirection(DcMotorSimple.Direction.REVERSE);
             mRFMotor.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
 
         }
@@ -81,7 +82,7 @@ public class SpeedBotMecanumDrive extends BaseMecanumDrive {
             motor = tryMapMotor("lr");
 //            lrMotor = new WrappedDCMotor(motor,ENCODER_COUNTS_PER_MOTOR_SHAFT_ROTATION, PIMOTOR_KP, PIMOTOR_KI);
             mLRMotor = motor;
-            mLRMotor.setDirection(DcMotorSimple.Direction.REVERSE);
+            mLRMotor.setDirection(DcMotorSimple.Direction.FORWARD);
             mLRMotor.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
 
         }
@@ -92,6 +93,7 @@ public class SpeedBotMecanumDrive extends BaseMecanumDrive {
             motor = tryMapMotor("rr");
 //            rrMotor = new WrappedDCMotor(motor,ENCODER_COUNTS_PER_MOTOR_SHAFT_ROTATION, PIMOTOR_KP, PIMOTOR_KI);
             mRRMotor = motor;
+            mRRMotor.setDirection(DcMotorSimple.Direction.REVERSE);
             mRRMotor.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
 
         }

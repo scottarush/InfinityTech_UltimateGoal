@@ -78,7 +78,7 @@ public class Shooter {
             mLeftMotor = ahwMap.get(DcMotor.class, "shooterL");
             mLeftMotor.setMode(DcMotor.RunMode.RUN_USING_ENCODER);
             mLeftMotor.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
-            mLeftMotor.setDirection(DcMotorSimple.Direction.REVERSE);
+            mLeftMotor.setDirection(DcMotorSimple.Direction.FORWARD);
         } catch (Exception e) {
             initErrString += "Left Shooter Motor error";
         }
@@ -86,7 +86,7 @@ public class Shooter {
             mRightMotor = ahwMap.get(DcMotor.class, "shooterR");
             mRightMotor.setMode(DcMotor.RunMode.RUN_USING_ENCODER);
             mRightMotor.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
-            mRightMotor.setDirection(DcMotorSimple.Direction.FORWARD);
+            mRightMotor.setDirection(DcMotorSimple.Direction.REVERSE);
         } catch (Exception e) {
             initErrString += ", Right Shooter Motor error";
         }
@@ -94,7 +94,7 @@ public class Shooter {
             mLoaderPully = ahwMap.get(DcMotor.class, "loader");
             mLoaderPully.setMode(DcMotor.RunMode.RUN_USING_ENCODER);
             mLoaderPully.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
-            mLoaderPully.setDirection(DcMotorSimple.Direction.FORWARD);
+            mLoaderPully.setDirection(DcMotorSimple.Direction.REVERSE);
         } catch (Exception e) {
             initErrString += ", Loader Pully Motor error";
         }
