@@ -45,6 +45,14 @@ public class TestShooter extends OpMode {
             // disable the shooter through the shooter controller
             mShooter.getShooterController().evDeactivate();
         }
+        if (gamepad1.y){
+            if (mShooter.getShooterSetting() == Shooter.SETTING_MIDFIELD_HIGH){
+                mShooter.setShooterSpeed(Shooter.SETTING_MIDFIELD_LOW);
+            }
+            else{
+                mShooter.setShooterSpeed(Shooter.SETTING_MIDFIELD_HIGH);
+            }
+        }
          // Call the shooter service loop
         mShooter.serviceShooterLoop();
 

@@ -11,6 +11,7 @@ import org.firstinspires.ftc.teamcode.shooter.Shooter;
 public class TestGrabber extends OpMode {
     private Grabber mGrabber = null;
 
+
     @Override
     public void init() {
         mGrabber = new Grabber(this);
@@ -31,6 +32,7 @@ public class TestGrabber extends OpMode {
 
     @Override
     public void loop() {
+
         // listen for gamepad input and do the corresponding function
         // x button starts the shooter
         boolean gpx = gamepad1.x;
@@ -48,8 +50,18 @@ public class TestGrabber extends OpMode {
         }
         if (gpb) {
             // disable the shooter through the shooter controller
-            mGrabber.setGrabberPosition(Grabber.GRABBER_POSITION_RETRACTED);
+            mGrabber.setGrabberPosition(Grabber.GRABBER_POSITION_LOWERED);
         }
+        if (gamepad1.y){
+            if (mGrabber.isGrabberOpen()){
+                mGrabber.closeGrabber();
+            }
+            else{
+                mGrabber.openGrabber();
+            }
+        }
+        float power = gamepad1.left_stick_y;
+        mGrabber.setManualPower(power);
          // Call the grabber service loop
         mGrabber.loop();
 

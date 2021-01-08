@@ -36,8 +36,8 @@ public class Shooter {
     private int mShooterSetting = SETTING_MIDFIELD_HIGH;
 
     // Speed thresholds for shooter wheels in RPM
-    private static final int SHOOTER_MIDFIELD_LOW_SPEED = 750;
-    private static final int SHOOTER_MIDFIELD_HIGH_SPEED = 1500;
+    private static final int SHOOTER_MIDFIELD_LOW_SPEED = 475;
+    private static final int SHOOTER_MIDFIELD_HIGH_SPEED = 800;
 
     private double mSetSpeed = 0;
 
@@ -53,11 +53,14 @@ public class Shooter {
 
     private ShooterController mShooterController = null;
 
+    private OpMode mOpMode = null;
+
     /**
      * Constructor
      * @param opMode needed for state machine logging in ShooterController
      */
     public Shooter(OpMode opMode) {
+        mOpMode = opMode;
         // Create the PIDs for speed control
         mLeftMotorSpeedPID = new MiniPID(SPEED_PROP_GAIN,SPEED_INTEGRAL_GAIN,SPEED_DERIVATIVE_GAIN);
         mLeftMotorSpeedPID.setOutputLimits(0d,1.0d);
@@ -119,6 +122,9 @@ public class Shooter {
 
         // Compute the delta T and quantize to
         int deltat_ns = (int)(systemTime-mLastSystemTimeNS);
+        // Save time for next time
+        mLastSystemTimeNS = systemTime;
+
         // Compute the delta
         int position = getLeftCurrentPosition();
         double countsDelta = Math.abs(position-mLastLeftMotorPosition);
@@ -149,7 +155,9 @@ public class Shooter {
             // Stop the motors
             setPower(0d,0d);
         }
-
+        mOpMode.telemetry.addData("Right Motor Speed",mRightMotorSpeed);
+        mOpMode.telemetry.addData("Left Motor Speed",mLeftMotorSpeed);
+        mOpMode.telemetry.update();
     }
 
     private void updateShooterStatus() {
@@ -223,6 +231,13 @@ public class Shooter {
         mShooterSetting = setting;
         // And update shooter status
         updateShooterStatus();
+    }
+
+    /**
+     * Returns current shooter speed.
+     */
+    public int getShooterSetting(){
+        return mShooterSetting;
     }
 
     /**

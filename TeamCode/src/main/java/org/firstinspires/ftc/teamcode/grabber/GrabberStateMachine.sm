@@ -15,7 +15,8 @@ sequence actions:
     Start
     {
         evInit [ctxt.getGrabberPosition() == Grabber.GRABBER_POSITION_UNKNOWN] Calibrate { }
-
+        evGrabberMoving Moving {}
+        evGrabberStopped Stopped {}
     }
     Stopped
     {
@@ -38,6 +39,8 @@ sequence actions:
     {
         evTimeoutError  CalibrateError {  }
         evLimitSwitchClosed Stopped {  stopTimer(); }
+        evGrabberMoving Moving {}
+        evGrabberStopped Stopped {}
     }
 
     CalibrateError
