@@ -51,9 +51,9 @@ public class Grabber {
     /**
      * delta angle in degrees from LOWERED to RETRACTED
      */
-    private static final int RETRACTED_POSITION_ANGLE = 150;
+    private static final int RETRACTED_POSITION_ANGLE = 135;
 
-    private int mGrabberPosition = GRABBER_POSITION_UNKNOWN;
+    private int mGrabberPosition = GRABBER_POSITION_LOWERED;
 
     private Servo mLeftServo = null;
     private Servo mRightServo = null;
@@ -66,12 +66,12 @@ public class Grabber {
 
     private DigitalChannel mLimitSwitch = null;
 
-    private static final double LEFT_SERVO_OPEN_POSITION = 0.0d;
-    private static final double LEFT_SERVO_CLOSED_POSITION = 1.0d;
+    private static final double LEFT_SERVO_OPEN_POSITION = 0.25d;
+    private static final double LEFT_SERVO_CLOSED_POSITION = 0.0d;
     private double mLeftServoPosition = LEFT_SERVO_OPEN_POSITION;
 
     private static final double RIGHT_SERVO_OPEN_POSITION = 0d;
-    private static final double RIGHT_SERVO_CLOSED_POSITION = 1.0d;
+    private static final double RIGHT_SERVO_CLOSED_POSITION = 0.25d;
     private double mRightServoPosition = RIGHT_SERVO_CLOSED_POSITION;
 
     public Grabber(OpMode opMode) {
@@ -101,7 +101,7 @@ public class Grabber {
         try {
             mGrabberMotor = mHWMap.get(DcMotor.class, "grabbermotor");
             mGrabberMotor.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
-            mGrabberMotor.setMode(DcMotor.RunMode.RUN_TO_POSITION);
+            mGrabberMotor.setMode(DcMotor.RunMode.RUN_USING_ENCODER);
         } catch (Exception e) {
             initErrString += "grabber motor error";
         }
@@ -273,5 +273,10 @@ public class Grabber {
         }
     }
 
+   public void setManualPower(double power){
+        if (mGrabberMotor != null){
+            mGrabberMotor.setPower(power);
+        }
+   }
 }
 
