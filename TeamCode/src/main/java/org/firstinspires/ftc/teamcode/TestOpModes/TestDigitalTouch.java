@@ -28,11 +28,12 @@
  */
 
 package org.firstinspires.ftc.teamcode.TestOpModes;
+import android.text.method.Touch;
 
+import com.qualcomm.hardware.rev.RevTouchSensor;
 import com.qualcomm.robotcore.eventloop.opmode.Disabled;
 import com.qualcomm.robotcore.eventloop.opmode.LinearOpMode;
 import com.qualcomm.robotcore.eventloop.opmode.TeleOp;
-import com.qualcomm.robotcore.hardware.DigitalChannel;
 import com.qualcomm.robotcore.hardware.TouchSensor;
 
 /*
@@ -46,6 +47,7 @@ import com.qualcomm.robotcore.hardware.TouchSensor;
  */
 @TeleOp(name = "Test Digital Touch", group = "Robot")
 //@Disabled
+
 public class TestDigitalTouch extends LinearOpMode {
     /**
      * The REV Robotics Touch Sensor
@@ -57,16 +59,13 @@ public class TestDigitalTouch extends LinearOpMode {
      * The lower (first) pin stays unconnected.*
      */
 
-    DigitalChannel digitalTouch;  // Hardware Device Object
+    TouchSensor touch;
 
     @Override
+    @Disabled
     public void runOpMode() {
 
-        // get a reference to our digitalTouch object.
-        digitalTouch = hardwareMap.get(DigitalChannel.class, "grabberlsw");
-
-        // set the digital channel to input.
-     //   digitalTouch.setMode(DigitalChannel.Mode.INPUT);
+        touch = hardwareMap.get(TouchSensor.class,"grabberlsw");
 
         // wait for the start button to be pressed.
         waitForStart();
@@ -77,10 +76,11 @@ public class TestDigitalTouch extends LinearOpMode {
 
             // send the info back to driver station using telemetry function.
             // if the digital channel returns true it's HIGH and the button is unpressed.
-            if (digitalTouch.getState() == true) {
-                telemetry.addData("Digital Touch", "Is Not Pressed");
+
+            if (touch.isPressed()) {
+                telemetry.addData("Touch Sensor", "Is Pressed");
             } else {
-                telemetry.addData("Digital Touch", "Is Pressed");
+                telemetry.addData("Touch Sensor", "Is Not Pressed");
             }
 
             telemetry.update();
