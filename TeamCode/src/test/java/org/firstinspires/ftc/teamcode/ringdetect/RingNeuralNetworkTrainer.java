@@ -94,7 +94,7 @@ public class RingNeuralNetworkTrainer {
         final StringBuffer logBuffer = new StringBuffer();
         logBuffer.append("#,Status,Truth,yTruth,Detection,yDetection,Cost\n");
 
-        // Read the test data but do not scale or shuffle it
+        // Read the test data  but do not scale or shuffle
         processor.processData(testDataFile,testFraction ,false,false);
         SimpleMatrix x = processor.getXTestData();
         SimpleMatrix y = processor.getYTestData();
@@ -147,10 +147,9 @@ public class RingNeuralNetworkTrainer {
     }
 
     /**
-     * The main method in this class configures the
+     * This is the method used for the color and distance sensor network
      */
-    @Test
-    public void main() {
+    public static void doColorDistanceSensorNetwork(){
         RingNeuralNetworkTrainer trainer = new RingNeuralNetworkTrainer();
         int networkConfig = RingDetectorNeuralNetwork.CONFIGURATION_NO_MID_COLOR_SENSOR;
 
@@ -174,9 +173,49 @@ public class RingNeuralNetworkTrainer {
         if (test){
             File testingLogFile = new File(dataPath, fileprefix +"_testing_log.csv");
             File testingDataFile = new File(dataPath,"21DEC20_testing_data.csv");
- //           File testingDataFile = new File(dataPath,"15DEC20_training_data with old setup.csv");
+            //           File testingDataFile = new File(dataPath,"15DEC20_training_data with old setup.csv");
             trainer.testNetwork(testingDataFile,neuralNetFilePath,networkConfig,testingLogFile,1.0);
         }
 
+
+    }
+    /**
+     * This is the method used for the image capture camera
+     */
+    public static void doCameraSensorNetwork(){
+        RingNeuralNetworkTrainer trainer = new RingNeuralNetworkTrainer();
+        int networkConfig = RingDetectorNeuralNetwork.CONFIGURATION_CAMERA_ONLY;
+
+        // Get the path to the data directory
+        Path currentRelativePath = Paths.get("");
+        String dataPath = currentRelativePath.toAbsolutePath().toString() + "/src/test/java/org/firstinspires/ftc/teamcode/ringdetect/data/images";
+        // Form training and testing log filenames using the configuration filename as a prefix
+        String fileprefix = RingDetectorNeuralNetwork.getNeuralNetworkFilename(networkConfig);
+        fileprefix = fileprefix.substring(0,fileprefix.length()-4);      // Strip .bin extension
+
+        File neuralNetFilePath = new File(dataPath);
+        boolean TRAIN = true;
+        if (TRAIN) {
+            File trainingLogFile = new File(dataPath,fileprefix+"_training_log.csv");
+            trainer.trainNewNetwork(fileprefix,
+                    neuralNetFilePath,neuralNetFilePath,networkConfig,trainingLogFile);
+        }
+
+        boolean test = true;
+        if (test){
+            File testingLogFile = new File(dataPath, fileprefix +"_testing_log.csv");
+            //           File testingDataFile = new File(dataPath,"15DEC20_training_data with old setup.csv");
+            trainer.testNetwork(neuralNetFilePath,neuralNetFilePath,networkConfig,testingLogFile,1.0);
+        }
+
+
+    }
+
+    /**
+     * The main method in this class configures the
+     */
+    @Test
+    public void main() {
+        doCameraSensorNetwork();
     }
 }
