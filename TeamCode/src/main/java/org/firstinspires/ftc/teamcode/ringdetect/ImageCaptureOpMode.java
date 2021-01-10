@@ -23,8 +23,12 @@ public class ImageCaptureOpMode extends OpMode implements ICaptureCameraListener
     private CaptureCamera mCaptureCamera = null;
 
     private boolean mCaptureImage = false;
-    private int mCaptureCounter = 1;
+
     private boolean mLastCaptureButtonState = false;
+    private boolean mLastTagButtonState = false;
+    private String mCurrentTag = RingDetectorNeuralNetwork.LABEL_STRING_NO_RING;
+    private int mRecordNumber = 0;
+
     @Override
     public void init() {
         try{
@@ -46,12 +50,32 @@ public class ImageCaptureOpMode extends OpMode implements ICaptureCameraListener
         boolean buttonState = gamepad1.y;
         if (buttonState) {
             // button pressed. check if last false
+            if (mLastTagButtonState == false) {
+                edgeDetect = true;
+            }
+        }
+        // if we had a rising edge, cycle to the next tag
+        if (edgeDetect == true) {
+            if (mCurrentTag == RingDetectorNeuralNetwork.LABEL_STRING_NO_RING) {
+                mCurrentTag = RingDetectorNeuralNetwork.LABEL_STRING_ONE_RING;
+            } else if (mCurrentTag == RingDetectorNeuralNetwork.LABEL_STRING_ONE_RING) {
+                mCurrentTag = RingDetectorNeuralNetwork.LABEL_STRING_FOUR_RINGS;
+            } else {
+                mCurrentTag = RingDetectorNeuralNetwork.LABEL_STRING_NO_RING;
+            }
+        }
+         // Save tag button for next time
+        mLastTagButtonState = buttonState;
+
+        // check for capture button edge
+        edgeDetect = false;
+        buttonState = gamepad1.a;
+        if (buttonState) {
+            // button pressed. check if last false
             if (mLastCaptureButtonState == false) {
                 edgeDetect = true;
             }
         }
-        // Save tag button for next time
-        mLastCaptureButtonState = buttonState;
 
         if (edgeDetect){
             // Capture the next image
@@ -76,7 +100,9 @@ public class ImageCaptureOpMode extends OpMode implements ICaptureCameraListener
         if (!mCaptureDirectory.exists()){
             mCaptureDirectory.mkdir();
         }
-        File file = new File(mCaptureDirectory, String.format(Locale.getDefault(), "webcam-frame-%d.jpg", mCaptureCounter++));
+        String filename = mCurrentTag+"_"+mRecordNumber+".png";
+        File file = new File(mCaptureDirectory, filename);
+        mRecordNumber++;  // for next time
         try {
             try (FileOutputStream outputStream = new FileOutputStream(file)) {
                 bitmap.compress(Bitmap.CompressFormat.PNG,100, outputStream);

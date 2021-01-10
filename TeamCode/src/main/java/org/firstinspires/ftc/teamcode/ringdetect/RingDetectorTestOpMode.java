@@ -6,7 +6,7 @@ import com.qualcomm.robotcore.eventloop.opmode.TeleOp;
 @TeleOp(name="RingDetectorTest", group="Robot")
 public class RingDetectorTestOpMode extends OpMode {
 
-    private int mRingDetectorConfiguration = RingDetectorNeuralNetwork.ALL_SENSORS;
+    private int mRingDetectorConfiguration = RingDetectorNeuralNetwork.CONFIGURATION_ALL_SENSORS;
     private boolean mLastConfigurationButtonState = false;
 
     private RingDetector mRingDetector = null;
@@ -75,7 +75,7 @@ public class RingDetectorTestOpMode extends OpMode {
         }
 **/
         int inference = mRingDetector.readDetector();
-            String sinference = RingDetectorNeuralNetwork.convertToString(inference);
+            String sinference = RingDetectorNeuralNetwork.convertResultToString(inference);
             telemetry.addData("NNFile", RingDetectorNeuralNetwork.getNeuralNetworkFilename(mRingDetector.getRingDetectorConfiguration()));
             telemetry.addData("Inference Result", sinference);
             telemetry.addData("Status:", mRingDetector.getTelemetryString());

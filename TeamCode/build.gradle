@@ -19,6 +19,9 @@ repositories {
 }
 dependencies{
     implementation files('lib/libejml.jar')
+    // rt.jar is only used at test time for the image processing classes needed for the
+    // RingDataProcessor with the camera.  This is not used at runtime.
+    implementation files('lib/rt.jar')
     testImplementation 'junit:junit:4.12'
 }
 dependencies {

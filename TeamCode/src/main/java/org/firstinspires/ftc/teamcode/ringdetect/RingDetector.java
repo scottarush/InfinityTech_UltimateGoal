@@ -1,26 +1,27 @@
 package org.firstinspires.ftc.teamcode.ringdetect;
 
+import android.graphics.Bitmap;
+
 import com.qualcomm.hardware.rev.RevColorSensorV3;
 import com.qualcomm.robotcore.eventloop.opmode.OpMode;
 import com.qualcomm.robotcore.hardware.DistanceSensor;
 
 import org.firstinspires.ftc.robotcore.external.navigation.DistanceUnit;
+import org.firstinspires.ftc.teamcode.util.CaptureCamera;
+import org.firstinspires.ftc.teamcode.util.ICaptureCameraListener;
 
 import java.io.File;
-import java.io.FileInputStream;
-import java.io.FileWriter;
-import java.io.IOException;
-import java.io.InputStream;
 
 /**
  * This class implements the ring detector using a neural network.
  */
-public class RingDetector {
+public class RingDetector implements ICaptureCameraListener {
 
     private int mRingDetectorConfiguration = -1;
 
     private boolean mDistanceSensorEnabled = false;
     private boolean mMidColorSensorEnabled = false;
+    private boolean mCameraEnabled = false;
 
     private RingDetectorNeuralNetwork mNetwork = null;
     private OpMode mOpMode = null;
@@ -29,6 +30,17 @@ public class RingDetector {
     private RevColorSensorV3 mMidColorSensor;
     private DistanceSensor mDistanceSensor;
 
+    private CaptureCamera mCaptureCamera = null;
+    private boolean mCameraProcessingActive = false;
+    private Bitmap mCameraInputBitmap = null;
+
+
+
+    /**
+     *
+     * @param ringDetectorConfiguration enumeration of color and
+     * @param opMode
+     */
     public RingDetector(int ringDetectorConfiguration,OpMode opMode) {
         mOpMode = opMode;
         mRingDetectorConfiguration = ringDetectorConfiguration;
@@ -38,21 +50,30 @@ public class RingDetector {
         String initErrString = "";
         // Enabled/disable sensors
         switch (mRingDetectorConfiguration) {
-            case RingDetectorNeuralNetwork.ALL_SENSORS:
+            case RingDetectorNeuralNetwork.CONFIGURATION_ALL_SENSORS:
                 mMidColorSensorEnabled = true;
                 mDistanceSensorEnabled = true;
+                mCameraEnabled = false;
                 break;
-            case RingDetectorNeuralNetwork.TOP_BOTTOM_COLOR_SENSORS_ONLY:
+            case RingDetectorNeuralNetwork.CONFIGURATION_TOP_BOTTOM_COLOR_SENSORS_ONLY:
                 mMidColorSensorEnabled = false;
                 mDistanceSensorEnabled = false;
+                mCameraEnabled = false;
                 break;
-            case RingDetectorNeuralNetwork.NO_DISTANCE_SENSOR:
+            case RingDetectorNeuralNetwork.CONFIGURATION_NO_DISTANCE_SENSOR:
                 mMidColorSensorEnabled = true;
                 mDistanceSensorEnabled = false;
+                mCameraEnabled = false;
                 break;
-            case RingDetectorNeuralNetwork.NO_MID_COLOR_SENSOR:
+            case RingDetectorNeuralNetwork.CONFIGURATION_NO_MID_COLOR_SENSOR:
                 mMidColorSensorEnabled = false;
                 mDistanceSensorEnabled = true;
+                mCameraEnabled = false;
+                break;
+            case RingDetectorNeuralNetwork.CONFIGURATION_CAMERA_ONLY:
+                mCaptureCamera = new CaptureCamera();
+                mCaptureCamera.init(mOpMode,this);
+                mCameraEnabled = true;
                 break;
         }
         try {
@@ -86,17 +107,52 @@ public class RingDetector {
                 initErrString += "distance sensor error";
             }
         }
-
-        configureColorSensor(mTopColorSensor);
-        configureColorSensor(mBottomColorSensor);
-        if (mMidColorSensorEnabled)
-            configureColorSensor(mMidColorSensor);
+        if (mCameraEnabled){
+            try{
+                mCaptureCamera = new CaptureCamera();
+                mCaptureCamera.init(mOpMode,this);
+            }
+            catch (Exception e){
+                initErrString += "camera init error";
+            }
+        }
+        // Configuration the color sensor unless the camera is enabled
+        if (!mCameraEnabled) {
+            configureColorSensor(mTopColorSensor);
+            configureColorSensor(mBottomColorSensor);
+            if (mMidColorSensorEnabled) {
+                configureColorSensor(mMidColorSensor);
+            }
+        }
 
         if (initErrString.length() > 0) {
             throw new Exception(initErrString);
         }
 
     }
+
+    /**
+     * Implementation of ICameraCaptureListener to receive a frame from the CaptureCamera
+     * @param bitmap the new bitmap
+     */
+    @Override
+    public void onNewFrame(Bitmap bitmap) {
+
+    }
+
+    /**
+     * called to start ring detection with the camera
+     */
+    public void startCameraDetection(){
+        mCameraProcessingActive = true;
+    }
+    /**
+     * called to pause ring detection with the camera
+     */
+    public void pauseCameraDetection(){
+        mCameraProcessingActive = false;
+    }
+
 
     public int getRingDetectorConfiguration(){
         return mRingDetectorConfiguration;
@@ -157,13 +213,13 @@ public class RingDetector {
     public int readDetector() {
         // Read all the sensors into a measurement object for the network
         switch (mRingDetectorConfiguration) {
-            case RingDetectorNeuralNetwork.ALL_SENSORS:
+            case RingDetectorNeuralNetwork.CONFIGURATION_ALL_SENSORS:
                 return doAllSensorReadDetector();
-            case RingDetectorNeuralNetwork.NO_DISTANCE_SENSOR:
+            case RingDetectorNeuralNetwork.CONFIGURATION_NO_DISTANCE_SENSOR:
                 return doNoDistanceSensorReadDetector();
-            case RingDetectorNeuralNetwork.NO_MID_COLOR_SENSOR:
+            case RingDetectorNeuralNetwork.CONFIGURATION_NO_MID_COLOR_SENSOR:
                 return doNoMidSensorReadDetector();
-            case RingDetectorNeuralNetwork.TOP_BOTTOM_COLOR_SENSORS_ONLY:
+            case RingDetectorNeuralNetwork.CONFIGURATION_TOP_BOTTOM_COLOR_SENSORS_ONLY:
                 return doTopBottomOnlyReadDetector();
         }
         // Invalid.  Shouldn't happen

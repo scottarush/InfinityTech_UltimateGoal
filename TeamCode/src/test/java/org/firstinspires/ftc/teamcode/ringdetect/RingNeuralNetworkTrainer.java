@@ -11,6 +11,8 @@ import java.nio.file.Paths;
 
 /**
  * Test class to train the ring neural network.
+ *
+ * This class is only for the color and distance sensor neural network.
  */
 public class RingNeuralNetworkTrainer {
 
@@ -24,7 +26,7 @@ public class RingNeuralNetworkTrainer {
         processor.processData(trainingDataFile,0.10 ,true,true);
 
         // Now create the node structure according to the configuration
-        int[] nodes = RingDetectorNeuralNetwork.getNetworkNodes(networkConfig);
+        int[] nodes = RingDetectorNeuralNetwork.getNetworkNodeTopology(networkConfig);
 
         NeuralNetwork ringnn = new NeuralNetwork(nodes,NeuralNetwork.CROSS_ENTROPY_COST);
 
@@ -120,10 +122,10 @@ public class RingNeuralNetworkTrainer {
 
             }
             String ytruths = NeuralNetworkMatrixUtils.printColumn(ytruth,0);
-            String truths = ringnn.convertToString(truth);
+            String truths = ringnn.convertResultToString(truth);
 
             String yinference = NeuralNetworkMatrixUtils.printColumn(output,0);
-            String inferences = ringnn.convertToString(inference);
+            String inferences = ringnn.convertResultToString(inference);
             logBuffer.append(truths+","+ytruths+","+inferences+","+yinference+","+String.format("%2.5f",cost)+"\n");
         }
         double percent = 100d * (double)pass/(double)x.numCols();
@@ -150,7 +152,7 @@ public class RingNeuralNetworkTrainer {
     @Test
     public void main() {
         RingNeuralNetworkTrainer trainer = new RingNeuralNetworkTrainer();
-        int networkConfig = RingDetectorNeuralNetwork.NO_MID_COLOR_SENSOR;
+        int networkConfig = RingDetectorNeuralNetwork.CONFIGURATION_NO_MID_COLOR_SENSOR;
 
         // Get the path to the data directory
         Path currentRelativePath = Paths.get("");

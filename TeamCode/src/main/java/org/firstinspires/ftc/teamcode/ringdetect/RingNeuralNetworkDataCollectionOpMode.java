@@ -26,7 +26,7 @@ public class RingNeuralNetworkDataCollectionOpMode extends OpMode {
     private RevColorSensorV3 mTopColorSensor;
     private RevColorSensorV3 mMiddleSensor;
     private DistanceSensor mProximitySensor;
-    private String mCurrentTag = NO_RING_TAG;
+    private String mCurrentTag = RingDetectorNeuralNetwork.LABEL_STRING_NO_RING;
     private int mRecordNumber = 0;
     private OneShotTimer mCaptureMessageTimer = new OneShotTimer(1000, new OneShotTimer.IOneShotTimerCallback() {
         @Override
@@ -37,10 +37,6 @@ public class RingNeuralNetworkDataCollectionOpMode extends OpMode {
     private boolean mLastTagButtonState = false;
     private boolean mLastTriggerButtonState = false;
     private boolean mLastLightButtonState = false;
-    public static final String NO_RING_TAG = "No Rings";
-    public static final String ONE_RING_TAG = "One Ring";
-    public static final String FOUR_RING_TAG = "Four Rings";
-
     @Override
     public void init() {
         mLogFile = new LogFile(LOG_PATHNAME, LOG_FILENAME, LOG_COLUMNS);
@@ -88,12 +84,12 @@ public class RingNeuralNetworkDataCollectionOpMode extends OpMode {
 
         // if we had a rising edge, cycle to the next tag
         if (edgeDetect == true) {
-            if (mCurrentTag == NO_RING_TAG) {
-                mCurrentTag = ONE_RING_TAG;
-            } else if (mCurrentTag == ONE_RING_TAG) {
-                mCurrentTag = FOUR_RING_TAG;
+            if (mCurrentTag == RingDetectorNeuralNetwork.LABEL_STRING_NO_RING) {
+                mCurrentTag = RingDetectorNeuralNetwork.LABEL_STRING_ONE_RING;
+            } else if (mCurrentTag == RingDetectorNeuralNetwork.LABEL_STRING_ONE_RING) {
+                mCurrentTag = RingDetectorNeuralNetwork.LABEL_STRING_FOUR_RINGS;
             } else {
-                mCurrentTag = NO_RING_TAG;
+                mCurrentTag = RingDetectorNeuralNetwork.LABEL_STRING_NO_RING;
             }
         }
         // check for x button triggered to toggle the light flag

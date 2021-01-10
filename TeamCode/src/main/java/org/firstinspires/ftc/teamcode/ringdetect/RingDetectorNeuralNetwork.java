@@ -12,26 +12,36 @@ import java.io.InputStream;
  * This class extends JavaNeuralNetwork for the RingDetector specific network.
  */
 public class RingDetectorNeuralNetwork extends NeuralNetwork {
-    // Detection value for single ring
-    public static final int NO_RING = 0;
-    // Detection value for one ring
-    public static final int ONE_RING = 1;
-    // Detection value for four rings
-    public static final int FOUR_RINGS = 2;
+    // Detection value and output node index for single ring
+    public static final int LABEL_NO_RING = 0;
+    // Detection value and output node index for one ring
+    public static final int LABEL_ONE_RING = 1;
+    // Detection value and output nodex index for four rings
+    public static final int LABEL_FOUR_RINGS = 2;
+
+    // Label string for no ring
+    public static final String LABEL_STRING_NO_RING = "NoRing";
+    // Label string for no ring
+    public static final String LABEL_STRING_ONE_RING = "OneRing";
+    // Label string for no ring
+    public static final String LABEL_STRING_FOUR_RINGS = "FourRings";
+
     // Detection value for unknown
     public static final int UNKNOWN = -1;
 
     // Sensor configuration with all sensors
-    public static final int ALL_SENSORS = 0;
+    public static final int CONFIGURATION_ALL_SENSORS = 0;
     // Sensor configuration with no mid color sensor
-    public static final int NO_MID_COLOR_SENSOR = 1;
+    public static final int CONFIGURATION_NO_MID_COLOR_SENSOR = 1;
     // Sensor with no distance sensor
-    public static final int NO_DISTANCE_SENSOR = 2;
+    public static final int CONFIGURATION_NO_DISTANCE_SENSOR = 2;
     // Sensor with only top and bottom color sensors
-    public static final int TOP_BOTTOM_COLOR_SENSORS_ONLY = 3;
+    public static final int CONFIGURATION_TOP_BOTTOM_COLOR_SENSORS_ONLY = 3;
+    // Image detection sensor configuration
+    public static final int CONFIGURATION_CAMERA_ONLY = 4;
 
     // Selected configuration
-    private int mSensorConfiguration = ALL_SENSORS;
+    private int mSensorConfiguration = CONFIGURATION_ALL_SENSORS;
 
     //------------------------------------------------------
     // Indexes for All Sensors configuration
@@ -111,6 +121,14 @@ public class RingDetectorNeuralNetwork extends NeuralNetwork {
 
     private static final String TOP_BOTTOM_ONLY_LOGGING_HEADER = "Result,y0,y1,y2,TopR,TopG,TopB,TopDist,BottomR,BottomG,BottomB,BottomDist";
 
+    // Configuration for camera sensor
+    public static final int CAMERA_ONLY_IMAGE_HEIGHT = 48;
+    public static final int CAMERA_ONLY_IMAGE_WIDTH = 64;
+    // Number of input rows is height * width * 3 color channels
+    public static final int CAMERA_ONLY_INPUT_ROWS = CAMERA_ONLY_IMAGE_HEIGHT*CAMERA_ONLY_IMAGE_WIDTH*3;
+    public static final String CAMERA_ONLY_NEURAL_NETWORK_FILE = "camera_ringnn.bin";
+    private static final String CAMERA_ONLY_LOGGING_HEADER = "Result,y0,y1,y2";
+
     private FileWriter mLogWriter = null;
 
     /**
@@ -155,24 +173,27 @@ public class RingDetectorNeuralNetwork extends NeuralNetwork {
     /**
      * Utility used by the RingNeuralNetworkTrainer returns a network topology array based on sensor config
      */
-    public static int[] getNetworkNodes(int sensorConfig) {
+    public static int[] getNetworkNodeTopology(int sensorConfig) {
         int[] nodes = null;
         switch (sensorConfig) {
-            case RingDetectorNeuralNetwork.ALL_SENSORS:
+            case RingDetectorNeuralNetwork.CONFIGURATION_ALL_SENSORS:
                 nodes = new int[]{RingDetectorNeuralNetwork.ALL_SENSORS_INPUT_ROWS,
                         (int) Math.round(RingDetectorNeuralNetwork.ALL_SENSORS_INPUT_ROWS * 0.67), 3};
                 break;
-            case RingDetectorNeuralNetwork.NO_MID_COLOR_SENSOR:
+            case RingDetectorNeuralNetwork.CONFIGURATION_NO_MID_COLOR_SENSOR:
                 nodes = new int[]{RingDetectorNeuralNetwork.NO_MID_COLOR_SENSOR_INPUT_ROWS,
                         (int) Math.round(RingDetectorNeuralNetwork.NO_MID_COLOR_SENSOR_INPUT_ROWS * 0.67), 3};
                 break;
-            case RingDetectorNeuralNetwork.NO_DISTANCE_SENSOR:
+            case RingDetectorNeuralNetwork.CONFIGURATION_NO_DISTANCE_SENSOR:
                 nodes = new int[]{RingDetectorNeuralNetwork.NO_DISTANCE_SENSOR_INPUT_ROWS,
                         (int) Math.round(RingDetectorNeuralNetwork.NO_DISTANCE_SENSOR_INPUT_ROWS * 0.67), 3};
                 break;
-            case RingDetectorNeuralNetwork.TOP_BOTTOM_COLOR_SENSORS_ONLY:
+            case RingDetectorNeuralNetwork.CONFIGURATION_TOP_BOTTOM_COLOR_SENSORS_ONLY:
                 nodes = new int[]{RingDetectorNeuralNetwork.TOP_BOTTOM_ONLY_INPUT_ROWS,
                         (int) Math.round(RingDetectorNeuralNetwork.TOP_BOTTOM_ONLY_INPUT_ROWS * 0.67), 3};
+            case RingDetectorNeuralNetwork.CONFIGURATION_CAMERA_ONLY:
+                nodes = new int[]{RingDetectorNeuralNetwork.CAMERA_ONLY_INPUT_ROWS,
+                        (int) Math.round(RingDetectorNeuralNetwork.CAMERA_ONLY_INPUT_ROWS * 0.33), 3};
                 break;
         }
         return nodes;
@@ -186,17 +207,20 @@ public class RingDetectorNeuralNetwork extends NeuralNetwork {
     public static String getNeuralNetworkFilename(int networkConfiguration){
         String name = null;
         switch(networkConfiguration){
-            case ALL_SENSORS:
+            case CONFIGURATION_ALL_SENSORS:
                 name = ALL_SENSORS_NEURAL_NETWORK_FILE;
                 break;
-            case NO_MID_COLOR_SENSOR:
+            case CONFIGURATION_NO_MID_COLOR_SENSOR:
                 name = NO_MID_COLOR_SENSOR_NEURAL_NETWORK_FILE;
                 break;
-            case NO_DISTANCE_SENSOR:
+            case CONFIGURATION_NO_DISTANCE_SENSOR:
                 name = NO_DISTANCE_SENSOR_NEURAL_NETWORK_FILE;
                 break;
-            case TOP_BOTTOM_COLOR_SENSORS_ONLY:
+            case CONFIGURATION_TOP_BOTTOM_COLOR_SENSORS_ONLY:
                 name = TOP_BOTTOM_ONLY_NEURAL_NETWORK_FILE;
+                break;
+            case CONFIGURATION_CAMERA_ONLY:
+                name = CAMERA_ONLY_NEURAL_NETWORK_FILE;
                 break;
         }
         return name;
@@ -208,16 +232,19 @@ public class RingDetectorNeuralNetwork extends NeuralNetwork {
         mLogWriter = new FileWriter(logFile);
         String header = "";
         switch(mSensorConfiguration){
-            case ALL_SENSORS:
+            case CONFIGURATION_ALL_SENSORS:
                 header = ALL_SENSORS_LOGGING_HEADER;
                 break;
-            case NO_MID_COLOR_SENSOR:
+            case CONFIGURATION_NO_MID_COLOR_SENSOR:
                 header = NO_MID_COLOR_SENSOR_LOGGING_HEADER;
                 break;
-            case NO_DISTANCE_SENSOR:
+            case CONFIGURATION_NO_DISTANCE_SENSOR:
                 header = NO_DISTANCE_SENSOR_LOGGING_HEADER;
                 break;
-            case TOP_BOTTOM_COLOR_SENSORS_ONLY:
+            case CONFIGURATION_TOP_BOTTOM_COLOR_SENSORS_ONLY:
+                header = TOP_BOTTOM_ONLY_LOGGING_HEADER;
+                break;
+            case CONFIGURATION_CAMERA_ONLY:
                 header = TOP_BOTTOM_ONLY_LOGGING_HEADER;
                 break;
         }
@@ -387,7 +414,7 @@ public class RingDetectorNeuralNetwork extends NeuralNetwork {
         if (mLogWriter == null)
             return;  // logging disabled
         try{
-            mLogWriter.write(RingDetectorNeuralNetwork.convertToString(inference));
+            mLogWriter.write(RingDetectorNeuralNetwork.convertResultToString(inference));
             mLogWriter.write(",");
             for(int i=0;i < y.numRows();i++){
                 mLogWriter.write(String.format("%1.5f",y.get(i,0)));
@@ -395,17 +422,20 @@ public class RingDetectorNeuralNetwork extends NeuralNetwork {
             }
             int numRows = 0;
             switch(mSensorConfiguration){
-                case ALL_SENSORS:
+                case CONFIGURATION_ALL_SENSORS:
                     numRows = ALL_SENSORS_INPUT_ROWS;
                     break;
-                case NO_DISTANCE_SENSOR:
+                case CONFIGURATION_NO_DISTANCE_SENSOR:
                     numRows = NO_DISTANCE_SENSOR_INPUT_ROWS;
                     break;
-                case NO_MID_COLOR_SENSOR:
+                case CONFIGURATION_NO_MID_COLOR_SENSOR:
                     numRows = NO_MID_COLOR_SENSOR_INPUT_ROWS;
                     break;
-                case TOP_BOTTOM_COLOR_SENSORS_ONLY:
+                case CONFIGURATION_TOP_BOTTOM_COLOR_SENSORS_ONLY:
                     numRows = TOP_BOTTOM_ONLY_INPUT_ROWS;
+                    break;
+                case CONFIGURATION_CAMERA_ONLY:
+                    numRows = 0;
                     break;
             }
             for(int i = 0; i < numRows; i++){
@@ -444,14 +474,14 @@ public class RingDetectorNeuralNetwork extends NeuralNetwork {
         return maxIndex;
     }
 
-    public static String convertToString(int result) {
+    public static String convertResultToString(int result) {
         switch (result) {
-            case NO_RING:
-                return "No Ring";
-            case ONE_RING:
-                return "One Ring";
-            case FOUR_RINGS:
-                return "Four Rings";
+            case LABEL_NO_RING:
+                return LABEL_STRING_NO_RING;
+            case LABEL_ONE_RING:
+                return LABEL_STRING_ONE_RING;
+            case LABEL_FOUR_RINGS:
+                return LABEL_STRING_FOUR_RINGS;
             default:
                 return "Unknown";
         }
