@@ -47,7 +47,6 @@ import com.qualcomm.robotcore.hardware.TouchSensor;
  */
 @TeleOp(name = "Test Digital Touch", group = "Robot")
 //@Disabled
-
 public class TestDigitalTouch extends LinearOpMode {
     /**
      * The REV Robotics Touch Sensor
@@ -62,7 +61,6 @@ public class TestDigitalTouch extends LinearOpMode {
     TouchSensor touch;
 
     @Override
-    @Disabled
     public void runOpMode() {
 
         touch = hardwareMap.get(TouchSensor.class,"grabberlsw");
