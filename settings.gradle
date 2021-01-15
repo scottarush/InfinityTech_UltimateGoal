@@ -1,4 +1,3 @@
-include ':ejml_nn'
 include ':FtcRobotController'
 include ':TeamCode'
 include ':libejml-0.39'
