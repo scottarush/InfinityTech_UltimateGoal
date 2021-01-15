@@ -1,5 +1,6 @@
 package org.firstinspires.ftc.teamcode.grabber;
 
+import com.qualcomm.hardware.rev.RevTouchSensor;
 import com.qualcomm.robotcore.eventloop.opmode.OpMode;
 import com.qualcomm.robotcore.hardware.DcMotor;
 import com.qualcomm.robotcore.hardware.DigitalChannel;
@@ -64,7 +65,7 @@ public class Grabber {
 
  //   private IGrabberController mGrabberController = null;
 
-    private DigitalChannel mLimitSwitch = null;
+    private RevTouchSensor mLimitSwitch = null;
     private boolean mLimitSwitchLastState = false;
 
     private static final double LEFT_SERVO_OPEN_POSITION = 0.25d;
@@ -107,8 +108,7 @@ public class Grabber {
             initErrString += "grabber motor error";
         }
         try {
-            mLimitSwitch = mHWMap.get(DigitalChannel.class, "grabberlsw");
-            mLimitSwitch.setMode(DigitalChannel.Mode.INPUT);
+            mLimitSwitch = mHWMap.get(RevTouchSensor.class, "grabberlsw");
         } catch (Exception e) {
             initErrString += "grabber limit sw error";
         }
@@ -138,7 +138,7 @@ public class Grabber {
      */
     private void checkLimitSwitch(){
         if (mLimitSwitch != null){
-            if (mLimitSwitch.getState() != mLimitSwitchLastState){
+            if (mLimitSwitch.isPressed() != mLimitSwitchLastState){
                 // state change, check for close trigger
                 if (!mLimitSwitchLastState) {
 //                    // limit switch trigger closed.  notify the controller
@@ -152,7 +152,7 @@ public class Grabber {
                     }
                 }
                 // Save last state for next time
-                mLimitSwitchLastState = mLimitSwitch.getState();
+                mLimitSwitchLastState = mLimitSwitch.isPressed();
             }
          }
     }
