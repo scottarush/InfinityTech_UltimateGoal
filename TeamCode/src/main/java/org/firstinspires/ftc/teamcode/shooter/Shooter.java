@@ -49,7 +49,7 @@ public class Shooter {
 
     private static final double SPEED_PROP_GAIN = 0.05d;
     private static final double SPEED_INTEGRAL_GAIN = 0d;
-    private static final double SPEED_DERIVATIVE_GAIN = 0d;
+    private static final double SPEED_DERIVATIVE_GAIN = 0.1d;
 
     private ShooterController mShooterController = null;
 
