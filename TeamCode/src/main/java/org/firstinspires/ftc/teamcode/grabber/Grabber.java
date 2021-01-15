@@ -7,6 +7,8 @@ import com.qualcomm.robotcore.hardware.DigitalChannel;
 import com.qualcomm.robotcore.hardware.HardwareMap;
 import com.qualcomm.robotcore.hardware.Servo;
 
+import org.firstinspires.ftc.robotcore.external.Telemetry;
+
 /**
  * This class encapsulates front hook assembly that picks up rings on the front of the
  * robot.
@@ -76,6 +78,8 @@ public class Grabber {
     private static final double RIGHT_SERVO_OPEN_POSITION = 0d;
     private static final double RIGHT_SERVO_CLOSED_POSITION = 0.25d;
     private double mRightServoPosition = RIGHT_SERVO_CLOSED_POSITION;
+
+    public int motorEncoderPosition;
 
     public Grabber(OpMode opMode) {
         opMode = mOpMode;
@@ -171,6 +175,9 @@ public class Grabber {
 //        if (!mGrabberMotor.isBusy()){
 //            mGrabberController.evGrabberStopped();
 //        }
+        // Write mGrabberMotor encoder value to Telemetry
+        motorEncoderPosition = mGrabberMotor.getCurrentPosition();
+
     }
 
     /**
