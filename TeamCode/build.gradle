@@ -24,6 +24,3 @@ dependencies{
     testImplementation files('lib/rt.jar')
     testImplementation 'junit:junit:4.12'
 }
-dependencies {
-    annotationProcessor files('lib/OpModeAnnotationProcessor.jar')
-}
