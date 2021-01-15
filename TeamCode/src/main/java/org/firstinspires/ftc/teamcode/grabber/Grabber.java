@@ -56,7 +56,8 @@ public class Grabber {
      */
     private static final int RETRACTED_POSITION_ANGLE = 135;
 
-    private int mGrabberPosition = GRABBER_POSITION_LOWERED;
+    // The initial position must be retracted at startup to keep it within the 18" cube
+    private int mGrabberPosition = GRABBER_POSITION_RETRACTED;
 
     private Servo mLeftServo = null;
     private Servo mRightServo = null;
