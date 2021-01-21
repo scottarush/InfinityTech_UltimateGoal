@@ -13,7 +13,6 @@ import org.firstinspires.ftc.teamcode.util.ICaptureCameraListener;
 import java.io.File;
 import java.io.FileOutputStream;
 import java.io.IOException;
-import java.util.Locale;
 
 @TeleOp(name="ImageCaptureOpMode", group="Robot")
 public class ImageCaptureOpMode extends OpMode implements ICaptureCameraListener {
@@ -41,6 +40,16 @@ public class ImageCaptureOpMode extends OpMode implements ICaptureCameraListener
         File root = Environment.getRootDirectory();
         String path = root.getPath()+"/sdcard/capture";
         mCaptureDirectory = new File(path);
+        if (!mCaptureDirectory.exists()){
+            mCaptureDirectory.mkdir();
+        }
+        else{
+            // Directory exists. delete all the existing files
+            File files[] = mCaptureDirectory.listFiles();
+            for(int i=0;i < files.length;i++){
+                files[i].delete();
+            }
+        }
     }
 
     @Override
@@ -97,9 +106,6 @@ public class ImageCaptureOpMode extends OpMode implements ICaptureCameraListener
     private void saveBitmap(Bitmap bitmap) {
         if (mCaptureDirectory == null)
             return;
-        if (!mCaptureDirectory.exists()){
-            mCaptureDirectory.mkdir();
-        }
         String filename = mCurrentTag+"_"+mRecordNumber+".png";
         File file = new File(mCaptureDirectory, filename);
         mRecordNumber++;  // for next time

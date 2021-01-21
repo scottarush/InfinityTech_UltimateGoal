@@ -46,10 +46,14 @@ public class Shooter {
     private int mShooterSetting = SETTING_MIDFIELD_HIGH;
 
     // Speed thresholds for shooter wheels in RPM
-    private static final int SHOOTER_MIDFIELD_LOW_SPEED = 475;
-    private static final int SHOOTER_MIDFIELD_HIGH_SPEED = 800;
+    private static final int SHOOTER_MIDFIELD_LOWGOAL_WHEEL_SPEED = 475;
+    private static final int SHOOTER_MIDFIELD_HIGHGOAL_WHEEL_SPEED = 800;
 
-    private double mSetSpeed = 0;
+    // Spin RPM.  + is clockwise spin, - is counterclockwise.
+    private static final int SPIN_RPM = 50;
+
+    private double mRightWheelSetSpeed = 0;
+    private double mLeftWheelSetSpeed = 0;
 
     /**
      * Speed loop is closed in units of "RPM" where max output of 1.0 is ~1500 rpm
@@ -130,7 +134,9 @@ public class Shooter {
         // Call the shooter controller loop first
         mShooterController.loop();
 
-        // Now do the service for the shooter
+        //----------------------------------------------
+        // 1.  Compute the wheel speeds.
+        //----------------------------------------------
 
         // Compute the delta since the last read
         long systemTime = System.nanoTime();
@@ -158,10 +164,12 @@ public class Shooter {
         mRightMotorSpeed = countsDelta/deltat_ns * PER_NS_TO_PER_MINUTE;
         mLastRightMotorPosition = position;
 
-        // compute the power from the PID unless we are deactivated
+        //-----------------------------------------------------------
+        // Update the PID controlled speed unless we are deactivated
+        //-----------------------------------------------------------
         if (mShooterController.isActivated()){
-            double left = mLeftMotorSpeedPID.getOutput(mLeftMotorSpeed,mSetSpeed);
-            double right = mLeftMotorSpeedPID.getOutput(mRightMotorSpeed,mSetSpeed);
+            double left = mLeftMotorSpeedPID.getOutput(mLeftMotorSpeed, mRightWheelSetSpeed);
+            double right = mLeftMotorSpeedPID.getOutput(mRightMotorSpeed, mRightWheelSetSpeed);
             setPower(left,right);
             // Compute and update the shooter ready status if it has changed
             updateShooterStatus();
@@ -176,22 +184,16 @@ public class Shooter {
     }
 
     private void updateShooterStatus() {
-        double highThreshold = 0;
-        double lowThreshold = 0;
-        double delta = 20;
-        switch (mShooterSetting) {
-            case SETTING_MIDFIELD_HIGH:
-                highThreshold = SHOOTER_MIDFIELD_HIGH_SPEED + delta/2;
-                lowThreshold = SHOOTER_MIDFIELD_HIGH_SPEED - delta/2;
-                break;
-            case SETTING_MIDFIELD_LOW:
-                highThreshold = SHOOTER_MIDFIELD_HIGH_SPEED + delta/2;
-                lowThreshold = SHOOTER_MIDFIELD_HIGH_SPEED - delta/2;
-                break;
-       }
+        double delta = 10;
+        // compute thresholds for both wheels using the set speeds
+        double highRightThreshold = mRightWheelSetSpeed+delta/2;
+        double lowRightThreshold = mRightWheelSetSpeed-delta/2;
+        double highLeftThreshold = mLeftWheelSetSpeed+delta/2;
+        double lowLeftThreshold = mLeftWheelSetSpeed-delta/2;
+
         // Now check if the speeds are within the delta
-        boolean left = checkSpeedThreshold(mLeftMotorSpeed,highThreshold,lowThreshold);
-        boolean right = checkSpeedThreshold(mRightMotorSpeed,highThreshold,lowThreshold);
+        boolean left = checkSpeedThreshold(mLeftMotorSpeed,highLeftThreshold,lowLeftThreshold);
+        boolean right = checkSpeedThreshold(mRightMotorSpeed,highRightThreshold,lowRightThreshold);
         if (left && right) {
             // shooter is ready.  trigger event to controller
             mShooterController.evReadyToShoot();
@@ -228,16 +230,17 @@ public class Shooter {
      * @param setting to either SETTING_MIDFIELD_HIGH or SETTING_MIDFIELD_LOW
      */
     public void setShooterSpeed(int setting) {
-        if (setting == mSetSpeed){
-            return;
-        }
-        // else this is a change
+
+        // Compute the left and right speeds adding 1/2 the SPIN_RPM
+        // opposite to each wheel
         switch (setting) {
             case SETTING_MIDFIELD_HIGH:
-                mSetSpeed = SHOOTER_MIDFIELD_HIGH_SPEED;
+                mRightWheelSetSpeed = SHOOTER_MIDFIELD_HIGHGOAL_WHEEL_SPEED-SPIN_RPM/2;
+                mLeftWheelSetSpeed = SHOOTER_MIDFIELD_HIGHGOAL_WHEEL_SPEED+SPIN_RPM/2;
                 break;
             case SETTING_MIDFIELD_LOW:
-                mSetSpeed = SHOOTER_MIDFIELD_LOW_SPEED;
+                mRightWheelSetSpeed = SHOOTER_MIDFIELD_LOWGOAL_WHEEL_SPEED-SPIN_RPM/2;
+                mLeftWheelSetSpeed = SHOOTER_MIDFIELD_LOWGOAL_WHEEL_SPEED+SPIN_RPM/2;
                 break;
             default:
                 return;  // Invalid setting
