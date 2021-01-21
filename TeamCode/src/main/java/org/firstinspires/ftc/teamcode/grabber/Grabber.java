@@ -3,9 +3,11 @@ package org.firstinspires.ftc.teamcode.grabber;
 import com.qualcomm.hardware.rev.RevTouchSensor;
 import com.qualcomm.robotcore.eventloop.opmode.OpMode;
 import com.qualcomm.robotcore.hardware.DcMotor;
+import com.qualcomm.robotcore.hardware.DcMotorSimple;
 import com.qualcomm.robotcore.hardware.DigitalChannel;
 import com.qualcomm.robotcore.hardware.HardwareMap;
 import com.qualcomm.robotcore.hardware.Servo;
+import com.qualcomm.robotcore.util.ElapsedTime;
 
 import org.firstinspires.ftc.robotcore.external.Telemetry;
 
@@ -73,14 +75,16 @@ public class Grabber {
 
     private static final double LEFT_SERVO_OPEN_POSITION = 0.25d;
     private static final double LEFT_SERVO_CLOSED_POSITION = 0.0d;
+    private static final double LEFT_SERVO_WOBBLE_POSITION = 0.15d;
     private double mLeftServoPosition = LEFT_SERVO_OPEN_POSITION;
 
     private static final double RIGHT_SERVO_OPEN_POSITION = 0d;
     private static final double RIGHT_SERVO_CLOSED_POSITION = 0.25d;
+    private static final double RIGHT_SERVO_WOBBLE_POSITION = 0.10d;
     private double mRightServoPosition = RIGHT_SERVO_CLOSED_POSITION;
 
     public int motorEncoderPosition;
-
+    public boolean isLimitSwitchPressed;
     public Grabber(OpMode opMode) {
         opMode = mOpMode;
     }
@@ -143,6 +147,7 @@ public class Grabber {
      */
     private void checkLimitSwitch(){
         if (mLimitSwitch != null){
+            isLimitSwitchPressed = mLimitSwitch.isPressed();
             if (mLimitSwitch.isPressed() != mLimitSwitchLastState){
                 // state change, check for close trigger
                 if (!mLimitSwitchLastState) {
@@ -175,7 +180,7 @@ public class Grabber {
 //        if (!mGrabberMotor.isBusy()){
 //            mGrabberController.evGrabberStopped();
 //        }
-        // Write mGrabberMotor encoder value to Telemetry
+        // Update public variable 'motorEncoderPosition' with mGrabberMotor encoder value
         motorEncoderPosition = mGrabberMotor.getCurrentPosition();
 
     }
@@ -247,6 +252,7 @@ public class Grabber {
         int targetPosition = mLoweredEncoderPosition +deltaCounts;
         if (mGrabberMotor != null){
             mGrabberMotor.setTargetPosition(targetPosition);
+            mGrabberMotor.setMode(DcMotor.RunMode.RUN_TO_POSITION);
 //            // And notify the controller that the grabber is moving
 //            mGrabberController.evGrabberMoving();
             return true;
@@ -266,6 +272,8 @@ public class Grabber {
         return mGrabberPosition;
     }
 
+    public int getGrabberEncoderPosition() { return mGrabberMotor.getCurrentPosition();}
+
     public void openGrabber() {
         setLeftServoPosition(LEFT_SERVO_OPEN_POSITION);
         setRightServoPosition(RIGHT_SERVO_OPEN_POSITION);
@@ -274,6 +282,11 @@ public class Grabber {
     public void closeGrabber() {
         setLeftServoPosition(LEFT_SERVO_CLOSED_POSITION);
         setRightServoPosition(RIGHT_SERVO_CLOSED_POSITION);
+    }
+
+    public void gotoGrabberWobblePosition(){
+        setLeftServoPosition(LEFT_SERVO_WOBBLE_POSITION);
+        setRightServoPosition(RIGHT_SERVO_WOBBLE_POSITION);
     }
 
     private void setLeftServoPosition(double position) {
@@ -293,6 +306,83 @@ public class Grabber {
         if (mGrabberMotor != null){
             mGrabberMotor.setPower(power);
         }
+   }
+
+   public void setGrabberPositionByEncoderValue(int newEncoderPosition){
+        ElapsedTime runtime = new ElapsedTime();
+        double deltaT;
+        // targetSpeed is how fast we want the motor to run, in encoder counts per second
+        double targetSpeed = 10.0;
+        // currentSpeed is how fast the motor is actually running, in encoder counts per second
+        double currentSpeed;
+        int encoderTolerance = 5;
+        double power = 0.0;
+        // ramp up in 1% power increments
+        double powerRamp = 0.01;
+        int encoderDifference;
+        int grabberEncoderPosition;
+
+        // get the current encoder position
+        grabberEncoderPosition = mGrabberMotor.getCurrentPosition();
+        int priorGrabberEncoderPosition = grabberEncoderPosition;
+        encoderDifference = grabberEncoderPosition - newEncoderPosition;
+        int encoderChange;
+        if (grabberEncoderPosition < newEncoderPosition){
+            mGrabberMotor.setDirection(DcMotorSimple.Direction.FORWARD);
+        } else {
+           mGrabberMotor.setDirection(DcMotorSimple.Direction.REVERSE);
+        }
+        boolean newPositionReached;
+        int absoluteEncoderDifference;
+        if (encoderDifference < 0){
+            absoluteEncoderDifference = -encoderDifference;
+        } else {
+            absoluteEncoderDifference = encoderDifference;
+        }
+        if (absoluteEncoderDifference > encoderTolerance) {
+            newPositionReached = false;
+        } else {
+            newPositionReached = true;
+        }
+       double startTime = runtime.milliseconds();
+
+        while (!newPositionReached) {
+            mGrabberMotor.setPower(power);
+            priorGrabberEncoderPosition = grabberEncoderPosition;
+            // Get new position and change in encoder position
+            grabberEncoderPosition = mGrabberMotor.getCurrentPosition();
+            encoderChange = grabberEncoderPosition - priorGrabberEncoderPosition;
+            encoderDifference = grabberEncoderPosition - newEncoderPosition;
+
+            // If motor hasn't moved, ramp up the power
+            if (encoderChange == 0){
+                power = power + powerRamp;
+            }
+            // Find the absolute difference in encoder values
+            if (encoderDifference < 0){
+                absoluteEncoderDifference = -encoderDifference;
+            }
+            // set the newPositionReached variable
+            if (absoluteEncoderDifference > encoderTolerance) {
+                newPositionReached = false;
+            } else {
+                newPositionReached = true;
+            }
+
+            double currentTime = runtime.milliseconds();
+            double elapsedTime = currentTime - startTime;
+            // exit regardless if we have spent more than 1 second in this loop
+            if (elapsedTime > 1000){
+                newPositionReached = true;
+            }
+            // exit if limit switch is pressed
+            if (isLimitSwitchPressed){
+                // newPositionReached = true;
+            }
+        }
+
+        mGrabberMotor.setPower(0.0);
+
    }
 }
 

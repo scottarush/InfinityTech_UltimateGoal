@@ -4,7 +4,9 @@ import com.qualcomm.robotcore.eventloop.opmode.OpMode;
 import com.qualcomm.robotcore.hardware.DcMotor;
 import com.qualcomm.robotcore.hardware.DcMotorSimple;
 import com.qualcomm.robotcore.hardware.HardwareMap;
+import com.qualcomm.robotcore.util.ElapsedTime;
 
+import org.firstinspires.ftc.robotcore.external.Telemetry;
 import org.firstinspires.ftc.teamcode.util.MiniPID;
 
 /**
@@ -30,6 +32,14 @@ public class Shooter {
 
     private DcMotor mLoaderPully = null;
 
+    private enum loaderPulleyStates{
+        LOW, HIGH, UNKNOWN
+    }
+    private loaderPulleyStates loaderPulleyState;
+
+    private final int loaderPulleyEncoderValueLow = 0;
+    private final int loaderPulleyEncoderValueHigh = 100;
+
     // Shooter wheel settings
     public static final int SETTING_MIDFIELD_HIGH = 1;
     public static final int SETTING_MIDFIELD_LOW = 20;
@@ -53,6 +63,8 @@ public class Shooter {
      * and 0 is stopped.  Gains below should be scaled with the RPM units and max range in
      * mind
      */
+
+    private ElapsedTime runtime;
 
     private static final double SPEED_PROP_GAIN = 0.05d;
     private static final double SPEED_INTEGRAL_GAIN = 0d;
@@ -108,6 +120,9 @@ public class Shooter {
         } catch (Exception e) {
             initErrString += ", Loader Pully Motor error";
         }
+        // Assume starting at Low pulley state for now
+        // To do: add color sensor behind shooter ramp to detect state LOW or HIGH
+        loaderPulleyState = loaderPulleyStates.LOW;
 
         if (initErrString.length() > 0) {
             throw new Exception(initErrString);
@@ -267,7 +282,7 @@ public class Shooter {
     public void deactivateShooter() {
         mShooterController.evDeactivate();
         setPower(0d,0d);
-        stopLoaderPully();
+        stopLoaderPulley();
     }
 
     private void setPower(double leftPower,double rightPower){
@@ -293,18 +308,71 @@ public class Shooter {
     }
 
     /**
-     * Starts the loader pully to shoot a ring
+     * Starts the loader pulley to shoot a ring
      */
-    public void startLoaderPully(){
+    public void startLoaderPulley(){
+        int currentLoaderPulleyEncoderValue;
+        int lastLoaderPulleyEncoderValue;
+        int targetLoaderPulleyEncoderValue;
+        int threshold = 10;
+        int currentEncoderDifference;
+        int lastEncoderDifference;
+        double power = 1.0d;
+        double pauseStart;
+        double pauseStop;
+        double pause = 100;
         if (mLoaderPully != null) {
-            mLoaderPully.setPower(1.0d);
+            targetLoaderPulleyEncoderValue = loaderPulleyEncoderValueHigh;
+            currentLoaderPulleyEncoderValue = mLoaderPully.getCurrentPosition();
+            currentEncoderDifference = targetLoaderPulleyEncoderValue - currentLoaderPulleyEncoderValue;
+            while (currentEncoderDifference > threshold){
+                mLoaderPully.setPower(power);
+                lastLoaderPulleyEncoderValue = currentLoaderPulleyEncoderValue;
+                lastEncoderDifference = currentEncoderDifference;
+                currentLoaderPulleyEncoderValue = mLoaderPully.getCurrentPosition();
+                currentEncoderDifference = targetLoaderPulleyEncoderValue - currentLoaderPulleyEncoderValue;
+                // Check to see if going in the wrong direction
+                if (currentEncoderDifference > lastEncoderDifference){
+                    // change the sign of the power variable
+                    power = -power;
+                }
+            }
+            stopLoaderPulley();
+            loaderPulleyState = loaderPulleyStates.HIGH;
+
+            // add Pause
+            pauseStart = runtime.milliseconds();
+            pauseStop = pauseStart + pause;
+            while (runtime.milliseconds() < pauseStop){
+                // just wait
+            }
+
+            // Automatically drop the Pulley back down to low
+            targetLoaderPulleyEncoderValue = loaderPulleyEncoderValueLow;
+            currentLoaderPulleyEncoderValue = mLoaderPully.getCurrentPosition();
+            currentEncoderDifference = targetLoaderPulleyEncoderValue - currentLoaderPulleyEncoderValue;
+            while (currentEncoderDifference > threshold){
+                mLoaderPully.setPower(power);
+                lastLoaderPulleyEncoderValue = currentLoaderPulleyEncoderValue;
+                lastEncoderDifference = currentEncoderDifference;
+                currentLoaderPulleyEncoderValue = mLoaderPully.getCurrentPosition();
+                currentEncoderDifference = targetLoaderPulleyEncoderValue - currentLoaderPulleyEncoderValue;
+                // Check to see if going in the wrong direction
+                if (currentEncoderDifference > lastEncoderDifference){
+                    // change the sign of the power variable
+                    power = -power;
+                }
+            }
+            stopLoaderPulley();
+            loaderPulleyState = loaderPulleyStates.LOW;
         }
     }
 
+
     /**
-     * Starts the loader pully
+     * Stops the loader pulley
      */
-    public void stopLoaderPully(){
+    public void stopLoaderPulley(){
         if (mLoaderPully != null) {
             mLoaderPully.setPower(0d);
         }

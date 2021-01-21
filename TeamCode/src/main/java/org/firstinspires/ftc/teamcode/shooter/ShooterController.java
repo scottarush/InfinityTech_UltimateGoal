@@ -84,14 +84,14 @@ public class ShooterController extends BaseStateMachineController implements ISh
      * Starts the loader pully to shoot the ring
      */
     public void startLoaderPully() {
-        mShooter.startLoaderPully();
+        mShooter.startLoaderPulley();
     }
 
     /**
      * Stops the loader pully
      */
     public void stopLoaderPully(){
-        mShooter.stopLoaderPully();
+        mShooter.stopLoaderPulley();
     }
 
 }
