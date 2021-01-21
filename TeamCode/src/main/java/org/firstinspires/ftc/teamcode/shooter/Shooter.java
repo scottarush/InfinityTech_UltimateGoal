@@ -39,6 +39,9 @@ public class Shooter {
     private static final int SHOOTER_MIDFIELD_LOWGOAL_WHEEL_SPEED = 475;
     private static final int SHOOTER_MIDFIELD_HIGHGOAL_WHEEL_SPEED = 800;
 
+    // 1st order lag filter constant - same for both wheels
+    private static final double SHOOTER_SPEED_LAG_FILTER_K = 0.9;
+
     // Spin RPM.  + is clockwise spin, - is counterclockwise.
     private static final int SPIN_RPM = 50;
 
@@ -137,8 +140,12 @@ public class Shooter {
         // Convert to revolutions
         countsDelta = countsDelta / (double)NUM_ENCODER_COUNTS_PER_REV;
         // Divide by the delta and convert to Rev/Min
-        mLeftMotorSpeed = countsDelta/deltat_ns * PER_NS_TO_PER_MINUTE;
+        double leftRawSpeed = countsDelta/deltat_ns * PER_NS_TO_PER_MINUTE;
         mLastLeftMotorPosition = position;
+        // now filter by the lag filter
+        mLeftMotorSpeed = leftRawSpeed * SHOOTER_SPEED_LAG_FILTER_K +
+                (1-SHOOTER_SPEED_LAG_FILTER_K) * mLeftMotorSpeed;
+
 
         // Now the right motor speed
         position = getRightCurrentPosition();
@@ -146,15 +153,18 @@ public class Shooter {
         // Convert to revolutions
         countsDelta = countsDelta / (double)NUM_ENCODER_COUNTS_PER_REV;
         // Divide by the delta and convert to Rev/Min
-        mRightMotorSpeed = countsDelta/deltat_ns * PER_NS_TO_PER_MINUTE;
+        double rightRawSpeed = countsDelta/deltat_ns * PER_NS_TO_PER_MINUTE;
         mLastRightMotorPosition = position;
+        // now filter by the lag filter
+        mRightMotorSpeed = rightRawSpeed * SHOOTER_SPEED_LAG_FILTER_K +
+                (1-SHOOTER_SPEED_LAG_FILTER_K) * mRightMotorSpeed;
 
         //-----------------------------------------------------------
         // Update the PID controlled speed unless we are deactivated
         //-----------------------------------------------------------
         if (mShooterController.isActivated()){
             double left = mLeftMotorSpeedPID.getOutput(mLeftMotorSpeed, mRightWheelSetSpeed);
-            double right = mLeftMotorSpeedPID.getOutput(mRightMotorSpeed, mRightWheelSetSpeed);
+            double right = mRightMotorSpeedPID.getOutput(mRightMotorSpeed, mRightWheelSetSpeed);
             setPower(left,right);
             // Compute and update the shooter ready status if it has changed
             updateShooterStatus();
@@ -163,8 +173,8 @@ public class Shooter {
             // Stop the motors
             setPower(0d,0d);
         }
-        mOpMode.telemetry.addData("Right Motor Speed",mRightMotorSpeed);
-        mOpMode.telemetry.addData("Left Motor Speed",mLeftMotorSpeed);
+        mOpMode.telemetry.addData("Right Motor Speed", mRightMotorSpeed);
+        mOpMode.telemetry.addData("Left Motor Speed", mLeftMotorSpeed);
         mOpMode.telemetry.update();
     }
 
@@ -176,7 +186,7 @@ public class Shooter {
         double highLeftThreshold = mLeftWheelSetSpeed+delta/2;
         double lowLeftThreshold = mLeftWheelSetSpeed-delta/2;
 
-        // Now check if the speeds are within the delta
+        // Now check if the filtered speeds are within the delta
         boolean left = checkSpeedThreshold(mLeftMotorSpeed,highLeftThreshold,lowLeftThreshold);
         boolean right = checkSpeedThreshold(mRightMotorSpeed,highRightThreshold,lowRightThreshold);
         if (left && right) {
