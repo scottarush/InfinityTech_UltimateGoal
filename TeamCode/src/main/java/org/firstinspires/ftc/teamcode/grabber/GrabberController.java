@@ -34,12 +34,12 @@ public class GrabberController extends BaseStateMachineController implements IGr
 
     @Override
     public void evGrabberMoving() {
-
+        transition("evGrabberMoving");
     }
 
     @Override
     public void evGrabberStopped() {
-
+        transition("evGrabberStopped");
     }
 
     /**

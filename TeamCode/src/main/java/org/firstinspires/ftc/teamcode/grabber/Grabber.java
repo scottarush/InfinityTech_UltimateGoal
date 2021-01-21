@@ -1,10 +1,13 @@
 package org.firstinspires.ftc.teamcode.grabber;
 
+import com.qualcomm.hardware.rev.RevTouchSensor;
 import com.qualcomm.robotcore.eventloop.opmode.OpMode;
 import com.qualcomm.robotcore.hardware.DcMotor;
 import com.qualcomm.robotcore.hardware.DigitalChannel;
 import com.qualcomm.robotcore.hardware.HardwareMap;
 import com.qualcomm.robotcore.hardware.Servo;
+
+import org.firstinspires.ftc.robotcore.external.Telemetry;
 
 /**
  * This class encapsulates front hook assembly that picks up rings on the front of the
@@ -53,7 +56,8 @@ public class Grabber {
      */
     private static final int RETRACTED_POSITION_ANGLE = 135;
 
-    private int mGrabberPosition = GRABBER_POSITION_LOWERED;
+    // The initial position must be retracted at startup to keep it within the 18" cube
+    private int mGrabberPosition = GRABBER_POSITION_RETRACTED;
 
     private Servo mLeftServo = null;
     private Servo mRightServo = null;
@@ -62,9 +66,10 @@ public class Grabber {
     private DcMotor mGrabberMotor = null;
     private OpMode mOpMode = null;
 
-    private IGrabberController mGrabberController = null;
+ //   private IGrabberController mGrabberController = null;
 
-    private DigitalChannel mLimitSwitch = null;
+    private RevTouchSensor mLimitSwitch = null;
+    private boolean mLimitSwitchLastState = false;
 
     private static final double LEFT_SERVO_OPEN_POSITION = 0.25d;
     private static final double LEFT_SERVO_CLOSED_POSITION = 0.0d;
@@ -73,6 +78,8 @@ public class Grabber {
     private static final double RIGHT_SERVO_OPEN_POSITION = 0d;
     private static final double RIGHT_SERVO_CLOSED_POSITION = 0.25d;
     private double mRightServoPosition = RIGHT_SERVO_CLOSED_POSITION;
+
+    public int motorEncoderPosition;
 
     public Grabber(OpMode opMode) {
         opMode = mOpMode;
@@ -106,16 +113,15 @@ public class Grabber {
             initErrString += "grabber motor error";
         }
         try {
-            mLimitSwitch = mHWMap.get(DigitalChannel.class, "grabberlsw");
-            mLimitSwitch.setMode(DigitalChannel.Mode.INPUT);
+            mLimitSwitch = mHWMap.get(RevTouchSensor.class, "grabberlsw");
         } catch (Exception e) {
             initErrString += "grabber limit sw error";
         }
 
-        // Initialize the grabber controller
-        mGrabberController = new GrabberController(this, mOpMode);
-        // Trigger the calibration initialization in the controller
-        mGrabberController.evInit();
+//        // Initialize the grabber controller
+//       mGrabberController = new GrabberController(this, mOpMode);
+//        // Trigger the calibration initialization in the controller
+//        mGrabberController.evInit();
 
         if (initErrString.length() > 0) {
             throw new Exception(initErrString);
@@ -127,41 +133,51 @@ public class Grabber {
      *
      */
     public void init_loop(){
-        mGrabberController.loop();
+ //       mGrabberController.loop();
         checkLimitSwitch();
     }
 
     /**
      * checks the limit switch during both calibration as well as continuously from the loop
-     * to compensate for drift
+     * to compensate for drift.  Triggers evLimitSwitchClosed on a close transition.
      */
     private void checkLimitSwitch(){
         if (mLimitSwitch != null){
-            if (mLimitSwitch.getState()){
-                // limit switch trigger closed.  notify the controller
-                mGrabberController.evLimitSwitchClosed();
-                // and save the encoder position to set the reference
-                if (mGrabberMotor != null) {
-                    mLoweredEncoderPosition = mGrabberMotor.getCurrentPosition();
-                    mGrabberPosition = GRABBER_POSITION_LOWERED;
+            if (mLimitSwitch.isPressed() != mLimitSwitchLastState){
+                // state change, check for close trigger
+                if (!mLimitSwitchLastState) {
+//                    // limit switch trigger closed.  notify the controller
+//                    mGrabberController.evLimitSwitchClosed();
+//                    // Stop the motor and save the encoder position to set the reference
+                    if (mGrabberMotor != null) {
+                        mLoweredEncoderPosition = mGrabberMotor.getCurrentPosition();
+                        mGrabberPosition = GRABBER_POSITION_LOWERED;
+                        mGrabberMotor.setPower(0d);
+  //                      mGrabberController.evGrabberStopped();
+                    }
                 }
+                // Save last state for next time
+                mLimitSwitchLastState = mLimitSwitch.isPressed();
             }
-        }
+         }
     }
 
     /**
      * must be called from OpMode loop function when using automatic mode.
      */
     public void loop(){
-        if (mGrabberController != null){
-            mGrabberController.loop();
-        }
+//        if (mGrabberController != null){
+//            mGrabberController.loop();
+//        }
         // Check the limit switch each loop time to reset the reference encoder position
         checkLimitSwitch();
-        // Check if grabber has stopped and notify the grabber
-        if (!mGrabberMotor.isBusy()){
-            mGrabberController.evGrabberStopped();
-        }
+//        // Check if grabber has stopped and notify the grabber
+//        if (!mGrabberMotor.isBusy()){
+//            mGrabberController.evGrabberStopped();
+//        }
+        // Write mGrabberMotor encoder value to Telemetry
+        motorEncoderPosition = mGrabberMotor.getCurrentPosition();
+
     }
 
     /**
@@ -231,8 +247,8 @@ public class Grabber {
         int targetPosition = mLoweredEncoderPosition +deltaCounts;
         if (mGrabberMotor != null){
             mGrabberMotor.setTargetPosition(targetPosition);
-            // And notify the controller
-            mGrabberController.evGrabberMoving();
+//            // And notify the controller that the grabber is moving
+//            mGrabberController.evGrabberMoving();
             return true;
         }
         else{
