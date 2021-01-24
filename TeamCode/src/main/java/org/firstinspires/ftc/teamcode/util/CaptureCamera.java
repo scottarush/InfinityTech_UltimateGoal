@@ -77,8 +77,8 @@ public class CaptureCamera {
      */
     private CameraManager mCameraManager;
     private WebcamName mCameraName;
-    private Camera mCamera;
-    private CameraCaptureSession mCameraCaptureSession;
+    private Camera mCamera = null;
+    private CameraCaptureSession mCameraCaptureSession = null;
 
     /**
      * The queue into which all frames from the camera are placed as they become available.
@@ -106,13 +106,10 @@ public class CaptureCamera {
     public void init(OpMode opMode,ICaptureCameraListener listener) throws Exception {
         mOpMode = opMode;
         mListener = listener;
+        mCallbackHandler =  CallbackLooper.getDefault().getHandler();
+        mCameraManager = ClassFactory.getInstance().getCameraManager();
 
         mCameraName = mOpMode.hardwareMap.get(WebcamName.class, WEBCAM_NAME);
-
-        // Otherwise successful
-        mCallbackHandler = CallbackLooper.getDefault().getHandler();
-
-        mCameraManager = ClassFactory.getInstance().getCameraManager();
 
         initializeFrameQueue(2);
 
@@ -139,6 +136,7 @@ public class CaptureCamera {
      */
     public void serviceCaptureCamera() {
         Bitmap bmp = mFrameQueue.poll();
+        log("serviceCaptureCamera:"+bmp);
         if (bmp != null) {
             if (mListener != null) {
                 mListener.onNewFrame(bmp);
@@ -211,12 +209,14 @@ public class CaptureCamera {
                                          * for the duration of the callback. So we copy here manually. */
                                         Bitmap bmp = captureRequest.createEmptyBitmap();
                                         cameraFrame.copyToBitmap(bmp);
+                                        log("Got a frame:"+bmp)  ;
                                         mFrameQueue.offer(bmp);
                                     }
                                 },
                                 Continuation.create(mCallbackHandler, new CameraCaptureSession.StatusCallback() {
                                     @Override public void onCaptureSequenceCompleted( CameraCaptureSession session, CameraCaptureSequenceId cameraCaptureSequenceId, long lastFrameNumber) {
                                         RobotLog.ii(TAG, "capture sequence %s reports completed: lastFrame=%d", cameraCaptureSequenceId, lastFrameNumber);
+                                        log("onCaptureSequenceCompleted called: id="+cameraCaptureSequenceId+" frame#:"+lastFrameNumber);
                                     }
                                 })
                         );
