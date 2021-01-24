@@ -7,6 +7,7 @@ import com.qualcomm.robotcore.eventloop.opmode.OpMode;
 import com.qualcomm.robotcore.hardware.DistanceSensor;
 
 import org.firstinspires.ftc.robotcore.external.navigation.DistanceUnit;
+import org.firstinspires.ftc.robotcore.internal.network.CallbackLooper;
 import org.firstinspires.ftc.teamcode.util.CaptureCamera;
 import org.firstinspires.ftc.teamcode.util.ICaptureCameraListener;
 
@@ -72,7 +73,6 @@ public class RingDetector implements ICaptureCameraListener {
                 break;
             case RingDetectorNeuralNetwork.CONFIGURATION_CAMERA_ONLY:
                 mCaptureCamera = new CaptureCamera();
-                mCaptureCamera.init(mOpMode,this);
                 mCameraEnabled = true;
                 break;
         }

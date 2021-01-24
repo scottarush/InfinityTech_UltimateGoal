@@ -7,6 +7,7 @@ import com.qualcomm.robotcore.eventloop.opmode.OpMode;
 import com.qualcomm.robotcore.eventloop.opmode.TeleOp;
 import com.qualcomm.robotcore.util.RobotLog;
 
+import org.firstinspires.ftc.robotcore.internal.network.CallbackLooper;
 import org.firstinspires.ftc.teamcode.util.CaptureCamera;
 import org.firstinspires.ftc.teamcode.util.ICaptureCameraListener;
 
@@ -92,11 +93,17 @@ public class ImageCaptureOpMode extends OpMode implements ICaptureCameraListener
         }
         // service the camera
         mCaptureCamera.serviceCaptureCamera();
-    }
+
+//        telemetry.addLine("Current Label="+mCurrentTag);
+//        telemetry.addLine("Capture image="+mCaptureImage);
+//        telemetry.update();
+     }
 
     @Override
     public void onNewFrame(Bitmap bitmap) {
         if (mCaptureImage){
+            telemetry.addLine("Got to onNewFrame");
+            telemetry.update();
             Bitmap rgbBitmap = bitmap.copy(Bitmap.Config.ARGB_8888,true);
             saveBitmap(rgbBitmap);
             mCaptureImage = false;
