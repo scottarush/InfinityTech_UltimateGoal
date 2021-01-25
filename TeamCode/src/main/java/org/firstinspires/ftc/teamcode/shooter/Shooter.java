@@ -50,7 +50,7 @@ public class Shooter {
     private static final int SHOOTER_MIDFIELD_HIGHGOAL_WHEEL_SPEED = 800;
 
     // 1st order lag filter constant - same for both wheels
-    private static final double SHOOTER_SPEED_LAG_FILTER_K = 0.9;
+    private static final double SHOOTER_SPEED_LAG_FILTER_K = 1.0d;
 
     // Spin RPM.  + is clockwise spin, - is counterclockwise.
     private static final int SPIN_RPM = 50;
@@ -68,7 +68,7 @@ public class Shooter {
 
     private static final double SPEED_PROP_GAIN = 0.05d;
     private static final double SPEED_INTEGRAL_GAIN = 0d;
-    private static final double SPEED_DERIVATIVE_GAIN = 0.1d;
+    private static final double SPEED_DERIVATIVE_GAIN = 0.0d;
 
     private ShooterController mShooterController = null;
 
@@ -159,7 +159,7 @@ public class Shooter {
         mLastLeftMotorPosition = position;
         // now filter by the lag filter
         mLeftMotorSpeed = leftRawSpeed * SHOOTER_SPEED_LAG_FILTER_K +
-                (1-SHOOTER_SPEED_LAG_FILTER_K) * mLeftMotorSpeed;
+                (1d-SHOOTER_SPEED_LAG_FILTER_K) * mLeftMotorSpeed;
 
 
         // Now the right motor speed
@@ -172,7 +172,7 @@ public class Shooter {
         mLastRightMotorPosition = position;
         // now filter by the lag filter
         mRightMotorSpeed = rightRawSpeed * SHOOTER_SPEED_LAG_FILTER_K +
-                (1-SHOOTER_SPEED_LAG_FILTER_K) * mRightMotorSpeed;
+                (1d-SHOOTER_SPEED_LAG_FILTER_K) * mRightMotorSpeed;
 
         //-----------------------------------------------------------
         // Update the PID controlled speed unless we are deactivated
