@@ -472,6 +472,7 @@ public class NeuralNetwork implements Serializable {
      * @param batchSize number of samples per epoch
      * @param eta       learning rate
      * @param numEpochs
+     * @param
      */
     public void train(String description,SimpleMatrix x, SimpleMatrix y, SimpleMatrix xscale,int batchSize, double eta, double lambda, int numEpochs) {
         mParameters.eta = eta;

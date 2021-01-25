@@ -31,7 +31,9 @@ public class RingNeuralNetworkTrainer {
         NeuralNetwork ringnn = new NeuralNetwork(nodes,NeuralNetwork.CROSS_ENTROPY_COST);
 
         final StringBuffer logBuffer = new StringBuffer();
-        logBuffer.append("Epoch#,Cost,del_L[0],del_L[1],delL[2],Normal Error\n");
+        String header = "Epoch#,Cost,del_L[0],del_L[1],delL[2],Normal Error";
+        logBuffer.append(header+"\n");
+        System.out.println(header);
 
         ringnn.addTrainingStatusListener(new NeuralNetwork.ITrainingStatusListener() {
             @Override
@@ -44,6 +46,7 @@ public class RingNeuralNetworkTrainer {
                     buffer.append(",");
                 }
                 buffer.append(normalError);
+                System.out.println(buffer.toString());
                 buffer.append("\n");
                 logBuffer.append(buffer.toString());
             }
@@ -209,6 +212,10 @@ public class RingNeuralNetworkTrainer {
         }
 
 
+    }
+
+    private void logSystemConsole(String s){
+        System.out.println(s);
     }
 
     /**

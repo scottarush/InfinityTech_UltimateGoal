@@ -113,22 +113,11 @@ public class CaptureCamera {
 
         initializeFrameQueue(2);
 
-        try {
-            boolean success = openCamera();
-            if (!success) {
-                throw new Exception("camera not found or permission to use not granted:"+mCameraName);
-            };
+        boolean success = openCamera();
+        if (!success) {
+            throw new Exception("camera not found or permission to use not granted:"+mCameraName);
+        };
 
-            startCamera();
-            if (mCameraCaptureSession == null) {
-                throw new Exception("Unable to start camera capture session.");
-            }
-        } finally {
-            if (mCamera != null){
-                mCamera.close();
-
-            }
-        }
     }
 
     /**
@@ -175,8 +164,14 @@ public class CaptureCamera {
         }
     }
 
-    private void startCamera() {
+    /**
+     * Called to startCapture.  Camera must have been opened successfully at init.
+     * If capture is already running or camera is not open, then returns without action.
+     */
+    public void startCapture() {
         if (mCameraCaptureSession != null) return; // be idempotent
+        if (mCamera == null)
+            return;  // camera init error
 
         /** YUY2 is supported by all Webcams, per the USB Webcam standard: See "USB Device Class Definition
          * for Video Devices: Uncompressed Payload, Table 2-1". Further, often this is the *only*
@@ -209,21 +204,20 @@ public class CaptureCamera {
                                          * for the duration of the callback. So we copy here manually. */
                                         Bitmap bmp = captureRequest.createEmptyBitmap();
                                         cameraFrame.copyToBitmap(bmp);
-                                        log("Got a frame:"+bmp)  ;
                                         mFrameQueue.offer(bmp);
                                     }
                                 },
                                 Continuation.create(mCallbackHandler, new CameraCaptureSession.StatusCallback() {
                                     @Override public void onCaptureSequenceCompleted( CameraCaptureSession session, CameraCaptureSequenceId cameraCaptureSequenceId, long lastFrameNumber) {
                                         RobotLog.ii(TAG, "capture sequence %s reports completed: lastFrame=%d", cameraCaptureSequenceId, lastFrameNumber);
-                                        log("onCaptureSequenceCompleted called: id="+cameraCaptureSequenceId+" frame#:"+lastFrameNumber);
+                                        //log("onCaptureSequenceCompleted called: id="+cameraCaptureSequenceId+" frame#:"+lastFrameNumber);
                                     }
                                 })
                         );
+
                         synchronizer.finish(session);
                     } catch (CameraException|RuntimeException e) {
                         RobotLog.ee(TAG, e, "exception starting capture");
-                        log("exception starting capture");
                         session.close();
                         synchronizer.finish(null);
                     }
@@ -231,7 +225,6 @@ public class CaptureCamera {
             }));
         } catch (CameraException|RuntimeException e) {
             RobotLog.ee(TAG, e, "exception starting camera");
-            log("exception starting camera");
             synchronizer.finish(null);
         }
 
@@ -247,18 +240,34 @@ public class CaptureCamera {
     }
 
     /**
-     * Must be called on stop to close resources.
+     * Called to stop capture but still leaves the camera running
+     * To restart capture call startCapture
      */
-    public void stop() {
+    public void stopCapture() {
         if (mCameraCaptureSession != null) {
             mCameraCaptureSession.stopCapture();
             mCameraCaptureSession.close();
             mCameraCaptureSession = null;
-            if (mCamera != null) {
-                mCamera.close();
-                mCamera = null;
-            }
         }
+    }
+
+    /**
+     * Returns state of capture
+     */
+    public boolean isCaptureActive(){
+        return (mCameraCaptureSession != null);
+    }
+    /**
+     * Must be called on stop to close resources.  This method closes the
+     * camera which cannot be restarted
+     */
+    public void stop() {
+        stopCapture();
+        if (mCamera != null) {
+            mCamera.close();
+            mCamera = null;
+        }
+
     }
 
     //----------------------------------------------------------------------------------------------
@@ -279,4 +288,5 @@ public class CaptureCamera {
             mOpMode.telemetry.update();
         }
     }
+
 }

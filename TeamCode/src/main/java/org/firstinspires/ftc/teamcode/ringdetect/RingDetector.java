@@ -7,7 +7,6 @@ import com.qualcomm.robotcore.eventloop.opmode.OpMode;
 import com.qualcomm.robotcore.hardware.DistanceSensor;
 
 import org.firstinspires.ftc.robotcore.external.navigation.DistanceUnit;
-import org.firstinspires.ftc.robotcore.internal.network.CallbackLooper;
 import org.firstinspires.ftc.teamcode.util.CaptureCamera;
 import org.firstinspires.ftc.teamcode.util.ICaptureCameraListener;
 
@@ -20,6 +19,8 @@ public class RingDetector implements ICaptureCameraListener {
 
     private int mRingDetectorConfiguration = -1;
 
+    private boolean mTopColorSensorEnabled = false;
+    private boolean mBottomColorSensorEnabled = false;
     private boolean mDistanceSensorEnabled = false;
     private boolean mMidColorSensorEnabled = false;
     private boolean mCameraEnabled = false;
@@ -32,10 +33,11 @@ public class RingDetector implements ICaptureCameraListener {
     private DistanceSensor mDistanceSensor;
 
     private CaptureCamera mCaptureCamera = null;
+
     private boolean mCameraProcessingActive = false;
-    private Bitmap mCameraInputBitmap = null;
 
-
+    private Bitmap mLastFrame = null;
+    private Bitmap mNewFrame = null;
 
     /**
      *
@@ -52,41 +54,43 @@ public class RingDetector implements ICaptureCameraListener {
         // Enabled/disable sensors
         switch (mRingDetectorConfiguration) {
             case RingDetectorNeuralNetwork.CONFIGURATION_ALL_SENSORS:
+                mTopColorSensorEnabled = true;
+                mBottomColorSensorEnabled = true;
                 mMidColorSensorEnabled = true;
                 mDistanceSensorEnabled = true;
                 mCameraEnabled = false;
                 break;
             case RingDetectorNeuralNetwork.CONFIGURATION_TOP_BOTTOM_COLOR_SENSORS_ONLY:
+                mTopColorSensorEnabled = true;
+                mBottomColorSensorEnabled = true;
                 mMidColorSensorEnabled = false;
                 mDistanceSensorEnabled = false;
                 mCameraEnabled = false;
                 break;
             case RingDetectorNeuralNetwork.CONFIGURATION_NO_DISTANCE_SENSOR:
+                mTopColorSensorEnabled = true;
+                mBottomColorSensorEnabled = true;
                 mMidColorSensorEnabled = true;
                 mDistanceSensorEnabled = false;
                 mCameraEnabled = false;
                 break;
             case RingDetectorNeuralNetwork.CONFIGURATION_NO_MID_COLOR_SENSOR:
+                mTopColorSensorEnabled = true;
+                mBottomColorSensorEnabled = true;
                 mMidColorSensorEnabled = false;
                 mDistanceSensorEnabled = true;
                 mCameraEnabled = false;
                 break;
             case RingDetectorNeuralNetwork.CONFIGURATION_CAMERA_ONLY:
-                mCaptureCamera = new CaptureCamera();
                 mCameraEnabled = true;
                 break;
         }
-        try {
-            File nnFilePath = new File("/sdcard/nnfiles");
-            File nnLogFile = new File("/sdcard/logs/ringnnlog.csv");
-            mNetwork = new RingDetectorNeuralNetwork(nnFilePath, mRingDetectorConfiguration, nnLogFile);
-        } catch (Exception e) {
-            initErrString += e.getMessage();
-        }
-        try {
-            mTopColorSensor = mOpMode.hardwareMap.get(RevColorSensorV3.class, "topClr");
-        } catch (Exception e) {
-            initErrString += "top color sensor error";
+        if (mTopColorSensorEnabled) {
+            try {
+                mTopColorSensor = mOpMode.hardwareMap.get(RevColorSensorV3.class, "topClr");
+            } catch (Exception e) {
+                initErrString += "top color sensor error";
+            }
         }
         if (mMidColorSensorEnabled) {
             try {
@@ -95,10 +99,12 @@ public class RingDetector implements ICaptureCameraListener {
                 initErrString += "middle color sensor error";
             }
         }
-        try {
-            mBottomColorSensor = mOpMode.hardwareMap.get(RevColorSensorV3.class, "bottomClr");
-        } catch (Exception e) {
-            initErrString += "bottom color sensor error";
+        if (mBottomColorSensorEnabled) {
+            try {
+                mBottomColorSensor = mOpMode.hardwareMap.get(RevColorSensorV3.class, "bottomClr");
+            } catch (Exception e) {
+                initErrString += "bottom color sensor error";
+            }
         }
         if (mDistanceSensorEnabled) {
             try {
@@ -114,6 +120,16 @@ public class RingDetector implements ICaptureCameraListener {
             }
             catch (Exception e){
                 initErrString += "camera init error";
+            }
+
+            // Load the neural network
+            File nnFilePath = new File("/sdcard/nnfiles");
+            File nnLogFile = new File("/sdcard/logs/ringnnlog.csv");
+            try {
+                mNetwork = new RingDetectorNeuralNetwork(nnFilePath, mRingDetectorConfiguration, nnLogFile);
+            }
+            catch(Exception e){
+                e.printStackTrace();
             }
         }
         // Configuration the color sensor unless the camera is enabled
@@ -131,13 +147,14 @@ public class RingDetector implements ICaptureCameraListener {
 
     }
 
+
     /**
      * Implementation of ICameraCaptureListener to receive a frame from the CaptureCamera
      * @param bitmap the new bitmap
      */
     @Override
     public void onNewFrame(Bitmap bitmap) {
-
+        mNewFrame = bitmap;
     }
 
     /**
@@ -159,7 +176,7 @@ public class RingDetector implements ICaptureCameraListener {
     }
 
     public void stop() {
-            mNetwork.closeLogFile();
+        mNetwork.closeLogFile();
     }
 
     private void configureColorSensor(RevColorSensorV3 sensor) {
@@ -205,12 +222,7 @@ public class RingDetector implements ICaptureCameraListener {
         return String.format("%.5f", value);
     }
 
-    /**
-     * Called to read the sensors and do an inference.
-     *
-     * @return the result according to the codes in {@link RingDetectorNeuralNetwork}
-     */
-    public int readDetector() {
+    public int doDetection(){
         // Read all the sensors into a measurement object for the network
         switch (mRingDetectorConfiguration) {
             case RingDetectorNeuralNetwork.CONFIGURATION_ALL_SENSORS:
@@ -221,6 +233,8 @@ public class RingDetector implements ICaptureCameraListener {
                 return doNoMidSensorReadDetector();
             case RingDetectorNeuralNetwork.CONFIGURATION_TOP_BOTTOM_COLOR_SENSORS_ONLY:
                 return doTopBottomOnlyReadDetector();
+            case RingDetectorNeuralNetwork.CONFIGURATION_CAMERA_ONLY:
+                return doCameraOnlyDetection();
         }
         // Invalid.  Shouldn't happen
         return RingDetectorNeuralNetwork.UNKNOWN;
@@ -288,5 +302,20 @@ public class RingDetector implements ICaptureCameraListener {
         return mNetwork.doInference(data);
     }
 
-
+    private int doCameraOnlyDetection(){
+        if (!mCaptureCamera.isCaptureActive()){
+            mCaptureCamera.startCapture();
+        }
+        // use the last frame unless null
+        if (mNewFrame == null){
+            // Shouldn't happen but return error
+            return RingDetectorNeuralNetwork.UNKNOWN;
+        }
+        else{
+            synchronized (mNewFrame){
+                mLastFrame = mNewFrame.copy(Bitmap.Config.ARGB_8888,true);
+            }
+        }
+        return mNetwork.doInference(mLastFrame);
+    }
 }

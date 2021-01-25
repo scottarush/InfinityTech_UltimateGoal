@@ -200,20 +200,20 @@ public class RingDataProcessor {
             int height = RingDetectorNeuralNetwork.CAMERA_ONLY_IMAGE_HEIGHT;
             int width = RingDetectorNeuralNetwork.CAMERA_ONLY_IMAGE_WIDTH;
             Image tmp = image.getScaledInstance(width,height, Image.SCALE_AREA_AVERAGING);
-            // Resize as a 565 RGB to reduce the number of color inuts
+
             BufferedImage resized = new BufferedImage(width, height, BufferedImage.TYPE_INT_RGB);
             Graphics2D g2d = resized.createGraphics();
             g2d.drawImage(tmp, 0, 0, null);
             g2d.dispose();
 
-            // Now parse the resized pixels into the matrix.
+            // Now parse each line of resized pixels into the matrix scanning left->right and top->bottom
             int[] pixel = new int[3];
-            for(int px=0;px < resized.getWidth();px++){
-                for(int py=0;py < resized.getHeight();py++){
-                    int rowbase = px*py*3;
+            for(int py=0;py < resized.getHeight();py++){
+                for(int px=0;px < resized.getWidth();px++){
+                    int startRow = 3*(py*resized.getWidth()+px);
                     resized.getData().getPixel(px,py,pixel);
-                    for(int channel=rowbase;channel < 3;channel++){
-                        x.set(rowbase+channel,columnIndex,pixel[channel]);
+                    for(int channel=0;channel < 3;channel++){
+                        x.set(startRow+channel,columnIndex,pixel[channel]);
                     }
                 }
             }

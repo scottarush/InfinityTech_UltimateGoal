@@ -1,5 +1,7 @@
 package org.firstinspires.ftc.teamcode.ringdetect;
 
+import android.graphics.Bitmap;
+
 import org.ejml.simple.SimpleMatrix;
 
 import java.io.File;
@@ -193,7 +195,7 @@ public class RingDetectorNeuralNetwork extends NeuralNetwork {
                         (int) Math.round(RingDetectorNeuralNetwork.TOP_BOTTOM_ONLY_INPUT_ROWS * 0.67), 3};
             case RingDetectorNeuralNetwork.CONFIGURATION_CAMERA_ONLY:
                 nodes = new int[]{RingDetectorNeuralNetwork.CAMERA_ONLY_INPUT_ROWS,
-                        (int) Math.round(RingDetectorNeuralNetwork.CAMERA_ONLY_INPUT_ROWS * 0.33), 3};
+                        (int) Math.round(RingDetectorNeuralNetwork.CAMERA_ONLY_INPUT_ROWS * 0.05), 3};
                 break;
         }
         return nodes;
@@ -395,6 +397,31 @@ public class RingDetectorNeuralNetwork extends NeuralNetwork {
         x.set(TOP_BOTTOM_ONLY_BOTTOM_DISTANCE_ROW_INDEX, measurementData.bottomDistanceMM);
         return doInference(x);
     }
+    /**
+     * Performs a measurement for the CAMERA configuration.
+     * @param cameraFrame bitmap from the camera
+     * @returns NO_RING, ONE_RING, or FOUR_RINGS, or UNKNOWN
+     */
+    public int doInference(Bitmap cameraFrame) {
+        // Now parse each line of resized pixels into the matrix scanning left->right and top->bottom
+        int[] pixel = new int[3];
+        SimpleMatrix input = new SimpleMatrix(CAMERA_ONLY_INPUT_ROWS,1);
+        for(int py=0;py < cameraFrame.getHeight();py++){
+            for(int px=0;px < cameraFrame.getWidth();px++){
+                int startRow = 3*(py*cameraFrame.getWidth()+px);
+                int apixel = cameraFrame.getPixel(px,py);
+                for(int i=0;i < 3;i++){
+                    pixel[i] = apixel & 0x000000FF;
+                    apixel >>= 8;
+                }
+                for(int channel=0;channel < 3;channel++){
+                    input.set(startRow+channel,0,pixel[channel]);
+                }
+            }
+        }
+        // and do the inference
+        return doInference(input);
+    }
 
     /**
      * Internal method for inference
@@ -486,5 +513,6 @@ public class RingDetectorNeuralNetwork extends NeuralNetwork {
                 return "Unknown";
         }
     }
+
 
 }
