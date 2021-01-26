@@ -53,7 +53,8 @@ public class RingNeuralNetworkTrainer {
         });
 
         ringnn.train(description,processor.getXTrainingData(), processor.getYTrainingData(),
-                processor.getScaleFactors(), 10,0.1d,0d,5000);
+                processor.getScaleFactors(), 10,0.1d,0d,5000
+        );
          // Write out the network
         try {
             if (networkFile.exists()){
