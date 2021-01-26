@@ -207,13 +207,14 @@ public class RingDataProcessor {
             g2d.dispose();
 
             // Now parse each line of resized pixels into the matrix scanning left->right and top->bottom
-            int[] pixel = new int[3];
             for(int py=0;py < resized.getHeight();py++){
                 for(int px=0;px < resized.getWidth();px++){
                     int startRow = 3*(py*resized.getWidth()+px);
-                    resized.getData().getPixel(px,py,pixel);
-                    for(int channel=0;channel < 3;channel++){
-                        x.set(startRow+channel,columnIndex,pixel[channel]);
+                    // Extract bands/channels in RGB order
+                    for(int band=0;band < 3;band++) {
+                        int value = resized.getData().getSample(px, py, band);
+
+                       x.set(startRow + band, columnIndex, value);
                     }
                 }
             }

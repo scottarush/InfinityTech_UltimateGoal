@@ -19,7 +19,7 @@ public class RingNeuralNetworkTrainer {
     /**
      * Called to train a new network
      */
-    public void trainNewNetwork(String description, File trainingDataFile, File neuralNetworkFilePath,int networkConfig, File logFile){
+    public void trainNewNetwork(String description, File trainingDataFile, File neuralNetworkFilePath,int networkConfig, File logFile,double eta,double lambda,int numEpochs){
         RingDataProcessor processor = new RingDataProcessor(networkConfig);
         File networkFile = new File(neuralNetworkFilePath,RingDetectorNeuralNetwork.getNeuralNetworkFilename(networkConfig));
 
@@ -53,8 +53,7 @@ public class RingNeuralNetworkTrainer {
         });
 
         ringnn.train(description,processor.getXTrainingData(), processor.getYTrainingData(),
-                processor.getScaleFactors(), 10,0.1d,0d,5000
-        );
+                processor.getScaleFactors(), 10,eta,lambda,numEpochs);
          // Write out the network
         try {
             if (networkFile.exists()){
@@ -87,7 +86,7 @@ public class RingNeuralNetworkTrainer {
        // Read the network
         RingDetectorNeuralNetwork ringnn=null;
         try {
-            ringnn = new RingDetectorNeuralNetwork(neuralNetworkFilePath,networkConfig,logFile);
+            ringnn = new RingDetectorNeuralNetwork(neuralNetworkFilePath,networkConfig,logFile,false);
         }
         catch(Exception e){
             e.printStackTrace();
@@ -170,7 +169,7 @@ public class RingNeuralNetworkTrainer {
             File trainingFile = new File(dataPath, "21DEC20_training_data.csv");
             File trainingLogFile = new File(dataPath,fileprefix+"_training_log.csv");
             trainer.trainNewNetwork(RingDetectorNeuralNetwork.getNeuralNetworkFilename(networkConfig),
-                    trainingFile,neuralNetFilePath,networkConfig,trainingLogFile);
+                    trainingFile,neuralNetFilePath,networkConfig,trainingLogFile,0.1d,0d,5000);
         }
 
         boolean test = true;
@@ -202,7 +201,7 @@ public class RingNeuralNetworkTrainer {
         if (TRAIN) {
             File trainingLogFile = new File(dataPath,fileprefix+"_training_log.csv");
             trainer.trainNewNetwork(fileprefix,
-                    neuralNetFilePath,neuralNetFilePath,networkConfig,trainingLogFile);
+                    neuralNetFilePath,neuralNetFilePath,networkConfig,trainingLogFile,0.15d,0,100);
         }
 
         boolean test = true;

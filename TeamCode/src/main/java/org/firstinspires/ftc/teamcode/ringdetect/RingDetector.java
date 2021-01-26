@@ -1,6 +1,7 @@
 package org.firstinspires.ftc.teamcode.ringdetect;
 
 import android.graphics.Bitmap;
+import android.graphics.Matrix;
 
 import com.qualcomm.hardware.rev.RevColorSensorV3;
 import com.qualcomm.robotcore.eventloop.opmode.OpMode;
@@ -36,8 +37,9 @@ public class RingDetector implements ICaptureCameraListener {
 
     private boolean mCameraProcessingActive = false;
 
-    private Bitmap mLastFrame = null;
-    private Bitmap mNewFrame = null;
+    private int mLastResult = RingDetectorNeuralNetwork.UNKNOWN;
+
+    private Bitmap mCameraFrame = null;
 
     /**
      *
@@ -126,10 +128,10 @@ public class RingDetector implements ICaptureCameraListener {
             File nnFilePath = new File("/sdcard/nnfiles");
             File nnLogFile = new File("/sdcard/logs/ringnnlog.csv");
             try {
-                mNetwork = new RingDetectorNeuralNetwork(nnFilePath, mRingDetectorConfiguration, nnLogFile);
+                mNetwork = new RingDetectorNeuralNetwork(nnFilePath, mRingDetectorConfiguration, nnLogFile,true);
             }
             catch(Exception e){
-                e.printStackTrace();
+                initErrString += "NeuralNet init error:"+e.getMessage();
             }
         }
         // Configuration the color sensor unless the camera is enabled
@@ -147,6 +149,12 @@ public class RingDetector implements ICaptureCameraListener {
 
     }
 
+    /**
+     * Must be called from OpMode loop to service the capture camera
+     */
+    public void serviceRingDetector(){
+        mCaptureCamera.serviceCaptureCamera();
+    }
 
     /**
      * Implementation of ICameraCaptureListener to receive a frame from the CaptureCamera
@@ -154,7 +162,11 @@ public class RingDetector implements ICaptureCameraListener {
      */
     @Override
     public void onNewFrame(Bitmap bitmap) {
-        mNewFrame = bitmap;
+        if (mCameraFrame != null){
+            // Didn't process it so recycle first
+            mCameraFrame.recycle();
+        }
+        mCameraFrame = bitmap.copy(Bitmap.Config.ARGB_8888,true);
     }
 
     /**
@@ -176,6 +188,7 @@ public class RingDetector implements ICaptureCameraListener {
     }
 
     public void stop() {
+        mCaptureCamera.stop();
         mNetwork.closeLogFile();
     }
 
@@ -307,15 +320,21 @@ public class RingDetector implements ICaptureCameraListener {
             mCaptureCamera.startCapture();
         }
         // use the last frame unless null
-        if (mNewFrame == null){
-            // Shouldn't happen but return error
-            return RingDetectorNeuralNetwork.UNKNOWN;
+        if (mCameraFrame == null){
+            // Return last result as we have no new frame
+            return mLastResult;
         }
-        else{
-            synchronized (mNewFrame){
-                mLastFrame = mNewFrame.copy(Bitmap.Config.ARGB_8888,true);
-            }
-        }
-        return mNetwork.doInference(mLastFrame);
+
+        mLastResult = mNetwork.doInference(mCameraFrame);
+        mCameraFrame.recycle();
+        mCameraFrame = null;
+        return mLastResult;
     }
+
+    private void error(String message){
+        mOpMode.telemetry.addLine(message);
+        mOpMode.telemetry.update();
+    }
+
+
 }

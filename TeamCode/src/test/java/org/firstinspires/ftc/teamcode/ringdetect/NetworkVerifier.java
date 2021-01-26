@@ -93,7 +93,8 @@ public class NetworkVerifier {
        // Read the network
         RingDetectorNeuralNetwork ringnn=null;
         try {
-            ringnn = new RingDetectorNeuralNetwork(nnFilePath,RingDetectorNeuralNetwork.CONFIGURATION_ALL_SENSORS,logFile);
+            ringnn =
+                    new RingDetectorNeuralNetwork(nnFilePath,RingDetectorNeuralNetwork.CONFIGURATION_ALL_SENSORS,logFile,false);
         }
         catch(Exception e){
             e.printStackTrace();

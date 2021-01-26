@@ -1,8 +1,11 @@
 package org.firstinspires.ftc.teamcode.ringdetect;
 
 import android.graphics.Bitmap;
+import android.graphics.Matrix;
+import android.media.Image;
 
 import org.ejml.simple.SimpleMatrix;
+import org.firstinspires.ftc.teamcode.util.ImageUtils;
 
 import java.io.File;
 import java.io.FileInputStream;
@@ -14,6 +17,7 @@ import java.io.InputStream;
  * This class extends JavaNeuralNetwork for the RingDetector specific network.
  */
 public class RingDetectorNeuralNetwork extends NeuralNetwork {
+
     // Detection value and output node index for single ring
     public static final int LABEL_NO_RING = 0;
     // Detection value and output node index for one ring
@@ -121,34 +125,56 @@ public class RingDetectorNeuralNetwork extends NeuralNetwork {
     public static final int TOP_BOTTOM_ONLY_BOTTOM_BLUE_ROW_INDEX = 6;
     public static final int TOP_BOTTOM_ONLY_BOTTOM_DISTANCE_ROW_INDEX = 7;
 
-    private static final String TOP_BOTTOM_ONLY_LOGGING_HEADER = "Result,y0,y1,y2,TopR,TopG,TopB,TopDist,BottomR,BottomG,BottomB,BottomDist";
+    private static final String TOP_BOTTOM_ONLY_LOGGING_HEADER = "#,Result,y0,y1,y2,TopR,TopG,TopB,TopDist,BottomR,BottomG,BottomB,BottomDist";
 
     // Configuration for camera sensor
-    public static final int CAMERA_ONLY_IMAGE_HEIGHT = 48;
-    public static final int CAMERA_ONLY_IMAGE_WIDTH = 64;
+    public static final int CAMERA_ONLY_IMAGE_HEIGHT = 72;
+    public static final int CAMERA_ONLY_IMAGE_WIDTH = 94;
     // Number of input rows is height * width * 3 color channels
     public static final int CAMERA_ONLY_INPUT_ROWS = CAMERA_ONLY_IMAGE_HEIGHT*CAMERA_ONLY_IMAGE_WIDTH*3;
     public static final String CAMERA_ONLY_NEURAL_NETWORK_FILE = "camera_ringnn.bin";
-    private static final String CAMERA_ONLY_LOGGING_HEADER = "Result,y0,y1,y2";
+    private static final String CAMERA_ONLY_LOGGING_HEADER = "#,Result,y0,y1,y2";
 
     private FileWriter mLogWriter = null;
+    private File mLogFileDirectory = null;
 
+    private boolean mLogImages = false;
+
+    private int mInferenceNum = 10;
     /**
      * @param nnFilePath path to neural network files
      * @param sensorConfig enum of current sensor config.
      * @param logFile path to logging file or null if logging disable
+     * @param logImages if true, then log the images at each inference - also clears the logging directory first
+     * @param clearLogs if true, then clear log directory at startup
      * @throws Exception if neural network cannot be read from the file
      */
-    public RingDetectorNeuralNetwork(File nnFilePath,int sensorConfig,File logFile) throws Exception {
+    public RingDetectorNeuralNetwork(File nnFilePath,int sensorConfig,File logFile,boolean logImages) throws Exception {
         mSensorConfiguration = sensorConfig;
+        mLogImages = logImages;
         File nnFile = new File(nnFilePath,getNeuralNetworkFilename(mSensorConfiguration));
         try {
             // Open the file and deserialize the network
             InputStream is = new FileInputStream(nnFile);
             deserializeNetwork(is);
 
-            // And initialize the logging files
+            // Initialize the logging file.  create the directory if it doesn't exist
             if (logFile != null) {
+                // Save directory for use in saving camera images
+
+                mLogFileDirectory = logFile.getParentFile();
+                if (!mLogFileDirectory.exists()){
+                    mLogFileDirectory.mkdir();
+                }
+                else{
+                    if (logImages) {
+                        // Clear out the directory if logging images
+                        File[] files = mLogFileDirectory.listFiles();
+                        for (int i = 0; i < files.length; i++) {
+                            files[i].delete();
+                        }
+                    }
+                }
                 initLogFile(logFile);
             }
         }
@@ -195,7 +221,7 @@ public class RingDetectorNeuralNetwork extends NeuralNetwork {
                         (int) Math.round(RingDetectorNeuralNetwork.TOP_BOTTOM_ONLY_INPUT_ROWS * 0.67), 3};
             case RingDetectorNeuralNetwork.CONFIGURATION_CAMERA_ONLY:
                 nodes = new int[]{RingDetectorNeuralNetwork.CAMERA_ONLY_INPUT_ROWS,
-                        (int) Math.round(RingDetectorNeuralNetwork.CAMERA_ONLY_INPUT_ROWS * 0.05), 3};
+                        (int) Math.round(RingDetectorNeuralNetwork.CAMERA_ONLY_INPUT_ROWS * 0.04), 3};
                 break;
         }
         return nodes;
@@ -247,7 +273,7 @@ public class RingDetectorNeuralNetwork extends NeuralNetwork {
                 header = TOP_BOTTOM_ONLY_LOGGING_HEADER;
                 break;
             case CONFIGURATION_CAMERA_ONLY:
-                header = TOP_BOTTOM_ONLY_LOGGING_HEADER;
+                header = CAMERA_ONLY_LOGGING_HEADER;
                 break;
         }
         mLogWriter.write(header);
@@ -339,7 +365,7 @@ public class RingDetectorNeuralNetwork extends NeuralNetwork {
         x.set(ALL_SENSORS_BOTTOM_BLUE_ROW_INDEX, measurementData.bottomColorBlue);
         x.set(ALL_SENSORS_BOTTOM_GREEN_ROW_INDEX, measurementData.bottomColorGreen);
         x.set(ALL_SENSORS_BOTTOM_DISTANCE_ROW_INDEX, measurementData.bottomDistanceMM);
-        return doInference(x);
+        return doInference(x,null);
     }
     /**
      * Performs a measurement for the NO_MID_COLOR_SENSOR configuration.
@@ -357,7 +383,7 @@ public class RingDetectorNeuralNetwork extends NeuralNetwork {
         x.set(NO_MID_COLOR_SENSOR_BOTTOM_BLUE_ROW_INDEX, measurementData.bottomColorBlue);
         x.set(NO_MID_COLOR_SENSOR_BOTTOM_GREEN_ROW_INDEX, measurementData.bottomColorGreen);
         x.set(NO_MID_COLOR_SENSOR_BOTTOM_DISTANCE_ROW_INDEX, measurementData.bottomDistanceMM);
-        return doInference(x);
+        return doInference(x,null);
     }
     /**
      * Performs a measurement for the NO_DISTANCE_SENSOR configuration.
@@ -378,7 +404,7 @@ public class RingDetectorNeuralNetwork extends NeuralNetwork {
         x.set(NO_DISTANCE_SENSOR_BOTTOM_BLUE_ROW_INDEX, measurementData.bottomColorBlue);
         x.set(NO_DISTANCE_SENSOR_BOTTOM_GREEN_ROW_INDEX, measurementData.bottomColorGreen);
         x.set(NO_DISTANCE_SENSOR_BOTTOM_DISTANCE_ROW_INDEX, measurementData.bottomDistanceMM);
-        return doInference(x);
+        return doInference(x,null);
     }
     /**
      * Performs a measurement for the TOP_BOTTOM_COLOR_SENSORS_ONLY configuration.
@@ -395,7 +421,7 @@ public class RingDetectorNeuralNetwork extends NeuralNetwork {
         x.set(TOP_BOTTOM_ONLY_BOTTOM_BLUE_ROW_INDEX, measurementData.bottomColorBlue);
         x.set(TOP_BOTTOM_ONLY_BOTTOM_GREEN_ROW_INDEX, measurementData.bottomColorGreen);
         x.set(TOP_BOTTOM_ONLY_BOTTOM_DISTANCE_ROW_INDEX, measurementData.bottomDistanceMM);
-        return doInference(x);
+        return doInference(x,null);
     }
     /**
      * Performs a measurement for the CAMERA configuration.
@@ -403,44 +429,62 @@ public class RingDetectorNeuralNetwork extends NeuralNetwork {
      * @returns NO_RING, ONE_RING, or FOUR_RINGS, or UNKNOWN
      */
     public int doInference(Bitmap cameraFrame) {
+        // Scale the image down to the network resolutino
+        int height = RingDetectorNeuralNetwork.CAMERA_ONLY_IMAGE_HEIGHT;
+        int width = RingDetectorNeuralNetwork.CAMERA_ONLY_IMAGE_WIDTH;
+
+        Bitmap inputFrame = Bitmap.createScaledBitmap(cameraFrame,width,height,false);
+
         // Now parse each line of resized pixels into the matrix scanning left->right and top->bottom
         int[] pixel = new int[3];
         SimpleMatrix input = new SimpleMatrix(CAMERA_ONLY_INPUT_ROWS,1);
-        for(int py=0;py < cameraFrame.getHeight();py++){
-            for(int px=0;px < cameraFrame.getWidth();px++){
-                int startRow = 3*(py*cameraFrame.getWidth()+px);
-                int apixel = cameraFrame.getPixel(px,py);
-                for(int i=0;i < 3;i++){
-                    pixel[i] = apixel & 0x000000FF;
-                    apixel >>= 8;
-                }
-                for(int channel=0;channel < 3;channel++){
-                    input.set(startRow+channel,0,pixel[channel]);
-                }
+        for(int py=0;py < inputFrame.getHeight();py++){
+            for(int px=0;px < inputFrame.getWidth();px++){
+                int startRow = 3*(py*inputFrame.getWidth()+px);
+                int apixel = inputFrame.getPixel(px,py);
+                // Extract channels and load in RGB order down the column vector
+                int blue = apixel & 0x000000FF;
+                apixel >>= 8;
+                int green = apixel & 0x000000FF;
+                apixel >>= 8;
+                int red = apixel & 0x000000FF;
+
+                input.set(startRow++,0,red);
+                input.set(startRow++,0,green);
+                input.set(startRow++,0,blue);
             }
         }
-        // and do the inference
-        return doInference(input);
+        // do the inference
+        Bitmap loggedFrame = null;
+        if (mLogImages){
+            loggedFrame = inputFrame;
+        }
+        int result = doInference(input,loggedFrame);
+        // And recycle the input frame
+        inputFrame.recycle();
+        return result;
     }
 
     /**
      * Internal method for inference
      * @param x input vector that must be in the format for the current configuration
+     * @param inputBitmap  if non-null then the Bitmap used as input
      * @returns NO_RING, ONE_RING, or FOUR_RINGS, or UNKNOWN
      */
-    private int doInference(SimpleMatrix x) {
+    private int doInference(SimpleMatrix x,Bitmap inputBitmap) {
         SimpleMatrix y = feedForward(x);
         int inference = decodeOutput(y);
 
-        logInference(x, y, inference);
+        logInference(x, y, inference,inputBitmap);
 
         return inference;
     }
 
-    private void logInference(SimpleMatrix x, SimpleMatrix y,int inference){
+    private void logInference(SimpleMatrix x, SimpleMatrix y,int inference,Bitmap inputBitmap){
         if (mLogWriter == null)
             return;  // logging disabled
         try{
+            mLogWriter.write(""+mInferenceNum +",");
             mLogWriter.write(RingDetectorNeuralNetwork.convertResultToString(inference));
             mLogWriter.write(",");
             for(int i=0;i < y.numRows();i++){
@@ -465,6 +509,7 @@ public class RingDetectorNeuralNetwork extends NeuralNetwork {
                     numRows = 0;
                     break;
             }
+            // Write the inference count
             for(int i = 0; i < numRows; i++){
                 mLogWriter.write(String.format("%1.5f",x.get(i,0)));
                 if (i < numRows -1){
@@ -472,6 +517,14 @@ public class RingDetectorNeuralNetwork extends NeuralNetwork {
                 }
             }
             mLogWriter.write("\n");
+
+            // If the Bitmap is non-null then save it too
+            if (inputBitmap != null){
+                String filename = "NoRings_"+mInferenceNum+".png";
+                File file = new File(mLogFileDirectory,filename);
+                ImageUtils.savePNG(inputBitmap,file);
+            }
+            mInferenceNum++;
         }
         catch(IOException e){
 
@@ -513,6 +566,5 @@ public class RingDetectorNeuralNetwork extends NeuralNetwork {
                 return "Unknown";
         }
     }
-
 
 }

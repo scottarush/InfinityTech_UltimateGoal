@@ -5,6 +5,7 @@ import android.util.Log;
 
 import com.qualcomm.hardware.rev.RevColorSensorV3;
 import com.qualcomm.robotcore.eventloop.opmode.Autonomous;
+import com.qualcomm.robotcore.eventloop.opmode.Disabled;
 import com.qualcomm.robotcore.eventloop.opmode.OpMode;
 import com.qualcomm.robotcore.eventloop.opmode.TeleOp;
 import com.qualcomm.robotcore.hardware.DistanceSensor;
@@ -16,6 +17,7 @@ import org.firstinspires.ftc.teamcode.util.LogFile;
 import org.firstinspires.ftc.teamcode.util.OneShotTimer;
 
 @TeleOp(name="NeuralNetworkDataCollection", group="Robot")
+@Disabled
 public class RingNeuralNetworkDataCollectionOpMode extends OpMode {
     public static final String LOG_PATHNAME = "/sdcard/logs";
 

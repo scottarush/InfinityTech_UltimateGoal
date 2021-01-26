@@ -125,7 +125,7 @@ public class CaptureCamera {
      */
     public void serviceCaptureCamera() {
         Bitmap bmp = mFrameQueue.poll();
-        log("serviceCaptureCamera:"+bmp);
+ //       log("serviceCaptureCamera:"+bmp);
         if (bmp != null) {
             if (mListener != null) {
                 mListener.onNewFrame(bmp);

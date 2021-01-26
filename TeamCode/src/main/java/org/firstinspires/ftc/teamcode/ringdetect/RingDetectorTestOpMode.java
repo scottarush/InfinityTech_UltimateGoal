@@ -78,10 +78,15 @@ public class RingDetectorTestOpMode extends OpMode {
          }
          **/
 
+        mRingDetector.serviceRingDetector();
+
+        long startTime = System.currentTimeMillis();
         mLastResult = mRingDetector.doDetection();
+        int detectTime = (int)(System.currentTimeMillis()-startTime);
         String sinference = RingDetectorNeuralNetwork.convertResultToString(mLastResult);
         telemetry.addData("NNFile", RingDetectorNeuralNetwork.getNeuralNetworkFilename(mRingDetector.getRingDetectorConfiguration()));
         telemetry.addData("Inference Result", sinference);
+        telemetry.addData("Inference Time(ms)",detectTime);
         telemetry.update();
     }
 
