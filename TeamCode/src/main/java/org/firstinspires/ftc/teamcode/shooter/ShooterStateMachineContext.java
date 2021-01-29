@@ -50,6 +50,14 @@ public class ShooterStateMachineContext
         return;
     }
 
+    public void evLoaderPulleyLow()
+    {
+        _transition = "evLoaderPulleyLow";
+        getState().evLoaderPulleyLow(this);
+        _transition = "";
+        return;
+    }
+
     public void evReadyToShoot()
     {
         _transition = "evReadyToShoot";
@@ -148,6 +156,11 @@ public class ShooterStateMachineContext
             Default(context);
         }
 
+        protected void evLoaderPulleyLow(ShooterStateMachineContext context)
+        {
+            Default(context);
+        }
+
         protected void evReadyToShoot(ShooterStateMachineContext context)
         {
             Default(context);
@@ -202,12 +215,10 @@ public class ShooterStateMachineContext
             new ShooterStateMachine_Deactivated("ShooterStateMachine.Deactivated", 0);
         public static final ShooterStateMachine_Activating Activating =
             new ShooterStateMachine_Activating("ShooterStateMachine.Activating", 1);
-        public static final ShooterStateMachine_Reload Reload =
-            new ShooterStateMachine_Reload("ShooterStateMachine.Reload", 2);
         public static final ShooterStateMachine_ReadyToShoot ReadyToShoot =
-            new ShooterStateMachine_ReadyToShoot("ShooterStateMachine.ReadyToShoot", 3);
+            new ShooterStateMachine_ReadyToShoot("ShooterStateMachine.ReadyToShoot", 2);
         public static final ShooterStateMachine_Shooting Shooting =
-            new ShooterStateMachine_Shooting("ShooterStateMachine.Shooting", 4);
+            new ShooterStateMachine_Shooting("ShooterStateMachine.Shooting", 3);
     }
 
     protected static class ShooterStateMachine_Default
@@ -288,6 +299,15 @@ public class ShooterStateMachineContext
         }
 
         @Override
+        protected void entry(ShooterStateMachineContext context)
+            {
+                ShooterController ctxt = context.getOwner();
+
+            ctxt.setLoaderPulleyLow();
+            return;
+        }
+
+        @Override
         protected void evDeactivate(ShooterStateMachineContext context)
         {
 
@@ -299,69 +319,6 @@ public class ShooterStateMachineContext
 
         @Override
         protected void evReadyToShoot(ShooterStateMachineContext context)
-        {
-
-            (context.getState()).exit(context);
-            context.setState(ShooterStateMachine.ReadyToShoot);
-            (context.getState()).entry(context);
-            return;
-        }
-
-    //-------------------------------------------------------
-    // Member data.
-    //
-
-        //---------------------------------------------------
-        // Constants.
-        //
-
-        private static final long serialVersionUID = 1L;
-    }
-
-    private static final class ShooterStateMachine_Reload
-        extends ShooterStateMachine_Default
-    {
-    //-------------------------------------------------------
-    // Member methods.
-    //
-
-        private ShooterStateMachine_Reload(String name, int id)
-        {
-            super (name, id);
-        }
-
-        @Override
-        protected void entry(ShooterStateMachineContext context)
-            {
-                ShooterController ctxt = context.getOwner();
-
-            ctxt.stopLoaderPully();
-            ctxt.startTimer(1000);
-            return;
-        }
-
-        @Override
-        protected void evActivate(ShooterStateMachineContext context)
-        {
-
-            (context.getState()).exit(context);
-            context.setState(ShooterStateMachine.Activating);
-            (context.getState()).entry(context);
-            return;
-        }
-
-        @Override
-        protected void evDeactivate(ShooterStateMachineContext context)
-        {
-
-            (context.getState()).exit(context);
-            context.setState(ShooterStateMachine.Deactivated);
-            (context.getState()).entry(context);
-            return;
-        }
-
-        @Override
-        protected void evTimeout(ShooterStateMachineContext context)
         {
 
             (context.getState()).exit(context);
@@ -458,7 +415,7 @@ public class ShooterStateMachineContext
             {
                 ShooterController ctxt = context.getOwner();
 
-            ctxt.startLoaderPully();
+            ctxt.setLoaderPulleyHigh();
             ctxt.startTimer(1250);
             return;
         }
@@ -474,30 +431,39 @@ public class ShooterStateMachineContext
         }
 
         @Override
+        protected void evLoaderPulleyLow(ShooterStateMachineContext context)
+        {
+
+            (context.getState()).exit(context);
+            context.setState(ShooterStateMachine.ReadyToShoot);
+            (context.getState()).entry(context);
+            return;
+        }
+
+        @Override
         protected void evTimeout(ShooterStateMachineContext context)
         {
             ShooterController ctxt = context.getOwner();
 
-            if (ctxt.isShooterReady())
+            if (ctxt.shooterWheelsReady())
             {
-                (context.getState()).exit(context);
+                ShooterControllerState endState = context.getState();
                 context.clearState();
                 try
                 {
-                    ctxt.stopLoaderPully();
+                    ctxt.setLoaderPulleyLow();
                 }
                 finally
                 {
-                    context.setState(ShooterStateMachine.ReadyToShoot);
-                    (context.getState()).entry(context);
+                    context.setState(endState);
                 }
 
             }
-            else if (!ctxt.isShooterReady())
+            else if (!ctxt.shooterWheelsReady())
             {
                 (context.getState()).exit(context);
                 // No actions.
-                context.setState(ShooterStateMachine.Reload);
+                context.setState(ShooterStateMachine.Activating);
                 (context.getState()).entry(context);
             }            else
             {

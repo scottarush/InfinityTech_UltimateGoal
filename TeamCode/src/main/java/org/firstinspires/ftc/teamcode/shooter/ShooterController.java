@@ -1,22 +1,8 @@
 package org.firstinspires.ftc.teamcode.shooter;
 
-import android.util.Log;
-
 import com.qualcomm.robotcore.eventloop.opmode.OpMode;
 
 import org.firstinspires.ftc.teamcode.util.BaseStateMachineController;
-import org.firstinspires.ftc.teamcode.util.OneShotTimer;
-
-import java.beans.PropertyChangeEvent;
-import java.beans.PropertyChangeListener;
-import java.lang.reflect.Method;
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.Iterator;
-import java.util.LinkedList;
-
-import statemap.FSMContext;
-import statemap.State;
 
 /**
  * this is the controller for the shooter state machine that coordinates the loading and firing for
@@ -31,6 +17,8 @@ public class ShooterController extends BaseStateMachineController implements ISh
         // initialize the base class
         init(opMode,new ShooterStateMachineContext(this));
     }
+
+
     @Override
     public boolean isShooterReady() {
         ShooterStateMachineContext shooterContext = (ShooterStateMachineContext)mStateMachineContext;
@@ -80,11 +68,33 @@ public class ShooterController extends BaseStateMachineController implements ISh
         transition("evShoot");
     }
 
+    @Override
+    public void evLoaderPulleyHigh() {
+        transition("evLoaderPulleyHigh");
+    }
+
+    @Override
+    public void evLoaderPulleyLow() {
+        transition("evLoaderPulleyLow");
+
+    }
+
+    @Override
+    public void evLoaderPulleyMiddle() {
+        transition("evLoaderPulleyMiddle");
+    }
+
     /**
-     * Starts the loader pully to shoot the ring
+     * sets the loader pulley position to High (to shoot the ring)
      */
-    public void startLoaderPully() {
-        mShooter.startLoaderPulley();
+    public void moveLoaderToHigh() {
+        mShooter.setLoaderPulleyPosition(Shooter.LOADER_PULLEY_POSITION_HIGH);
+    }
+    /**
+     * sets the loader pulley position to Low
+     */
+    public void moveLoaderToLow() {
+        mShooter.setLoaderPulleyPosition(Shooter.LOADER_PULLEY_POSITION_LOW);
     }
 
     /**
@@ -94,4 +104,24 @@ public class ShooterController extends BaseStateMachineController implements ISh
         mShooter.stopLoaderPulley();
     }
 
+    /**
+     * Sets the loader position to the Low position
+     */
+    public void setLoaderPulleyLow() {
+        mShooter.setLoaderPulleyPosition(Shooter.LOADER_PULLEY_POSITION_LOW);
+    }
+    /**
+     * Sets the loader position to the High position
+     */
+    public void setLoaderPulleyHigh() {
+        mShooter.setLoaderPulleyPosition(Shooter.LOADER_PULLEY_POSITION_HIGH);
+    }
+
+    /**
+     * called by state machine to determine if wheels are fast enough to shoot
+     */
+    public boolean shooterWheelsReady(){
+        // TODO Implement this
+        return true;
+    }
 }

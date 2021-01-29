@@ -1,25 +1,33 @@
 package org.firstinspires.ftc.teamcode.shooter;
 
+import android.graphics.Color;
+
+import com.qualcomm.hardware.rev.RevColorSensorV3;
 import com.qualcomm.robotcore.eventloop.opmode.OpMode;
 import com.qualcomm.robotcore.hardware.DcMotor;
 import com.qualcomm.robotcore.hardware.DcMotorSimple;
 import com.qualcomm.robotcore.hardware.HardwareMap;
+import com.qualcomm.robotcore.hardware.NormalizedRGBA;
 import com.qualcomm.robotcore.util.ElapsedTime;
 
-import org.firstinspires.ftc.robotcore.external.Telemetry;
 import org.firstinspires.ftc.teamcode.util.MiniPID;
 
 /**
- * This class encapsulates the shooter and loader.  It is primarily called by the ShooterController
+ * This class encapsulates the shooter and loader pulley.  It is primarily called by the ShooterController
  * that coordinates the activation/deactivation of the motors.
  */
 public class Shooter {
+
+    public static final boolean SHOOTER_WHEEL_SPEED_TELEMETRY_ENABLED = false;
+
     // left motor is to the left when looking directly at the robot from the front and vice versa for right
     private DcMotor mLeftMotor = null;
     private DcMotor mRightMotor = null;
 
     private MiniPID mLeftMotorSpeedPID = null;
     private MiniPID mRightMotorSpeedPID = null;
+
+    private RevColorSensorV3 mPulleyColorSensor = null;
 
     private double mLeftMotorSpeed = 0d;
     private int mLastLeftMotorPosition = 0;
@@ -30,20 +38,25 @@ public class Shooter {
     private static final double PER_NS_TO_PER_MINUTE = 1e9*60d;
     private long mLastSystemTimeNS = 0;
 
-    private DcMotor mLoaderPully = null;
+    private DcMotor mLoaderPulley = null;
 
-    private enum loaderPulleyStates{
-        LOW, HIGH, UNKNOWN
-    }
-    private loaderPulleyStates loaderPulleyState;
+    // Loader pulley position enumeration
+    public static final int LOADER_PULLEY_POSITION_UNKNOWN = 0;
+    public static final int LOADER_PULLEY_POSITION_LOW = 0;
+    public static final int LOADER_PULLEY_POSITION_MIDDLE = 1;
+    public static final int LOADER_PULLEY_POSITION_HIGH = 2;
+    private int mLoaderPulleyPosition = LOADER_PULLEY_POSITION_LOW;
 
-    private final int loaderPulleyEncoderValueLow = 0;
-    private final int loaderPulleyEncoderValueHigh = 100;
+    // Encoder value for loader pulley low postion.  Assume at startup it is at zero
+    private int mLoaderPulleyEncoderValueLow = 0;
+    // Encoder value for loader pulley high postion.
+    private int mLoaderPulleyEncoderValueHigh = 100;
 
     // Shooter wheel settings
     public static final int SETTING_MIDFIELD_HIGH = 1;
     public static final int SETTING_MIDFIELD_LOW = 20;
-    private int mShooterSetting = SETTING_MIDFIELD_HIGH;
+    private int mShooterDistanceSetting = SETTING_MIDFIELD_HIGH;
+
 
     // Speed thresholds for shooter wheels in RPM
     private static final int SHOOTER_MIDFIELD_LOWGOAL_WHEEL_SPEED = 475;
@@ -70,7 +83,7 @@ public class Shooter {
     private static final double SPEED_INTEGRAL_GAIN = 0d;
     private static final double SPEED_DERIVATIVE_GAIN = 0.0d;
 
-    private ShooterController mShooterController = null;
+    private IShooterController mShooterController = null;
 
     private OpMode mOpMode = null;
 
@@ -113,16 +126,13 @@ public class Shooter {
             initErrString += ", Right Shooter Motor error";
         }
         try {
-            mLoaderPully = ahwMap.get(DcMotor.class, "loader");
-            mLoaderPully.setMode(DcMotor.RunMode.RUN_USING_ENCODER);
-            mLoaderPully.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
-            mLoaderPully.setDirection(DcMotorSimple.Direction.REVERSE);
+            mLoaderPulley = ahwMap.get(DcMotor.class, "loader");
+            mLoaderPulley.setMode(DcMotor.RunMode.RUN_USING_ENCODER);
+            mLoaderPulley.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
+            mLoaderPulley.setDirection(DcMotorSimple.Direction.REVERSE);
         } catch (Exception e) {
             initErrString += ", Loader Pully Motor error";
         }
-        // Assume starting at Low pulley state for now
-        // To do: add color sensor behind shooter ramp to detect state LOW or HIGH
-        loaderPulleyState = loaderPulleyStates.LOW;
 
         if (initErrString.length() > 0) {
             throw new Exception(initErrString);
@@ -137,6 +147,17 @@ public class Shooter {
         // Call the shooter controller loop first
         mShooterController.loop();
 
+        // Now the wheels
+        serviceShooterWheels();
+        // And the pulley
+        serviceLoaderPulley();
+
+    }
+
+    /**
+     * services the shooter wheels.   Must be called once per loop from serviceShooterLoop
+     */
+    private void serviceShooterWheels(){
         //----------------------------------------------
         // 1.  Compute the wheel speeds.
         //----------------------------------------------
@@ -150,7 +171,7 @@ public class Shooter {
         mLastSystemTimeNS = systemTime;
 
         // Compute the delta
-        int position = getLeftCurrentPosition();
+        int position = getLeftWheelMotorCurrentPosition();
         double countsDelta = Math.abs(position-mLastLeftMotorPosition);
         // Convert to revolutions
         countsDelta = countsDelta / (double)NUM_ENCODER_COUNTS_PER_REV;
@@ -163,8 +184,8 @@ public class Shooter {
 
 
         // Now the right motor speed
-        position = getRightCurrentPosition();
-        countsDelta = Math.abs(getRightCurrentPosition()-mLastRightMotorPosition);
+        position = getRightWheelMotorCurrentPosition();
+        countsDelta = Math.abs(getRightWheelMotorCurrentPosition()-mLastRightMotorPosition);
         // Convert to revolutions
         countsDelta = countsDelta / (double)NUM_ENCODER_COUNTS_PER_REV;
         // Divide by the delta and convert to Rev/Min
@@ -182,18 +203,20 @@ public class Shooter {
             double right = mRightMotorSpeedPID.getOutput(mRightMotorSpeed, mRightWheelSetSpeed);
             setPower(left,right);
             // Compute and update the shooter ready status if it has changed
-            updateShooterStatus();
+            updateShooterSpinStatus();
         }
         else{
             // Stop the motors
             setPower(0d,0d);
         }
-        mOpMode.telemetry.addData("Right Motor Speed", mRightMotorSpeed);
-        mOpMode.telemetry.addData("Left Motor Speed", mLeftMotorSpeed);
-        mOpMode.telemetry.update();
+        if (SHOOTER_WHEEL_SPEED_TELEMETRY_ENABLED) {
+            mOpMode.telemetry.addData("Right Motor Speed", mRightMotorSpeed);
+            mOpMode.telemetry.addData("Left Motor Speed", mLeftMotorSpeed);
+            mOpMode.telemetry.update();
+        }
     }
 
-    private void updateShooterStatus() {
+    private void updateShooterSpinStatus() {
         double delta = 10;
         // compute thresholds for both wheels using the set speeds
         double highRightThreshold = mRightWheelSetSpeed+delta/2;
@@ -211,6 +234,64 @@ public class Shooter {
         else{
             // not ready.  call evActivate to wait until speed has stabilized again
             mShooterController.evActivate();
+        }
+    }
+
+    /**
+     * returns current loader pulley position enumeration
+     * @return LOADER_PULLY_POSITION_LOW, LOADER_PULLY_POSITION_MIDDLE, LOADER_PULLY_POSITION_MIDDLE, or LOADER_PULLY_POSITION_UNKNOWN
+     */
+    public int getLoaderPulleyPosition(){
+        return mLoaderPulleyPosition;
+    }
+
+    /**
+     * services the loader pulley.  Must be called once per loop from the serviceShooterLoop.
+     */
+    private void serviceLoaderPulley(){
+
+        int lastLoaderPulleyPosition = mLoaderPulleyPosition;
+
+        // Read the color sensors and latch encoder positions
+        NormalizedRGBA colors = mPulleyColorSensor.getNormalizedColors();
+        float hsvValues[] = new float[3];
+        Color.colorToHSV(colors.toColor(), hsvValues);
+        if (hsvValues[0] >= 200) {
+            // blue tape detected.
+            mLoaderPulleyPosition = LOADER_PULLEY_POSITION_LOW;
+            // And set the position
+            mLoaderPulleyEncoderValueLow = mLoaderPulley.getCurrentPosition();
+        } else if (hsvValues[0] >= 155) {
+            // white tape detected
+            mLoaderPulleyPosition = LOADER_PULLEY_POSITION_HIGH;
+            mLoaderPulleyEncoderValueHigh = mLoaderPulley.getCurrentPosition();
+        }
+        else{
+            // TODO.  Need to add table in the middle of the plastic sheet so we know the
+            // pulley is in the middle.
+            mLoaderPulleyPosition = LOADER_PULLEY_POSITION_MIDDLE;
+        }
+        // Now determine if this is a change and take transition action according to last
+        // position
+        if (lastLoaderPulleyPosition != mLoaderPulleyPosition){
+            switch(mLoaderPulleyPosition){
+                case LOADER_PULLEY_POSITION_LOW:
+                    // For a transition into Low position, stop the pulley and notify the
+                    // state machine.
+                    stopLoaderPulley();
+                    mShooterController.evLoaderPulleyLow();
+                    break;
+                case LOADER_PULLEY_POSITION_HIGH:
+                    // For a transition into Low position, stop the pulley and notify the
+                    // state machine.
+                    stopLoaderPulley();
+                    mShooterController.evLoaderPulleyHigh();
+                    break;
+                case LOADER_PULLEY_POSITION_MIDDLE:
+                    // For a transition into interim, just notify the state machine
+                    mShooterController.evLoaderPulleyMiddle();
+                    break;
+            }
         }
     }
 
@@ -236,11 +317,10 @@ public class Shooter {
     // TODO: add an LED on the robot to indicate when it is ready
 
     /**
-     * public function to set the activation speed of the shooter
+     * public function to set the activation speed to a calibrated position constant
      * @param setting to either SETTING_MIDFIELD_HIGH or SETTING_MIDFIELD_LOW
      */
-    public void setShooterSpeed(int setting) {
-
+    public void setShooterDistance(int setting) {
         // Compute the left and right speeds adding 1/2 the SPIN_RPM
         // opposite to each wheel
         switch (setting) {
@@ -256,16 +336,34 @@ public class Shooter {
                 return;  // Invalid setting
         }
         // valid change so change the setting
-        mShooterSetting = setting;
+        mShooterDistanceSetting = setting;
         // And update shooter status
-        updateShooterStatus();
+        updateShooterSpinStatus();
+    }
+    /**
+     * public function to set the speed to a specific RPM value.
+     * @param rpm center set speed
+     * @param spinOffset + is clockwise, - counterclockwise
+     **/
+    public void setShooterSpeed(int rpm,int spinOffset) {
+        // Compute the left and right speeds adding 1/2 the spinOffset to each
+        mRightWheelSetSpeed = rpm-spinOffset/2;
+        if (mRightWheelSetSpeed < 0) {
+            mRightWheelSetSpeed = 0;
+        }
+        mLeftWheelSetSpeed = rpm+spinOffset/2;
+        if (mLeftWheelSetSpeed < 0) {
+            mLeftWheelSetSpeed = 0;
+        }
+        // And update shooter status
+        updateShooterSpinStatus();
     }
 
     /**
      * Returns current shooter speed.
      */
     public int getShooterSetting(){
-        return mShooterSetting;
+        return mShooterDistanceSetting;
     }
 
     /**
@@ -277,12 +375,12 @@ public class Shooter {
 
     /**
      * Public function deactivates the shooter in order to stop the wheels between shooting.
-     * Stops the motors and retracts the pusher.
+     * Stops the motors and sets the loader pulley position to LOADER_PULLY_POSITION_LOW.
      */
     public void deactivateShooter() {
         mShooterController.evDeactivate();
         setPower(0d,0d);
-        stopLoaderPulley();
+        setLoaderPulleyPosition(LOADER_PULLEY_POSITION_LOW);
     }
 
     private void setPower(double leftPower,double rightPower){
@@ -294,13 +392,13 @@ public class Shooter {
         }
     }
 
-    private int getLeftCurrentPosition(){
+    private int getLeftWheelMotorCurrentPosition(){
         if (mLeftMotor != null){
             return mLeftMotor.getCurrentPosition();
         }
         return 0;
     }
-    private int getRightCurrentPosition(){
+    private int getRightWheelMotorCurrentPosition(){
         if (mRightMotor != null){
             return mRightMotor.getCurrentPosition();
         }
@@ -308,64 +406,34 @@ public class Shooter {
     }
 
     /**
-     * Starts the loader pulley to shoot a ring
+     * commands the loader pulley to move to the High position (presumably to shoot a ring).
+     * @param position either LOADER_PULLY_POSITION_LOW OR LOADER_PULLY_POSITION_HIGH. Any other
+     *                 value is invalid and will be ignored.
+     * @return true if valid position, false if notl.
      */
-    public void startLoaderPulley(){
-        int currentLoaderPulleyEncoderValue;
-        int lastLoaderPulleyEncoderValue;
-        int targetLoaderPulleyEncoderValue;
-        int threshold = 10;
-        int currentEncoderDifference;
-        int lastEncoderDifference;
-        double power = 1.0d;
-        double pauseStart;
-        double pauseStop;
-        double pause = 100;
-        if (mLoaderPully != null) {
-            targetLoaderPulleyEncoderValue = loaderPulleyEncoderValueHigh;
-            currentLoaderPulleyEncoderValue = mLoaderPully.getCurrentPosition();
-            currentEncoderDifference = targetLoaderPulleyEncoderValue - currentLoaderPulleyEncoderValue;
-            while (currentEncoderDifference > threshold){
-                mLoaderPully.setPower(power);
-                lastLoaderPulleyEncoderValue = currentLoaderPulleyEncoderValue;
-                lastEncoderDifference = currentEncoderDifference;
-                currentLoaderPulleyEncoderValue = mLoaderPully.getCurrentPosition();
-                currentEncoderDifference = targetLoaderPulleyEncoderValue - currentLoaderPulleyEncoderValue;
-                // Check to see if going in the wrong direction
-                if (currentEncoderDifference > lastEncoderDifference){
-                    // change the sign of the power variable
-                    power = -power;
-                }
-            }
-            stopLoaderPulley();
-            loaderPulleyState = loaderPulleyStates.HIGH;
+    public boolean setLoaderPulleyPosition(int position){
 
-            // add Pause
-            pauseStart = runtime.milliseconds();
-            pauseStop = pauseStart + pause;
-            while (runtime.milliseconds() < pauseStop){
-                // just wait
-            }
-
-            // Automatically drop the Pulley back down to low
-            targetLoaderPulleyEncoderValue = loaderPulleyEncoderValueLow;
-            currentLoaderPulleyEncoderValue = mLoaderPully.getCurrentPosition();
-            currentEncoderDifference = targetLoaderPulleyEncoderValue - currentLoaderPulleyEncoderValue;
-            while (currentEncoderDifference > threshold){
-                mLoaderPully.setPower(power);
-                lastLoaderPulleyEncoderValue = currentLoaderPulleyEncoderValue;
-                lastEncoderDifference = currentEncoderDifference;
-                currentLoaderPulleyEncoderValue = mLoaderPully.getCurrentPosition();
-                currentEncoderDifference = targetLoaderPulleyEncoderValue - currentLoaderPulleyEncoderValue;
-                // Check to see if going in the wrong direction
-                if (currentEncoderDifference > lastEncoderDifference){
-                    // change the sign of the power variable
-                    power = -power;
-                }
-            }
-            stopLoaderPulley();
-            loaderPulleyState = loaderPulleyStates.LOW;
+        int targetEncoderValue = 0;
+        switch(position){
+            case LOADER_PULLEY_POSITION_HIGH:
+                targetEncoderValue = mLoaderPulleyEncoderValueHigh;
+                break;
+            case LOADER_PULLEY_POSITION_LOW:
+                targetEncoderValue = mLoaderPulleyEncoderValueLow;
+                break;
+            default:
+                // invalid
+                return false;
         }
+        // Now do a run to encoder with the new target value.
+
+        // If the pulley is moving then stop it.
+        stopLoaderPulley();
+        // And run it to the new encoder value.
+        mLoaderPulley.setMode(DcMotor.RunMode.RUN_TO_POSITION);
+        mLoaderPulley.setTargetPosition(targetEncoderValue);
+
+        return true;
     }
 
 
@@ -373,10 +441,18 @@ public class Shooter {
      * Stops the loader pulley
      */
     public void stopLoaderPulley(){
-        if (mLoaderPully != null) {
-            mLoaderPully.setPower(0d);
+        if (mLoaderPulley != null) {
+            mLoaderPulley.setPower(0d);
         }
     }
-
+    /**
+     * @return true if loader pulley moving, false if not.
+     */
+    public boolean isLoaderPulleyMoving(){
+        if (mLoaderPulley != null) {
+            return (mLoaderPulley.getPower() != 0d);
+        }
+        return false;
+    }
 
 }

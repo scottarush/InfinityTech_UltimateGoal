@@ -5,6 +5,11 @@ package org.firstinspires.ftc.teamcode.shooter;
  */
 public interface IShooterController {
     /**
+     * must be called to allow ShooterController to service timers
+     */
+    void loop();
+
+    /**
      * called to activate the shooter or when the speed setting has been changed by the user
      */
     void evActivate();
@@ -17,6 +22,19 @@ public interface IShooterController {
      */
     void evShoot();
 
+    /**
+     * triggered when the loader pulley has reached the high position
+     */
+    void evLoaderPulleyHigh();
+    /**
+     * triggered when the loader pulley has reached the low position
+     */
+    void evLoaderPulleyLow();
+    /**
+     * triggered when the loader pulley has entered the middle region
+     * from either extreme
+     */
+    void evLoaderPulleyMiddle();
     /**
      * called to indicate the shooter motor speeds are ready to shoot
      */
