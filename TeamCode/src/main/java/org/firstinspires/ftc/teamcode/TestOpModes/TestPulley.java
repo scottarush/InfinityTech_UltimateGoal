@@ -38,6 +38,11 @@ import com.qualcomm.hardware.rev.RevColorSensorV3;
 import com.qualcomm.robotcore.hardware.ColorSensor;
 import com.qualcomm.robotcore.hardware.NormalizedColorSensor;
 import com.qualcomm.robotcore.hardware.NormalizedRGBA;
+import com.qualcomm.robotcore.hardware.configuration.ExpansionHubMotorControllerParamsState;
+
+import org.firstinspires.ftc.teamcode.shooter.Shooter;
+
+import java.util.SortedMap;
 
 /*
  * This is an example LinearOpMode that shows how to use
@@ -51,23 +56,20 @@ import com.qualcomm.robotcore.hardware.NormalizedRGBA;
 @TeleOp(name = "TestPulley", group = "Robot")
 //@Disabled
 public class TestPulley extends LinearOpMode {
-    private DcMotor mPulley = null;
-    // RevColorSensorV3 pulleyClr = null;
-    private NormalizedColorSensor colorSensor = null;
-    final float[] hsvValues = new float[3];
+    private Shooter mShooter = null;
 
-    enum pulleyPositions{
-        LOW, HIGH, UNKNOWN
-    }
+    private boolean mLastToggleButtonState = false;
+
 
     @Override
     public void runOpMode() {
-        mPulley = hardwareMap.get(DcMotor.class, "loader");
-        colorSensor = hardwareMap.get(RevColorSensorV3.class, "pulleyClr");
-        //pulleyClr = hardwareMap.get(NormalizedColorSensor.class, "pulleyClr");
-
-        int mPulleyEncoder;
-        pulleyPositions pulleyPosition = pulleyPositions.UNKNOWN;
+        mShooter = new Shooter(this);
+        try {
+            mShooter.init(hardwareMap);
+        }
+        catch (Exception e){
+            telemetry.addLine(e.getMessage());
+        }
 
         // wait for the start button to be pressed.
         waitForStart();
@@ -75,66 +77,36 @@ public class TestPulley extends LinearOpMode {
         // while the op mode is active, loop and read the light levels.
         // Note we use opModeIsActive() as our loop condition because it is an interruptible method.
         while (opModeIsActive()) {
-            double power = gamepad1.right_stick_y;
-            if (power < 0.0){
-                // If lifting, allow 50% power
-                power = 0.5 * power;
-            } else {
-                // if lowering, allow 15% power
-                power = 0.15*power;
-            }
-
-            mPulleyEncoder = mPulley.getCurrentPosition();
-
-            NormalizedRGBA colors = colorSensor.getNormalizedColors();
-            Color.colorToHSV(colors.toColor(), hsvValues);
-
-            // One of the two tape pieces reached
-            if (hsvValues[0] >= 200) {
-                // blue tape detected
-                pulleyPosition = pulleyPositions.LOW;
-            } else {
-                if (hsvValues[0] >= 155) {
-                    // white tape detected
-                    pulleyPosition = pulleyPositions.HIGH;
-                } else {
-                    pulleyPosition = pulleyPositions.UNKNOWN;
+            boolean edgeDetect = false;
+            boolean buttonState = gamepad1.y;
+            if (buttonState) {
+                // button pressed. check if last false
+                if (mLastToggleButtonState == false) {
+                    edgeDetect = true;
                 }
             }
+            mLastToggleButtonState = buttonState;
 
+            if (edgeDetect){
+                // Toggle the pulley position
+                switch(mShooter.getLoaderPulleyPosition()){
+                    case Shooter.LOADER_PULLEY_POSITION_HIGH:
+                        mShooter.setLoaderPulleyPosition(Shooter.LOADER_PULLEY_POSITION_LOW);
+                        break;
+                    case Shooter.LOADER_PULLEY_POSITION_LOW:
+                        mShooter.setLoaderPulleyPosition(Shooter.LOADER_PULLEY_POSITION_HIGH);
+                        break;
+                    case Shooter.LOADER_PULLEY_POSITION_MIDDLE:
+                        if (mShooter.isLoaderPulleyMoving()) {
+                            mShooter.stopLoaderPulley();
+                        }
+                        else{
+                            mShooter.setLoaderPulleyPosition(Shooter.LOADER_PULLEY_POSITION_LOW);
+                        }
+                        break;
+                }
 
-            telemetry.addData("Pulley Encoder", mPulleyEncoder);
-            telemetry.addData("Hue", hsvValues[0]);
-            telemetry.addData("Saturation", hsvValues[1]);
-            telemetry.addData("Value", hsvValues[2]);
-            telemetry.addData("Power", "0.3f", power);
-            telemetry.addData("Pulley Position", pulleyPosition);
-            telemetry.update();
-
-            switch (pulleyPosition){
-                case HIGH:
-                    if (power < 0.0){
-                        mPulley.setPower(0.0);
-                    } else {
-                        mPulley.setPower(power);
-                    }
-                    break;
-                case LOW:
-                    if (power > 0.0) {
-                        mPulley.setPower(0.0);
-                    } else {
-                        mPulley.setPower(power);
-                    }
-                    break;
-                case UNKNOWN:
-                    mPulley.setPower(power);
-                    break;
-                default:
-                    mPulley.setPower(power);
-                    break;
             }
-
-
 
         }
     }
