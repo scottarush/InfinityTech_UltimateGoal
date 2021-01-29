@@ -15,7 +15,8 @@ import org.firstinspires.ftc.robotcore.external.Telemetry;
  * This class encapsulates front hook assembly that picks up rings on the front of the
  * robot.
  */
-public class Grabber {
+public class
+Grabber {
 
     /**
      * Retracted position.

@@ -128,11 +128,13 @@ public class RingDetectorNeuralNetwork extends NeuralNetwork {
     private static final String TOP_BOTTOM_ONLY_LOGGING_HEADER = "#,Result,y0,y1,y2,TopR,TopG,TopB,TopDist,BottomR,BottomG,BottomB,BottomDist";
 
     // Configuration for camera sensor
-    public static final int CAMERA_ONLY_IMAGE_HEIGHT = 72;
-    public static final int CAMERA_ONLY_IMAGE_WIDTH = 94;
+//    public static final int CAMERA_ONLY_IMAGE_HEIGHT = 72;
+//    public static final int CAMERA_ONLY_IMAGE_WIDTH = 94;
+    public static final int CAMERA_ONLY_IMAGE_HEIGHT = 30;
+    public static final int CAMERA_ONLY_IMAGE_WIDTH = 40;
     // Number of input rows is height * width * 3 color channels
     public static final int CAMERA_ONLY_INPUT_ROWS = CAMERA_ONLY_IMAGE_HEIGHT*CAMERA_ONLY_IMAGE_WIDTH*3;
-    public static final String CAMERA_ONLY_NEURAL_NETWORK_FILE = "camera_ringnn.bin";
+    public static final String CAMERA_ONLY_NEURAL_NETWORK_FILE = "camera_ringnn_"+CAMERA_ONLY_IMAGE_WIDTH+"x"+CAMERA_ONLY_IMAGE_HEIGHT+".bin";
     private static final String CAMERA_ONLY_LOGGING_HEADER = "#,Result,y0,y1,y2";
 
     private FileWriter mLogWriter = null;
@@ -146,7 +148,6 @@ public class RingDetectorNeuralNetwork extends NeuralNetwork {
      * @param sensorConfig enum of current sensor config.
      * @param logFile path to logging file or null if logging disable
      * @param logImages if true, then log the images at each inference - also clears the logging directory first
-     * @param clearLogs if true, then clear log directory at startup
      * @throws Exception if neural network cannot be read from the file
      */
     public RingDetectorNeuralNetwork(File nnFilePath,int sensorConfig,File logFile,boolean logImages) throws Exception {
@@ -154,6 +155,9 @@ public class RingDetectorNeuralNetwork extends NeuralNetwork {
         mLogImages = logImages;
         File nnFile = new File(nnFilePath,getNeuralNetworkFilename(mSensorConfiguration));
         try {
+            if (!nnFile.exists()){
+                throw new RuntimeException("Cannot find ring detector neural network file:"+nnFile.getPath());
+            }
             // Open the file and deserialize the network
             InputStream is = new FileInputStream(nnFile);
             deserializeNetwork(is);
