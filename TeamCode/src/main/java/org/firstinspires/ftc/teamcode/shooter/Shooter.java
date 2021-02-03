@@ -256,18 +256,17 @@ public class Shooter {
         NormalizedRGBA colors = mPulleyColorSensor.getNormalizedColors();
         float hsvValues[] = new float[3];
         Color.colorToHSV(colors.toColor(), hsvValues);
-        if (hsvValues[0] >= 200) {
-            // blue tape detected.
+        if (hsvValues[0] <= 40) {
+            // RED tape detected, hsv[0] is about 30
+            mLoaderPulleyPosition = LOADER_PULLEY_POSITION_HIGH;
+            mLoaderPulleyEncoderValueHigh = mLoaderPulley.getCurrentPosition();
+        } else if (hsvValues[0] <= 100) {
+            // YELLOW tape detected, hsv[0] was 94
             mLoaderPulleyPosition = LOADER_PULLEY_POSITION_LOW;
             // And set the position
             mLoaderPulleyEncoderValueLow = mLoaderPulley.getCurrentPosition();
-        } else if (hsvValues[0] >= 155) {
-            // white tape detected
-            mLoaderPulleyPosition = LOADER_PULLEY_POSITION_HIGH;
-            mLoaderPulleyEncoderValueHigh = mLoaderPulley.getCurrentPosition();
         }
         else{
-            // TODO.  Need to add table in the middle of the plastic sheet so we know the
             // pulley is in the middle.
             mLoaderPulleyPosition = LOADER_PULLEY_POSITION_MIDDLE;
         }
