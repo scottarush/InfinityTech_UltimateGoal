@@ -459,15 +459,20 @@ public class ShooterStateMachineContext
                 }
 
             }
-            else if (!ctxt.shooterWheelsReady())
+            else
             {
                 (context.getState()).exit(context);
-                // No actions.
-                context.setState(ShooterStateMachine.Activating);
-                (context.getState()).entry(context);
-            }            else
-            {
-                super.evTimeout(context);
+                context.clearState();
+                try
+                {
+                    ctxt.setLoaderPulleyLow();
+                }
+                finally
+                {
+                    context.setState(ShooterStateMachine.ReadyToShoot);
+                    (context.getState()).entry(context);
+                }
+
             }
 
             return;

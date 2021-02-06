@@ -26,7 +26,7 @@ public class BaseStateMachineController {
 
     protected statemap.FSMContext mStateMachineContext;
 
-    protected static boolean TELEMETRY_STATE_LOGGING_ENABLED = false;
+    protected String mCurrentStateName = "unknown";
 
     private boolean mInitialized = false;
     /**
@@ -99,7 +99,7 @@ public class BaseStateMachineController {
 //                String propertyName = event.getPropertyName();
 //                State previousStatus = (State) event.getOldValue();
                 State newState = (State) event.getNewValue();
-                setLogMessage(newState.getName());
+                mCurrentStateName = newState.getName();
             }
         });
     }
@@ -146,12 +146,6 @@ public class BaseStateMachineController {
 
         return;
     }
-    public void setLogMessage(String msg){
-        if (TELEMETRY_STATE_LOGGING_ENABLED) {
-            mOpMode.telemetry.addData("State", msg);
-            mOpMode.telemetry.update();
-        }
-    }
 
     /**
      * helper method to build the transition table so that we can trigger events from
@@ -185,4 +179,7 @@ public class BaseStateMachineController {
         mTransition_queue = new LinkedList<>();
     }
 
+    public String getState(){
+        return mCurrentStateName;
+    }
 }

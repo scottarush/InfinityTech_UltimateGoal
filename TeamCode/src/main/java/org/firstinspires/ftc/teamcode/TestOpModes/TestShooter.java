@@ -4,11 +4,17 @@ import com.qualcomm.robotcore.eventloop.opmode.OpMode;
 import com.qualcomm.robotcore.eventloop.opmode.TeleOp;
 
 import org.firstinspires.ftc.teamcode.shooter.Shooter;
+import org.firstinspires.ftc.teamcode.util.EdgeDetector;
 
 @TeleOp(name="TestShooter", group="robot")
 //@Disabled
 public class TestShooter extends OpMode {
     private Shooter mShooter = null;
+
+    private EdgeDetector mSettingButtonEdgeDetector = new EdgeDetector();
+    private EdgeDetector mActivateButtonEdgeDetector = new EdgeDetector();
+    private EdgeDetector mPulleyButtonEdgeDetector = new EdgeDetector();
+    private EdgeDetector mShootButtonEdgeDetector = new EdgeDetector();
 
     @Override
     public void init() {
@@ -25,34 +31,50 @@ public class TestShooter extends OpMode {
 
     @Override
     public void loop() {
-        // listen for gamepad input and do the corresponding function
-        // x button starts the shooter
-        boolean gpx = gamepad1.x;
-        // a button shoots a ring
-        boolean gpa = gamepad1.a;
-        // b button deactivates the shooter
-        boolean gpb = gamepad1.b;
-        if (gpx) {
-            // trigger the evActivate event to the shooter controller
-            mShooter.getShooterController().evActivate();
-        }
-        if (gpa) {
-            // trigger the evShoo event to the shooter controller
-            mShooter.getShooterController().evShoot();
-        }
-        if (gpb) {
-            // disable the shooter through the shooter controller
-            mShooter.getShooterController().evDeactivate();
-        }
-        if (gamepad1.y){
-            if (mShooter.getShooterSetting() == Shooter.SETTING_MIDFIELD_HIGH){
-                mShooter.setShooterDistance(Shooter.SETTING_MIDFIELD_LOW);
+
+        // b button turns it on and off
+        if (mActivateButtonEdgeDetector.sampleRisingEdge(gamepad1.b)) {
+            if (mShooter.isShooterActive()){
+                mShooter.deactivateShooter();
             }
-            else{
-                mShooter.setShooterDistance(Shooter.SETTING_MIDFIELD_HIGH);
+            else {
+                // trigger the evActivate event to the shooter controller
+                mShooter.getShooterController().evActivate();
             }
         }
-         // Call the shooter service loop
+        if (mSettingButtonEdgeDetector.sampleRisingEdge(gamepad1.a)) {
+            switch(mShooter.getShooterSetting()){
+                case Shooter.SETTING_MIDFIELD_LOW:
+                    mShooter.setShooterDistance(Shooter.SETTING_MIDFIELD_HIGH);
+                    break;
+                case Shooter.SETTING_MIDFIELD_HIGH:
+                    mShooter.setShooterDistance(Shooter.SETTING_MIDFIELD_LOW);
+                    break;
+            }
+        }
+        if (mShootButtonEdgeDetector.sampleRisingEdge(gamepad1.y)) {
+            mShooter.shoot();
+        }
+        if (mPulleyButtonEdgeDetector.sampleRisingEdge(gamepad1.x)) {
+            // Toggle the pulley position
+            switch (mShooter.getLoaderPulleyPosition()) {
+                case Shooter.LOADER_PULLEY_POSITION_HIGH:
+                    mShooter.setLoaderPulleyPosition(Shooter.LOADER_PULLEY_POSITION_LOW);
+                    break;
+                case Shooter.LOADER_PULLEY_POSITION_LOW:
+                    mShooter.setLoaderPulleyPosition(Shooter.LOADER_PULLEY_POSITION_HIGH);
+                    break;
+                case Shooter.LOADER_PULLEY_POSITION_MIDDLE:
+                    if (mShooter.isLoaderPulleyMoving()) {
+                        mShooter.stopLoaderPulley();
+                    } else {
+                        mShooter.setLoaderPulleyPosition(Shooter.LOADER_PULLEY_POSITION_LOW);
+                    }
+                    break;
+            }
+        }
+
+            // Call the shooter service loop
         mShooter.serviceShooterLoop();
 
     }

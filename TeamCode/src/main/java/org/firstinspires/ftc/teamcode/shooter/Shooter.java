@@ -18,7 +18,7 @@ import org.firstinspires.ftc.teamcode.util.MiniPID;
  */
 public class Shooter {
 
-    public static final boolean SHOOTER_WHEEL_SPEED_TELEMETRY_ENABLED = false;
+    public static final boolean SHOOTER_WHEEL_SPEED_TELEMETRY_ENABLED = true;
 
     // left motor is to the left when looking directly at the robot from the front and vice versa for right
     private DcMotor mLeftMotor = null;
@@ -133,6 +133,11 @@ public class Shooter {
         } catch (Exception e) {
             initErrString += ", Loader Pully Motor error";
         }
+        try {
+            mPulleyColorSensor = ahwMap.get(RevColorSensorV3.class, "pulleyClr");
+        } catch (Exception e) {
+            initErrString += ", pulley color sensor init err";
+        }
 
         if (initErrString.length() > 0) {
             throw new Exception(initErrString);
@@ -212,12 +217,13 @@ public class Shooter {
         if (SHOOTER_WHEEL_SPEED_TELEMETRY_ENABLED) {
             mOpMode.telemetry.addData("Right Motor Speed", mRightMotorSpeed);
             mOpMode.telemetry.addData("Left Motor Speed", mLeftMotorSpeed);
+            mOpMode.telemetry.addData("ShooterState",mShooterController.getState());
             mOpMode.telemetry.update();
         }
     }
 
     private void updateShooterSpinStatus() {
-        double delta = 10;
+        double delta = 200;
         // compute thresholds for both wheels using the set speeds
         double highRightThreshold = mRightWheelSetSpeed+delta/2;
         double lowRightThreshold = mRightWheelSetSpeed-delta/2;
@@ -227,14 +233,15 @@ public class Shooter {
         // Now check if the filtered speeds are within the delta
         boolean left = checkSpeedThreshold(mLeftMotorSpeed,highLeftThreshold,lowLeftThreshold);
         boolean right = checkSpeedThreshold(mRightMotorSpeed,highRightThreshold,lowRightThreshold);
-        if (left && right) {
-            // shooter is ready.  trigger event to controller
-            mShooterController.evReadyToShoot();
-        }
-        else{
-            // not ready.  call evActivate to wait until speed has stabilized again
-            mShooterController.evActivate();
-        }
+        mShooterController.evReadyToShoot();
+//        if (left && right) {
+//            // shooter is ready.  trigger event to controller
+//            mShooterController.evReadyToShoot();
+//        }
+//        else{
+//            // not ready.  call evActivate to wait until speed has stabilized again
+//            mShooterController.evActivate();
+//        }
     }
 
     /**
@@ -253,25 +260,7 @@ public class Shooter {
         int lastLoaderPulleyPosition = mLoaderPulleyPosition;
 
         // Read the color sensors and latch encoder positions
-        NormalizedRGBA colors = mPulleyColorSensor.getNormalizedColors();
-        float hsvValues[] = new float[3];
-        Color.colorToHSV(colors.toColor(), hsvValues);
-        if (hsvValues[0] >= 200) {
-            // blue tape detected.
-            mLoaderPulleyPosition = LOADER_PULLEY_POSITION_LOW;
-            // And set the position
-            mLoaderPulleyEncoderValueLow = mLoaderPulley.getCurrentPosition();
-        } else if (hsvValues[0] >= 155) {
-            // white tape detected
-            mLoaderPulleyPosition = LOADER_PULLEY_POSITION_HIGH;
-            mLoaderPulleyEncoderValueHigh = mLoaderPulley.getCurrentPosition();
-        }
-        else{
-            // TODO.  Need to add table in the middle of the plastic sheet so we know the
-            // pulley is in the middle.
-            mLoaderPulleyPosition = LOADER_PULLEY_POSITION_MIDDLE;
-        }
-        // Now determine if this is a change and take transition action according to last
+         // Now determine if this is a change and take transition action according to last
         // position
         if (lastLoaderPulleyPosition != mLoaderPulleyPosition){
             switch(mLoaderPulleyPosition){
@@ -293,6 +282,29 @@ public class Shooter {
                     break;
             }
         }
+    }
+
+    private void readPulleyColorSensor(){
+        NormalizedRGBA colors = mPulleyColorSensor.getNormalizedColors();
+        float hsvValues[] = new float[3];
+        Color.colorToHSV(colors.toColor(), hsvValues);
+        float luminance = hsvValues[0];
+        if (luminance >= 200) {
+            // blue tape detected.
+            mLoaderPulleyPosition = LOADER_PULLEY_POSITION_LOW;
+            // And set the position
+            mLoaderPulleyEncoderValueLow = mLoaderPulley.getCurrentPosition();
+        } else if (luminance >= 155) {
+            // white tape detected
+            mLoaderPulleyPosition = LOADER_PULLEY_POSITION_HIGH;
+            mLoaderPulleyEncoderValueHigh = mLoaderPulley.getCurrentPosition();
+        }
+        else{
+            // TODO.  Need to add table in the middle of the plastic sheet so we know the
+            // pulley is in the middle.
+            mLoaderPulleyPosition = LOADER_PULLEY_POSITION_MIDDLE;
+        }
+
     }
 
     /**
@@ -374,6 +386,13 @@ public class Shooter {
     }
 
     /**
+     * triggers an automated shooter
+     */
+    public void shoot(){
+        mShooterController.evShoot();
+    }
+
+    /**
      * Public function deactivates the shooter in order to stop the wheels between shooting.
      * Stops the motors and sets the loader pulley position to LOADER_PULLY_POSITION_LOW.
      */
@@ -430,8 +449,8 @@ public class Shooter {
         // If the pulley is moving then stop it.
         stopLoaderPulley();
         // And run it to the new encoder value.
-        mLoaderPulley.setMode(DcMotor.RunMode.RUN_TO_POSITION);
         mLoaderPulley.setTargetPosition(targetEncoderValue);
+        mLoaderPulley.setMode(DcMotor.RunMode.RUN_TO_POSITION);
 
         return true;
     }
@@ -455,4 +474,10 @@ public class Shooter {
         return false;
     }
 
+    /**
+     * @return true if shooter active
+     */
+    public boolean isShooterActive(){
+        return mShooterController.isActivated();
+    }
 }

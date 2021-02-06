@@ -49,4 +49,9 @@ public interface IShooterController {
      * returns true if shooter is ready to shoot, false if not
      */
     boolean isShooterReady();
+
+    /**
+     * returns the state as a string.
+     */
+    String getState();
 }

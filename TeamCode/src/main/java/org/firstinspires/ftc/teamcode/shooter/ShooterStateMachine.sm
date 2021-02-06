@@ -47,7 +47,8 @@
         evTimeout [ctxt.shooterWheelsReady()] nil { setLoaderPulleyLow();  }
         // Otherwise go to Activating to wait longer.  The pulley will be set to Low
         // on Activating.
-        evTimeout [!ctxt.shooterWheelsReady()] Activating { }
+//        evTimeout [!ctxt.shooterWheelsReady()] Activating { }
+        evTimeout ReadyToShoot {  setLoaderPulleyLow(); }
         // This transition is taken when wheels were already back to speed after the timeout
         // and we are just waiting for the pulley
         evLoaderPulleyLow ReadyToShoot { }

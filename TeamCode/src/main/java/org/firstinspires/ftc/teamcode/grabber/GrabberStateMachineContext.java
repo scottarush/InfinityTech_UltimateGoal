@@ -436,7 +436,7 @@ public class GrabberStateMachineContext
             {
                 GrabberController ctxt = context.getOwner();
 
-            ctxt.setLogMessage("Calibration timer expired before evLimitSwitchClosed received.");
+            //ctxt.setLogMessage("Calibration timer expired before evLimitSwitchClosed received.");
             return;
         }
 
