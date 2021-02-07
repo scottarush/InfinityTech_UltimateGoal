@@ -20,37 +20,36 @@
     {
         // Triggered when motor wheels have reached set speed and the loader
         // pulley is in position.
-        evReadyToShoot ReadyToShoot {}
+        evShooterSpeedReady ReadyToShoot {}
         // Triggered to shut down the shooter
         evDeactivate Deactivated {}
+        evLoaderPullyHigh nil {}    // shouldn't happen
+        evActivate nil {}
     }
 
     ReadyToShoot
     {
-        evReadyToShoot nil {}
+        evShooterSpeedReady nil {}
         evShoot Shooting {}
         // Triggered when speed setting has been changed and we need to wait for motor
         // speed to stabilize first
         evActivate Activating {}
         evDeactivate Deactivated {}
+
+        evLoaderPullyHigh nil {}
     }
 
     Shooting
         Entry {
             // move the pulley to High to shoot
             setLoaderPulleyHigh();
-            startTimer(1250);
         }
     {
-        // After timeout if shooter is already ready then move the loader pulley
-        // back to low and wait for pulley to notify
-        evTimeout [ctxt.shooterWheelsReady()] nil { setLoaderPulleyLow();  }
-        // Otherwise go to Activating to wait longer.  The pulley will be set to Low
-        // on Activating.
-//        evTimeout [!ctxt.shooterWheelsReady()] Activating { }
-        evTimeout ReadyToShoot {  setLoaderPulleyLow(); }
-        // This transition is taken when wheels were already back to speed after the timeout
-        // and we are just waiting for the pulley
+        // Wait for 1/2 second after pulley reaches high point
+        evLoaderPulleyHigh nil { startTimer(500); }
+        // After wait, then move the pulley back down
+        evTimeout nil {  setLoaderPulleyLow(); }
+        // Ready to shoot after pulley is low
         evLoaderPulleyLow ReadyToShoot { }
         // Shut it down
         evDeactivate Deactivated {}

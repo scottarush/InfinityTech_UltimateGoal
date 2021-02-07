@@ -54,6 +54,7 @@ public class AutonomousController extends BaseStateMachineController implements 
     public AutonomousController(final OpMode opMode,
                                 GuidanceController guidanceController,
                                 BaseSpeedBot speedBot) {
+        super(false);
         mGuidanceController = guidanceController;
         mSpeedBot = speedBot;
 

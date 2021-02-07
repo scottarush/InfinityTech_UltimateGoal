@@ -36,9 +36,9 @@ public interface IShooterController {
      */
     void evLoaderPulleyMiddle();
     /**
-     * called to indicate the shooter motor speeds are ready to shoot
+     * called to indicate the shooter motor speed is stable
      */
-    void evReadyToShoot();
+    void evShooterSpeedReady();
 
     /**
      * returns true if shooter is activated, false if deactivated.

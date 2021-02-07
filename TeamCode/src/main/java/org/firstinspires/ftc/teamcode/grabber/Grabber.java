@@ -4,34 +4,36 @@ import com.qualcomm.hardware.rev.RevTouchSensor;
 import com.qualcomm.robotcore.eventloop.opmode.OpMode;
 import com.qualcomm.robotcore.hardware.DcMotor;
 import com.qualcomm.robotcore.hardware.DcMotorSimple;
-import com.qualcomm.robotcore.hardware.DigitalChannel;
 import com.qualcomm.robotcore.hardware.HardwareMap;
 import com.qualcomm.robotcore.hardware.Servo;
-import com.qualcomm.robotcore.util.ElapsedTime;
 
-import org.firstinspires.ftc.robotcore.external.Telemetry;
+import org.firstinspires.ftc.teamcode.util.EdgeDetector;
 
 /**
- * This class encapsulates front hook assembly that picks up rings on the front of the
+ * This class encapsulates front grabber assembly that picks up rings on the front of the
  * robot.
  */
-public class
-Grabber {
+public class Grabber {
 
     /**
-     * Retracted position.
+     * index/enum constant for fully retracted position.
      */
-    public static final int GRABBER_POSITION_RETRACTED = 0;
+    public static final int GRABBER_FULLY_RETRACTED = 3;
 
     /**
-     * carry position.
+     * index/enum constant for clear pulley position just slightly from RETRACTED used to make room for the
+     * pulley to shoot
      */
-    public static final int GRABBER_POSITION_CARRY = 1;
+    public static final int GRABBER_CLEAR_PULLEY = 2;
+    /**
+     * index/enum constant for carry position.
+     */
+    public static final int GRABBER_CARRY = 1;
 
     /**
-     * lowered position.
+     * index/enum constant for lowered position.
      */
-    public static final int GRABBER_POSITION_LOWERED = 2;
+    public static final int GRABBER_LOWERED = 0;
 
     /**
      * Number of counts per 360 degree rotation for the grabber motor
@@ -39,28 +41,25 @@ Grabber {
     private static final int GRABBER_MOTOR_COUNTS_PER_ROTATION = 288;
 
     /**
-     * position for hook unknown which requires collapse to the limit switch to recalibrate.
+     * encoder positions array indexed by the GRABBER_POSITION_ at fully lowered.  Set whenever the limit switch is triggerd.  All
+     * other positions are then updated relative to this one.
+     *
+     * Assume 0 at startup is the RETRACTED position.  The other encoder values are determined
+     * according to the following formula:
+     *  encoder counts delta = GRABBER_MOTOR_COUNTS_PER_ROTATION * delta/360;
      **/
-    public static final int GRABBER_POSITION_UNKNOWN = 3;
+    private int mGrabberEncoderCounts[] = new int[] {0,93,28,109};
 
     /**
-     * encoder position at fully lowered.  Set during calibration.  All
-     * other positions are relative to this one.
+     * Fixed angles corresponding to the grabber positions.
+     * order is LOWERED, CARRY, CLEAR, and RETRACTED
      */
-    private int mLoweredEncoderPosition = 0;
-
-    /**
-     * delta angle in degrees from LOWERED to CARRY
-     */
-    private static final int CARRY_POSITION_ANGLE = 20;
-
-    /**
-     * delta angle in degrees from LOWERED to RETRACTED
-     */
-    private static final int RETRACTED_POSITION_ANGLE = 135;
+    public static final int GRABBER_ANGLES[] = new int[] {0,20,116,136};
 
     // The initial position must be retracted at startup to keep it within the 18" cube
-    private int mGrabberPosition = GRABBER_POSITION_RETRACTED;
+    private int mGrabberPosition = GRABBER_FULLY_RETRACTED;
+
+    private double mGrabberPower = 1.0d;
 
     private Servo mLeftServo = null;
     private Servo mRightServo = null;
@@ -69,10 +68,8 @@ Grabber {
     private DcMotor mGrabberMotor = null;
     private OpMode mOpMode = null;
 
- //   private IGrabberController mGrabberController = null;
-
     private RevTouchSensor mLimitSwitch = null;
-    private boolean mLimitSwitchLastState = false;
+    private EdgeDetector mLimitSwitchEdgeDetector = new EdgeDetector();
 
     private static final double LEFT_SERVO_OPEN_POSITION = 0.25d;
     private static final double LEFT_SERVO_CLOSED_POSITION = 0.0d;
@@ -84,8 +81,6 @@ Grabber {
     private static final double RIGHT_SERVO_WOBBLE_POSITION = 0.10d;
     private double mRightServoPosition = RIGHT_SERVO_CLOSED_POSITION;
 
-    public int motorEncoderPosition;
-    public boolean isLimitSwitchPressed;
     public Grabber(OpMode opMode) {
         opMode = mOpMode;
     }
@@ -112,8 +107,17 @@ Grabber {
         }
         try {
             mGrabberMotor = mHWMap.get(DcMotor.class, "grabbermotor");
+            mGrabberMotor.setDirection(DcMotorSimple.Direction.REVERSE);
             mGrabberMotor.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
             mGrabberMotor.setMode(DcMotor.RunMode.RUN_USING_ENCODER);
+            // Initialize the count positions using the current motor position
+            int retractedCounts = mGrabberMotor.getCurrentPosition();
+            int loweredCounts = retractedCounts- (int) Math.round((double)GRABBER_ANGLES[GRABBER_FULLY_RETRACTED]/360d * (double)GRABBER_MOTOR_COUNTS_PER_ROTATION);
+            for(int i=0;i < GRABBER_ANGLES.length;i++){
+                int countValue = (int) Math.round((double)GRABBER_ANGLES[i]/360d * (double)GRABBER_MOTOR_COUNTS_PER_ROTATION) + loweredCounts;
+                mGrabberEncoderCounts[i] = countValue;
+            }
+
         } catch (Exception e) {
             initErrString += "grabber motor error";
         }
@@ -123,47 +127,34 @@ Grabber {
             initErrString += "grabber limit sw error";
         }
 
-//        // Initialize the grabber controller
-//       mGrabberController = new GrabberController(this, mOpMode);
-//        // Trigger the calibration initialization in the controller
-//        mGrabberController.evInit();
-
         if (initErrString.length() > 0) {
             throw new Exception(initErrString);
         }
     }
-    /**
-     * must be called from overridden init_loop function within Opmode to drive the
-     * calibration timer and limit switch checking.
-     *
-     */
-    public void init_loop(){
- //       mGrabberController.loop();
-        checkLimitSwitch();
-    }
 
     /**
-     * checks the limit switch during both calibration as well as continuously from the loop
-     * to compensate for drift.  Triggers evLimitSwitchClosed on a close transition.
+     * checks the limit switch.  If pressed, the current encoder counts value from the
+     * motor will be read and used to update the entire array.  This compensates for
+     * drift over time.
      */
     private void checkLimitSwitch(){
         if (mLimitSwitch != null){
-            isLimitSwitchPressed = mLimitSwitch.isPressed();
-            if (mLimitSwitch.isPressed() != mLimitSwitchLastState){
-                // state change, check for close trigger
-                if (!mLimitSwitchLastState) {
-//                    // limit switch trigger closed.  notify the controller
-//                    mGrabberController.evLimitSwitchClosed();
-//                    // Stop the motor and save the encoder position to set the reference
-                    if (mGrabberMotor != null) {
-                        mLoweredEncoderPosition = mGrabberMotor.getCurrentPosition();
-                        mGrabberPosition = GRABBER_POSITION_LOWERED;
-                        mGrabberMotor.setPower(0d);
-  //                      mGrabberController.evGrabberStopped();
+            // Feed the current state into the EdgeDetector
+            boolean risingEdge = mLimitSwitchEdgeDetector.sampleRisingEdge(mLimitSwitch.isPressed());
+
+            if (risingEdge) {
+                // Limit switch just pressed.  Read the motor's current encoder counts and recalculate
+                // the other positions based on this new offset which must be the counts values
+                // at the LOWERED position.
+                mGrabberPosition = GRABBER_LOWERED;  // Latch the lowered position
+                if (mGrabberMotor != null){
+                    int loweredCounts = mGrabberMotor.getCurrentPosition();
+                    // Now recompute all the counts start from thise
+                    for(int i=0;i < GRABBER_ANGLES.length;i++){
+                        int countValue = (int) Math.round((double)GRABBER_ANGLES[i]/360d * (double)GRABBER_MOTOR_COUNTS_PER_ROTATION +(double)loweredCounts);
+                        mGrabberEncoderCounts[i] = countValue;
                     }
                 }
-                // Save last state for next time
-                mLimitSwitchLastState = mLimitSwitch.isPressed();
             }
          }
     }
@@ -172,17 +163,8 @@ Grabber {
      * must be called from OpMode loop function when using automatic mode.
      */
     public void loop(){
-//        if (mGrabberController != null){
-//            mGrabberController.loop();
-//        }
-        // Check the limit switch each loop time to reset the reference encoder position
+        // Check the limit switch and update the encoder the positions if pressed.
         checkLimitSwitch();
-//        // Check if grabber has stopped and notify the grabber
-//        if (!mGrabberMotor.isBusy()){
-//            mGrabberController.evGrabberStopped();
-//        }
-        // Update public variable 'motorEncoderPosition' with mGrabberMotor encoder value
-        motorEncoderPosition = mGrabberMotor.getCurrentPosition();
 
     }
 
@@ -202,60 +184,25 @@ Grabber {
      * sets the grabber position automatically.  This function cannot be used in all manual mode.
      * @return true if position set was attempted, false if position currently unknown and cannot be set
      */
-    public boolean setGrabberPosition(int position){
-        if (mGrabberPosition == GRABBER_POSITION_UNKNOWN){
-            // Error.  Can't set position when unknown
+    public boolean setGrabberPosition(int targetPosition){
+        // Otherwise it is a change.  Check for validity
+        if (targetPosition < 0){
+            return false; // invalid
+        }
+        if (targetPosition > GRABBER_ANGLES.length){
             return false;
         }
-        if (mGrabberPosition == position) {
-            return true;   // already at this position
-        }
-        // Otherwise it is a change.  Determine the angle delta to move relative to the
-        // reference (lowered) position
-        int deltaAngle = 0;
-        switch(mGrabberPosition){
-            case GRABBER_POSITION_RETRACTED:
-                switch(position){
-                    case GRABBER_POSITION_LOWERED:
-                        deltaAngle = -RETRACTED_POSITION_ANGLE;
-                        break;
-                    case GRABBER_POSITION_CARRY:
-                        deltaAngle = -RETRACTED_POSITION_ANGLE+CARRY_POSITION_ANGLE;
-                        break;
-                }
-                break;
-            case GRABBER_POSITION_LOWERED:
-                switch(position){
-                    case GRABBER_POSITION_RETRACTED:
-                        deltaAngle = RETRACTED_POSITION_ANGLE;
-                        break;
-                    case GRABBER_POSITION_CARRY:
-                        deltaAngle = CARRY_POSITION_ANGLE;
-                        break;
-                }
-                break;
-            case GRABBER_POSITION_CARRY:
-                switch(position){
-                    case GRABBER_POSITION_RETRACTED:
-                        deltaAngle = -RETRACTED_POSITION_ANGLE+CARRY_POSITION_ANGLE;
-                        break;
-                    case GRABBER_POSITION_LOWERED:
-                        deltaAngle = -CARRY_POSITION_ANGLE;
-                        break;
-                }
-                break;
-        }
-        // The delta angle to move has been determined now compute the target position for this
-        // delta
-        double angled = (double)GRABBER_MOTOR_COUNTS_PER_ROTATION * (double)deltaAngle/360d;
-        int deltaCounts = (int)Math.round(angled);
+        // Valid position.  Pull the target encoder position from the array and
+        // run to position there.
+        mGrabberPosition = targetPosition;  // Save the value (assuming we get there)
 
-        int targetPosition = mLoweredEncoderPosition +deltaCounts;
+        // Target counts is just the value from the array
+        int targetCounts = mGrabberEncoderCounts[targetPosition];
+
         if (mGrabberMotor != null){
-            mGrabberMotor.setTargetPosition(targetPosition);
+            mGrabberMotor.setTargetPosition(targetCounts);
             mGrabberMotor.setMode(DcMotor.RunMode.RUN_TO_POSITION);
-//            // And notify the controller that the grabber is moving
-//            mGrabberController.evGrabberMoving();
+            mGrabberMotor.setPower(mGrabberPower);
             return true;
         }
         else{
@@ -264,6 +211,33 @@ Grabber {
         }
     }
 
+    /**
+     * Advances the grabber to the next position up or down.
+     * @param up direction of next grabber position true toward RETRACTED, false is down toward LOWERED
+     */
+    public void nextGrabberPosition(boolean up){
+        if (up){
+            if (mGrabberPosition == GRABBER_FULLY_RETRACTED){
+                // Already there return
+                return;
+            }
+            else{
+                mGrabberPosition++;
+            }
+        }
+        else {
+            if (mGrabberPosition == GRABBER_LOWERED){
+                // Already there return
+                return;
+            }
+            else{
+                mGrabberPosition--;
+            }
+        }
+        // At this point, we need to move to the new position so just call the
+        // direct API
+        setGrabberPosition(mGrabberPosition);
+    }
 
     /**
      *
@@ -272,8 +246,6 @@ Grabber {
     public int getGrabberPosition() {
         return mGrabberPosition;
     }
-
-    public int getGrabberEncoderPosition() { return mGrabberMotor.getCurrentPosition();}
 
     public void openGrabber() {
         setLeftServoPosition(LEFT_SERVO_OPEN_POSITION);
@@ -303,87 +275,11 @@ Grabber {
         }
     }
 
-   public void setManualPower(double power){
-        if (mGrabberMotor != null){
-            mGrabberMotor.setPower(power);
-        }
-   }
+//   public void setManualPower(double power){
+//        if (mGrabberMotor != null){
+//            mGrabberMotor.setPower(power);
+//        }
+//   }
 
-   public void setGrabberPositionByEncoderValue(int newEncoderPosition){
-        ElapsedTime runtime = new ElapsedTime();
-        double deltaT;
-        // targetSpeed is how fast we want the motor to run, in encoder counts per second
-        double targetSpeed = 10.0;
-        // currentSpeed is how fast the motor is actually running, in encoder counts per second
-        double currentSpeed;
-        int encoderTolerance = 5;
-        double power = 0.0;
-        // ramp up in 1% power increments
-        double powerRamp = 0.01;
-        int encoderDifference;
-        int grabberEncoderPosition;
-
-        // get the current encoder position
-        grabberEncoderPosition = mGrabberMotor.getCurrentPosition();
-        int priorGrabberEncoderPosition = grabberEncoderPosition;
-        encoderDifference = grabberEncoderPosition - newEncoderPosition;
-        int encoderChange;
-        if (grabberEncoderPosition < newEncoderPosition){
-            mGrabberMotor.setDirection(DcMotorSimple.Direction.FORWARD);
-        } else {
-           mGrabberMotor.setDirection(DcMotorSimple.Direction.REVERSE);
-        }
-        boolean newPositionReached;
-        int absoluteEncoderDifference;
-        if (encoderDifference < 0){
-            absoluteEncoderDifference = -encoderDifference;
-        } else {
-            absoluteEncoderDifference = encoderDifference;
-        }
-        if (absoluteEncoderDifference > encoderTolerance) {
-            newPositionReached = false;
-        } else {
-            newPositionReached = true;
-        }
-       double startTime = runtime.milliseconds();
-
-        while (!newPositionReached) {
-            mGrabberMotor.setPower(power);
-            priorGrabberEncoderPosition = grabberEncoderPosition;
-            // Get new position and change in encoder position
-            grabberEncoderPosition = mGrabberMotor.getCurrentPosition();
-            encoderChange = grabberEncoderPosition - priorGrabberEncoderPosition;
-            encoderDifference = grabberEncoderPosition - newEncoderPosition;
-
-            // If motor hasn't moved, ramp up the power
-            if (encoderChange == 0){
-                power = power + powerRamp;
-            }
-            // Find the absolute difference in encoder values
-            if (encoderDifference < 0){
-                absoluteEncoderDifference = -encoderDifference;
-            }
-            // set the newPositionReached variable
-            if (absoluteEncoderDifference > encoderTolerance) {
-                newPositionReached = false;
-            } else {
-                newPositionReached = true;
-            }
-
-            double currentTime = runtime.milliseconds();
-            double elapsedTime = currentTime - startTime;
-            // exit regardless if we have spent more than 1 second in this loop
-            if (elapsedTime > 1000){
-                newPositionReached = true;
-            }
-            // exit if limit switch is pressed
-            if (isLimitSwitchPressed){
-                // newPositionReached = true;
-            }
-        }
-
-        mGrabberMotor.setPower(0.0);
-
-   }
 }
 
