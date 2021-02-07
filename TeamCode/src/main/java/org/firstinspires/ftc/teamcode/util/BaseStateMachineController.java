@@ -29,6 +29,8 @@ public class BaseStateMachineController {
     protected String mCurrentStateName = "unknown";
 
     private boolean mInitialized = false;
+
+    protected boolean mDebuggingEnabled = false;
     /**
      * Common timer
      */
@@ -39,7 +41,8 @@ public class BaseStateMachineController {
         }
     });
 
-    public BaseStateMachineController(){
+    public BaseStateMachineController(boolean debuggingEnabled){
+        mDebuggingEnabled = debuggingEnabled;
     }
     /**
      * This method must be called by subclasses to service the common mTimer as well as
@@ -100,6 +103,9 @@ public class BaseStateMachineController {
 //                State previousStatus = (State) event.getOldValue();
                 State newState = (State) event.getNewValue();
                 mCurrentStateName = newState.getName();
+                if (mDebuggingEnabled){
+                    System.out.println("Transition to state:"+mCurrentStateName);
+                }
             }
         });
     }
@@ -136,10 +142,9 @@ public class BaseStateMachineController {
                 }
                 catch (Exception ex)
                 {
-                    String msg = ex.getMessage();
-                    if (msg == null)
-                        msg = "exception in state machine";
-                    Log.e(getClass().getSimpleName(),msg);
+                    if (mDebuggingEnabled){
+                        ex.printStackTrace();
+                    }
                 }
             }
         }
