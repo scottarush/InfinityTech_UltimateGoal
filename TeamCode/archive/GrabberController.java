@@ -1,20 +1,16 @@
-package org.firstinspires.ftc.teamcode.grabber;
+package org.firstinspires.ftc.teamcode.archive;
 
 import com.qualcomm.robotcore.eventloop.opmode.OpMode;
 
+import org.firstinspires.ftc.teamcode.grabber.Grabber;
 import org.firstinspires.ftc.teamcode.util.BaseStateMachineController;
-import org.firstinspires.ftc.teamcode.util.OneShotTimer;
 
-import java.lang.reflect.Method;
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.LinkedList;
-
-public class GrabberController extends BaseStateMachineController implements IGrabberController {
+public class GrabberController extends BaseStateMachineController implements IGrabberListener {
 
     private Grabber mGrabber = null;
 
     public GrabberController(Grabber grabber,OpMode opMode){
+        super(false);
         mGrabber = grabber;
         // initialize the base class and create the context
         init(opMode,new GrabberStateMachineContext(this));

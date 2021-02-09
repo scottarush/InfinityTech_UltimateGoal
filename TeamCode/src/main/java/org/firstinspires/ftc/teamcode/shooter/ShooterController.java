@@ -12,7 +12,10 @@ public class ShooterController extends BaseStateMachineController implements ISh
 
     private Shooter mShooter = null;
 
+    private static final boolean DEBUGGING_ENABLED = true;
+
     public ShooterController(Shooter shooter, OpMode opMode) {
+        super(DEBUGGING_ENABLED);
         mShooter = shooter;
         // initialize the base class
         init(opMode,new ShooterStateMachineContext(this));
@@ -32,8 +35,8 @@ public class ShooterController extends BaseStateMachineController implements ISh
     }
 
     @Override
-    public void evReadyToShoot() {
-        transition("evReadyToShoot");
+    public void evShooterSpeedReady() {
+        transition("evShooterSpeedReady");
     }
 
     /**
@@ -124,4 +127,5 @@ public class ShooterController extends BaseStateMachineController implements ISh
         // TODO Implement this
         return true;
     }
+
 }

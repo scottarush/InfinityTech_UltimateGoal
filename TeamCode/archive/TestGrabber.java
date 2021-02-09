@@ -1,4 +1,4 @@
-package org.firstinspires.ftc.teamcode.TestOpModes;
+package org.firstinspires.ftc.teamcode.archive;
 
 import com.qualcomm.robotcore.eventloop.opmode.OpMode;
 import com.qualcomm.robotcore.eventloop.opmode.TeleOp;
@@ -65,7 +65,7 @@ public class TestGrabber extends OpMode {
     @Override
     public void init_loop() {
         super.init_loop();
-        mGrabber.init_loop();
+  //      mGrabber.();
         // Set states to initial configuration states
         motorSpeed = motorSpeeds.OFF;
         grabberState = grabberStates.OPEN;
@@ -94,9 +94,9 @@ public class TestGrabber extends OpMode {
         boolean buttonGrabberWobblePosition = gamepad1.right_bumper;
 
         // Check grabber limit switch to see if pressed
-        if (mGrabber.isLimitSwitchPressed) {
-            grabberMotorState = grabberMotorStates.DOWN;
-        }
+//        if (mGrabber.isLimitSwitchPressed) {
+//            grabberMotorState = grabberMotorStates.DOWN;
+//        }
 
         // This code uses the motor sp
         if (buttonMotorSpeed){
@@ -151,7 +151,7 @@ public class TestGrabber extends OpMode {
                 int currentEncoderPosition = mGrabber.getGrabberEncoderPosition();
                 // Zero is nominally UP, DOWN is positive, UP is negative
                 int desiredEncoderPosition = currentEncoderPosition - (grabberMotorEncoderPositionDown - grabberMotorEncoderPositionUp);
-                mGrabber.setGrabberPositionByEncoderValue(grabberMotorEncoderPositionUp);
+  //              mGrabber.setGrabberPositionByEncoderValue(grabberMotorEncoderPositionUp);
                 grabberMotorState = grabberMotorStates.UP;
             }
             if (dPadDown && grabberMotorState==grabberMotorStates.UP){
@@ -159,7 +159,7 @@ public class TestGrabber extends OpMode {
                 int currentEncoderPosition = mGrabber.getGrabberEncoderPosition();
                 // Zero is nominally UP, DOWN is positive
                 int desiredEncoderPosition = (grabberMotorEncoderPositionDown - grabberMotorEncoderPositionUp) + currentEncoderPosition;
-                mGrabber.setGrabberPositionByEncoderValue(desiredEncoderPosition);
+  //              mGrabber.setGrabberPositionByEncoderValue(desiredEncoderPosition);
                 grabberMotorState = grabberMotorStates.DOWN;
             }
         }
@@ -204,7 +204,7 @@ public class TestGrabber extends OpMode {
 
         // float power = gamepad1.left_stick_y;
         //
-        telemetry.addData("Grabber Motor Position", mGrabber.motorEncoderPosition);
+  //      telemetry.addData("Grabber Motor Position", mGrabber.motorEncoderPosition);
         telemetry.update();
         // mGrabber.setManualPower(power);
          // Call the grabber service loop

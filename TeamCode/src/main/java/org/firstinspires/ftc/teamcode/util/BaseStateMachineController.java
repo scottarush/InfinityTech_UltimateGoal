@@ -26,9 +26,11 @@ public class BaseStateMachineController {
 
     protected statemap.FSMContext mStateMachineContext;
 
-    protected static boolean TELEMETRY_STATE_LOGGING_ENABLED = false;
+    protected String mCurrentStateName = "unknown";
 
     private boolean mInitialized = false;
+
+    protected boolean mDebuggingEnabled = false;
     /**
      * Common timer
      */
@@ -39,7 +41,8 @@ public class BaseStateMachineController {
         }
     });
 
-    public BaseStateMachineController(){
+    public BaseStateMachineController(boolean debuggingEnabled){
+        mDebuggingEnabled = debuggingEnabled;
     }
     /**
      * This method must be called by subclasses to service the common mTimer as well as
@@ -99,7 +102,10 @@ public class BaseStateMachineController {
 //                String propertyName = event.getPropertyName();
 //                State previousStatus = (State) event.getOldValue();
                 State newState = (State) event.getNewValue();
-                setLogMessage(newState.getName());
+                mCurrentStateName = newState.getName();
+                if (mDebuggingEnabled){
+                    System.out.println("Transition to state:"+mCurrentStateName);
+                }
             }
         });
     }
@@ -136,21 +142,14 @@ public class BaseStateMachineController {
                 }
                 catch (Exception ex)
                 {
-                    String msg = ex.getMessage();
-                    if (msg == null)
-                        msg = "exception in state machine";
-                    Log.e(getClass().getSimpleName(),msg);
+                    if (mDebuggingEnabled){
+                        ex.printStackTrace();
+                    }
                 }
             }
         }
 
         return;
-    }
-    public void setLogMessage(String msg){
-        if (TELEMETRY_STATE_LOGGING_ENABLED) {
-            mOpMode.telemetry.addData("State", msg);
-            mOpMode.telemetry.update();
-        }
     }
 
     /**
@@ -185,4 +184,7 @@ public class BaseStateMachineController {
         mTransition_queue = new LinkedList<>();
     }
 
+    public String getState(){
+        return mCurrentStateName;
+    }
 }
