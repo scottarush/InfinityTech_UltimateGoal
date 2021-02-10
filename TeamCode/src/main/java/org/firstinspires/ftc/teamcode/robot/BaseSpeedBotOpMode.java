@@ -27,7 +27,7 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-package org.firstinspires.ftc.teamcode.speedbot;
+package org.firstinspires.ftc.teamcode.robot;
 
 import com.qualcomm.robotcore.eventloop.opmode.OpMode;
 import com.qualcomm.robotcore.eventloop.opmode.TeleOp;
@@ -50,14 +50,14 @@ public class BaseSpeedBotOpMode extends OpMode{
 
     private long mLastUpdateTime = 0L;
 
-    private CraneSpeedBot robot  = null;
+    private MrRingsBot robot  = null;
 
     /*
      * Code to run ONCE when the driver hits INIT
      */
     @Override
     public void init() {
-        robot = new CraneSpeedBot(this,false);
+        robot = new MrRingsBot(this,false);
         /*
          * Initialize the robot.  Be sure to catch exception and dump out as
          * the exception string will have details of what didn't initialize and
@@ -65,7 +65,7 @@ public class BaseSpeedBotOpMode extends OpMode{
          */
         String statusMsg = "Success";
         try{
-            robot.init();
+            robot.init("IMUCalCtrlHubOne.json");
         }
         catch(Exception e){
             statusMsg = "InitErrors:"+e.getMessage();

@@ -29,12 +29,11 @@
 
 package org.firstinspires.ftc.teamcode.TestOpModes;
 
-import com.qualcomm.robotcore.eventloop.opmode.Disabled;
 import com.qualcomm.robotcore.eventloop.opmode.OpMode;
 import com.qualcomm.robotcore.eventloop.opmode.TeleOp;
 
 import org.firstinspires.ftc.teamcode.drivetrain.BaseMecanumDrive;
-import org.firstinspires.ftc.teamcode.drivetrain.SpeedBotMecanumDrive;
+import org.firstinspires.ftc.teamcode.drivetrain.MrRingsBotMecanumDrive;
 
 
 /**
@@ -54,7 +53,7 @@ public class TestSpeedBotTankDrive extends OpMode{
     @Override
     public void init() {
         try{
-           drivetrain = new SpeedBotMecanumDrive(this);
+           drivetrain = new MrRingsBotMecanumDrive(this);
            drivetrain.init(hardwareMap);
          }
         catch(Exception e){

@@ -1,4 +1,4 @@
-package org.firstinspires.ftc.teamcode.grabber;
+package org.firstinspires.ftc.teamcode.shooter;
 
 import com.qualcomm.hardware.rev.RevTouchSensor;
 import com.qualcomm.robotcore.eventloop.opmode.OpMode;

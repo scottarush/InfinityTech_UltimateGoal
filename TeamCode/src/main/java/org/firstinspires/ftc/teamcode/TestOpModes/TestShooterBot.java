@@ -4,8 +4,8 @@ import com.qualcomm.robotcore.eventloop.opmode.OpMode;
 import com.qualcomm.robotcore.eventloop.opmode.TeleOp;
 
 import org.firstinspires.ftc.teamcode.drivetrain.BaseMecanumDrive;
-import org.firstinspires.ftc.teamcode.drivetrain.SpeedBotMecanumDrive;
-import org.firstinspires.ftc.teamcode.grabber.Grabber;
+import org.firstinspires.ftc.teamcode.drivetrain.MrRingsBotMecanumDrive;
+import org.firstinspires.ftc.teamcode.shooter.Grabber;
 import org.firstinspires.ftc.teamcode.shooter.Shooter;
 import org.firstinspires.ftc.teamcode.util.EdgeDetector;
 
@@ -37,7 +37,7 @@ public class TestShooterBot extends OpMode {
         try {
             mShooter.init(hardwareMap);
             mGrabber.init(hardwareMap);
-            drivetrain = new SpeedBotMecanumDrive(this);
+            drivetrain = new MrRingsBotMecanumDrive(this);
             drivetrain.init(hardwareMap);
         } catch (Exception e) {
             telemetry.addData("Initialization Error(s)", e.getMessage());

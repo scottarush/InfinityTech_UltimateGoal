@@ -8,9 +8,8 @@ import org.firstinspires.ftc.robotcore.external.navigation.AxesOrder;
 import org.firstinspires.ftc.robotcore.external.navigation.AxesReference;
 import org.firstinspires.ftc.robotcore.external.navigation.Orientation;
 import org.firstinspires.ftc.teamcode.autonomous.AutonomousController;
-import org.firstinspires.ftc.teamcode.drivetrain.BaseMecanumDrive;
 
-import org.firstinspires.ftc.teamcode.speedbot.BaseSpeedBot;
+import org.firstinspires.ftc.teamcode.robot.MrRingsBot;
 import org.firstinspires.ftc.teamcode.util.LogFile;
 
 @Autonomous(name="FilterDevelopment", group="Robot")
@@ -30,7 +29,7 @@ public class FilterDevelopmentOpMode extends OpMode{
     private int mReadWheelSpeedCount = 0;
     private static final int WHEEL_SPEED_SKIP_COUNT = 1;
 
-    private BaseSpeedBot mSpeedBot = null;
+    private MrRingsBot mSpeedBot = null;
 
     private KalmanTracker mKalmanTracker = null;
     private KalmanTracker.KalmanParameters mKalmanParameters = null;
@@ -50,7 +49,7 @@ public class FilterDevelopmentOpMode extends OpMode{
 
         String initErrs = "";
         try {
-            mSpeedBot = new BaseSpeedBot(this, true);
+            mSpeedBot = new MrRingsBot(this, true);
             mSpeedBot.init("IMUCalCtrlHubOne.json");
          }
         catch(Exception e){
