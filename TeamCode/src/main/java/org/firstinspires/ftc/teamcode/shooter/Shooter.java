@@ -148,7 +148,7 @@ public class Shooter {
             mLoaderPulley.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
             mLoaderPulley.setDirection(DcMotorSimple.Direction.FORWARD);
         } catch (Exception e) {
-            initErrString += ", Loader Pully Motor error";
+            initErrString += ", Loader Pulley Motor error";
         }
         try {
             mPulleyColorSensor = ahwMap.get(RevColorSensorV3.class, "pulleyClr");
