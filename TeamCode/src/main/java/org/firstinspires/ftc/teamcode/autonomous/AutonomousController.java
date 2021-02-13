@@ -1,28 +1,12 @@
 package org.firstinspires.ftc.teamcode.autonomous;
 
-import android.util.Log;
-
 import com.qualcomm.robotcore.eventloop.opmode.OpMode;
-
-import org.firstinspires.ftc.teamcode.drivetrain.BaseMecanumDrive;
 
 import org.firstinspires.ftc.teamcode.guidance.GuidanceController;
 import org.firstinspires.ftc.teamcode.guidance.IGuidanceControllerStatusListener;
-import org.firstinspires.ftc.teamcode.speedbot.BaseSpeedBot;
-import org.firstinspires.ftc.teamcode.speedbot.CraneSpeedBot;
+import org.firstinspires.ftc.teamcode.robot.MrRingsBot;
 import org.firstinspires.ftc.teamcode.util.BaseStateMachineController;
 import org.firstinspires.ftc.teamcode.util.OneShotTimer;
-
-import java.beans.PropertyChangeEvent;
-import java.beans.PropertyChangeListener;
-import java.lang.reflect.Method;
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.Iterator;
-import java.util.LinkedList;
-
-import statemap.FSMContext;
-import statemap.State;
 
 public class AutonomousController extends BaseStateMachineController implements IGuidanceControllerStatusListener {
 
@@ -36,7 +20,7 @@ public class AutonomousController extends BaseStateMachineController implements 
      */
     private static final int ROTATION_TIMEOUTMS = 1000;
 
-     private BaseSpeedBot mSpeedBot = null;
+     private MrRingsBot mSpeedBot = null;
 
     private GuidanceController mGuidanceController;
 
@@ -53,7 +37,7 @@ public class AutonomousController extends BaseStateMachineController implements 
      */
     public AutonomousController(final OpMode opMode,
                                 GuidanceController guidanceController,
-                                BaseSpeedBot speedBot) {
+                                MrRingsBot speedBot) {
         super(false);
         mGuidanceController = guidanceController;
         mSpeedBot = speedBot;

@@ -6,9 +6,10 @@ import com.qualcomm.robotcore.hardware.DcMotorSimple;
 import com.qualcomm.robotcore.hardware.HardwareMap;
 
 /**
- * This is the speed bot with the 1-4 gear.
+ * This is the Mr. Rings Bot with the speed gearing wih a 60:90 up gearing output ratio
+ * used for the 2020 and 2021 season.
  */
-public class SpeedBotMecanumDrive extends BaseMecanumDrive {
+public class MrRingsBotMecanumDrive extends BaseMecanumDrive {
 
     /*
     * With core hex motors there are 288 counts/axle rotation x 90:60 gear output ratio
@@ -43,7 +44,7 @@ public class SpeedBotMecanumDrive extends BaseMecanumDrive {
      */
     public static final int ENCODER_COUNTS_PER_MOTOR_SHAFT_ROTATION = 288;
 
-    public SpeedBotMecanumDrive(OpMode opMode){
+    public MrRingsBotMecanumDrive(OpMode opMode){
         super(opMode);
     }
 

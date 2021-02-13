@@ -27,23 +27,23 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-package org.firstinspires.ftc.teamcode.TestOpModes;
+package org.firstinspires.ftc.teamcode.TeleOpModes;
 
 import com.qualcomm.robotcore.eventloop.opmode.Disabled;
 import com.qualcomm.robotcore.eventloop.opmode.OpMode;
 import com.qualcomm.robotcore.eventloop.opmode.TeleOp;
 
 import org.firstinspires.ftc.teamcode.drivetrain.BaseMecanumDrive;
-import org.firstinspires.ftc.teamcode.drivetrain.SpeedBotMecanumDrive;
+import org.firstinspires.ftc.teamcode.drivetrain.MrRingsBotMecanumDrive;
 
 
 /**
-This class is used to test the speed bot tank drive.
+This class is used to just run tank drive and no other controls
   */
 
-@TeleOp(name="TestSpeedBotTankDrive", group="Robot")
-//@Disabled
-public class TestSpeedBotTankDrive extends OpMode{
+@TeleOp(name="TestTankDrive", group="Robot")
+@Disabled
+public class TestTankDrive extends OpMode{
 
     /* Declare OpMode members. */
     private BaseMecanumDrive drivetrain = null;
@@ -54,7 +54,7 @@ public class TestSpeedBotTankDrive extends OpMode{
     @Override
     public void init() {
         try{
-           drivetrain = new SpeedBotMecanumDrive(this);
+           drivetrain = new MrRingsBotMecanumDrive(this);
            drivetrain.init(hardwareMap);
          }
         catch(Exception e){

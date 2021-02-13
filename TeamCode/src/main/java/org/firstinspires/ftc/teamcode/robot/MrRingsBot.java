@@ -1,4 +1,4 @@
-package org.firstinspires.ftc.teamcode.speedbot;
+package org.firstinspires.ftc.teamcode.robot;
 
 import com.qualcomm.hardware.bosch.BNO055IMU;
 import com.qualcomm.robotcore.eventloop.opmode.OpMode;
@@ -6,13 +6,13 @@ import com.qualcomm.robotcore.util.ReadWriteFile;
 
 import org.firstinspires.ftc.robotcore.internal.system.AppUtil;
 import org.firstinspires.ftc.teamcode.drivetrain.BaseMecanumDrive;
-import org.firstinspires.ftc.teamcode.drivetrain.SpeedBotMecanumDrive;
-import org.firstinspires.ftc.teamcode.grabber.Grabber;
+import org.firstinspires.ftc.teamcode.drivetrain.MrRingsBotMecanumDrive;
+import org.firstinspires.ftc.teamcode.shooter.Grabber;
 
 import java.io.File;
 
 /**
- * This is the Speed Bot Chassis version used for development of the autonomous filter
+ * This is the Mr. Rings Bot for the 2020-2021 season
  * -------------------------------------------------
  * HUB Layout:
  * -------------------------------------------------
@@ -22,20 +22,20 @@ import java.io.File;
  * Port3:  right rear wheel hex motor "rr"
  *
  */
-public class BaseSpeedBot {
+public class MrRingsBot {
 
     protected OpMode mOpMode;
 
     private BNO055IMU mIMU;
     private boolean mIMUInitialized = false;
 
-    protected SpeedBotMecanumDrive mDrivetrain = null;
+    protected MrRingsBotMecanumDrive mDrivetrain = null;
 
     private Grabber mFrontHooks = null;
 
     private boolean mEnableIMU = false;
 
-    public BaseSpeedBot(OpMode opMode, boolean enableIMU){
+    public MrRingsBot(OpMode opMode, boolean enableIMU){
         this.mOpMode = opMode;
         mEnableIMU = enableIMU;
      }
@@ -96,7 +96,7 @@ public class BaseSpeedBot {
             }
         }
         try {
-            mDrivetrain = new SpeedBotMecanumDrive(mOpMode);
+            mDrivetrain = new MrRingsBotMecanumDrive(mOpMode);
             mDrivetrain.init(mOpMode.hardwareMap);
 
         }

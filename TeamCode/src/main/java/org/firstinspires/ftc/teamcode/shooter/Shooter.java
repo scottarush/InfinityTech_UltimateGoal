@@ -62,15 +62,24 @@ public class Shooter {
 
     private static final double LOADER_PULLY_POWER = 0.4d;
 
-    // Shooter wheel settings
-    public static final int SETTING_MIDFIELD_LOW = 0;
-    public static final int SETTING_MIDFIELD_HIGH = 1;
-    private int mShooterDistanceSetting = SETTING_MIDFIELD_HIGH;
+    /**
+     * Speed setting for dumping into the low goal from right by the low goal
+     */
+    public static final int SPEED_SETTING_DUMP = 0;
+    /**
+     * Speed setting for hitting the low goal from just behind the midfield white line.
+     */
+    public static final int SPEED_SETTING_MIDFIELD_LOW_GOAL = 1;
+    /*
+     * Speed setting for hitting the high goal from just behind the midfield white line.
+     */
+    public static final int SPEED_SETTING_MIDFIELD_HIGH_GOAL = 2;
+    private int mShooterDistanceSetting = SPEED_SETTING_MIDFIELD_HIGH_GOAL;
 
     // Shooter settings array in RPM
-    private static final int[] SHOOTER_SETTING_SPEEDS = new int[]{475, 800};
+    private static final int[] SHOOTER_SETTING_SPEEDS = new int[]{475,475, 800};
     // Spin offsets in total RPM, + is clockwise, - is counterclockwise
-    private static final int[] SHOOTER_SETTING_SPIN_OFFSET = new int[]{25,50};
+    private static final int[] SHOOTER_SETTING_SPIN_OFFSET = new int[]{25,25,50};
 
     // 1st order lag filter constant - same for both wheels
     private static final double SHOOTER_SPEED_LAG_FILTER_K = 1.0d;
