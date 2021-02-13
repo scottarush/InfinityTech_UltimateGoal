@@ -59,6 +59,8 @@ public class Grabber {
     // The initial position must be retracted at startup to keep it within the 18" cube
     private int mGrabberPosition = GRABBER_FULLY_RETRACTED;
 
+    private boolean mGrabberMoving = true;
+
     private double mGrabberPower = 1.0d;
 
     private Servo mLeftServo = null;
@@ -166,6 +168,19 @@ public class Grabber {
         // Check the limit switch and update the encoder the positions if pressed.
         checkLimitSwitch();
 
+        // Check if we are moving the grabber to a new position and if we have reached that
+        // new position, stop the movement
+        if (mGrabberMoving){
+            if (mGrabberMotor != null){
+                if (!mGrabberMotor.isBusy()){
+                    mGrabberMoving = false;
+                    // Reached destination
+                    mGrabberMotor.setPower(0d);  // Set power to 0 to brake
+                    // Not sure if this is necessary, but example shows it
+                    mGrabberMotor.setMode(DcMotor.RunMode.RUN_USING_ENCODER);
+                }
+            }
+        }
     }
 
     /**
@@ -200,6 +215,7 @@ public class Grabber {
         int targetCounts = mGrabberEncoderCounts[targetPosition];
 
         if (mGrabberMotor != null){
+            mGrabberMoving = true;
             mGrabberMotor.setTargetPosition(targetCounts);
             mGrabberMotor.setMode(DcMotor.RunMode.RUN_TO_POSITION);
             mGrabberMotor.setPower(mGrabberPower);
@@ -209,34 +225,6 @@ public class Grabber {
             // motor init error, can't move it
             return false;
         }
-    }
-
-    /**
-     * Advances the grabber to the next position up or down.
-     * @param up direction of next grabber position true toward RETRACTED, false is down toward LOWERED
-     */
-    public void nextGrabberPosition(boolean up){
-        if (up){
-            if (mGrabberPosition == GRABBER_FULLY_RETRACTED){
-                // Already there return
-                return;
-            }
-            else{
-                mGrabberPosition++;
-            }
-        }
-        else {
-            if (mGrabberPosition == GRABBER_LOWERED){
-                // Already there return
-                return;
-            }
-            else{
-                mGrabberPosition--;
-            }
-        }
-        // At this point, we need to move to the new position so just call the
-        // direct API
-        setGrabberPosition(mGrabberPosition);
     }
 
     /**
@@ -257,7 +245,7 @@ public class Grabber {
         setRightServoPosition(RIGHT_SERVO_CLOSED_POSITION);
     }
 
-    public void gotoGrabberWobblePosition(){
+    public void setGrabbleWobble(){
         setLeftServoPosition(LEFT_SERVO_WOBBLE_POSITION);
         setRightServoPosition(RIGHT_SERVO_WOBBLE_POSITION);
     }

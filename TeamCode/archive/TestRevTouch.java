@@ -1,4 +1,4 @@
-package org.firstinspires.ftc.teamcode.TestOpModes;
+package org.firstinspires.ftc.teamcode.TeleOpModes;
 import com.qualcomm.robotcore.eventloop.opmode.LinearOpMode;
 import com.qualcomm.robotcore.hardware.TouchSensor;
 import com.qualcomm.robotcore.eventloop.opmode.TeleOp;
