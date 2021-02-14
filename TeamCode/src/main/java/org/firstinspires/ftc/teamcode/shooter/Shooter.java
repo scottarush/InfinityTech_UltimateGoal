@@ -9,6 +9,7 @@ import com.qualcomm.robotcore.hardware.DcMotorSimple;
 import com.qualcomm.robotcore.hardware.HardwareMap;
 import com.qualcomm.robotcore.hardware.NormalizedRGBA;
 import com.qualcomm.robotcore.util.ElapsedTime;
+import com.qualcomm.hardware.rev.RevTouchSensor;
 
 import org.firstinspires.ftc.teamcode.util.LogFile;
 import org.firstinspires.ftc.teamcode.util.MiniPID;
@@ -36,6 +37,8 @@ public class Shooter {
     private MiniPID mRightMotorSpeedPID = null;
 
     private RevColorSensorV3 mPulleyColorSensor = null;
+    private RevTouchSensor mPulleyHighTouchSensor = null;
+    private RevTouchSensor mPulleyLowTouchSensor = null;
 
     private double mLeftWheelSpeed = 0d;
     private double mLeftRawSpeed = 0d;
@@ -155,7 +158,16 @@ public class Shooter {
         } catch (Exception e) {
             initErrString += ", pulley color sensor init err";
         }
-
+        try {
+            mPulleyHighTouchSensor = ahwMap.get(RevTouchSensor.class,"highlsw");
+        } catch (Exception e) {
+            initErrString += ", High Touch Sensor init err";
+        }
+        try {
+            mPulleyLowTouchSensor = ahwMap.get(RevTouchSensor.class,"lowlsw");
+        } catch (Exception e) {
+            initErrString += ", Low Touch Sensor init err";
+        }
         // open the log file if enabled
         if (LOGGING_ENABLED) {
             mLogFile = new LogFile(LOG_PATHNAME, LOG_FILENAME, LOG_COLUMNS);
@@ -305,27 +317,31 @@ public class Shooter {
         float hsvValues[] = new float[3];
         Color.colorToHSV(colors.toColor(), hsvValues);
         float hue = hsvValues[0];
+        // Read the touch sensors
+        boolean isLowTouchSensorPressed = mPulleyLowTouchSensor.isPressed();
+        boolean isHighTouchSensorPressed = mPulleyHighTouchSensor.isPressed();
         // Search for the position and trigger an event to the controller if it is a change
-        if (hue >= 125) {
-            // black tape in the middle
-            if (mLoaderPulleyCurrentPosition != LOADER_PULLEY_POSITION_MIDDLE) {
-                mLoaderPulleyCurrentPosition = LOADER_PULLEY_POSITION_MIDDLE;
-                mShooterController.evLoaderPulleyMiddle();
-            }
-        }
-        else if (hue >=75){
-            // yellow tape detection
-            if (mLoaderPulleyCurrentPosition != LOADER_PULLEY_POSITION_LOW) {
-                mLoaderPulleyCurrentPosition = LOADER_PULLEY_POSITION_LOW;
-                mShooterController.evLoaderPulleyLow();
-            }
-        } else {
-            // Must be the red
+        if (hue < 75 || isHighTouchSensorPressed) {
+            // Must be the red or High Touch Sensor Pressed
             if (mLoaderPulleyCurrentPosition != LOADER_PULLEY_POSITION_HIGH) {
                 mLoaderPulleyCurrentPosition = LOADER_PULLEY_POSITION_HIGH;
                 mShooterController.evLoaderPulleyHigh();
             }
+            else if (hue >=75 || isLowTouchSensorPressed){
+                // yellow tape detection or Low Touch Sensor Pressed
+                if (mLoaderPulleyCurrentPosition != LOADER_PULLEY_POSITION_LOW) {
+                    mLoaderPulleyCurrentPosition = LOADER_PULLEY_POSITION_LOW;
+                    mShooterController.evLoaderPulleyLow();
+                }
+            } else {
+                // black tape in the middle
+                if (mLoaderPulleyCurrentPosition != LOADER_PULLEY_POSITION_MIDDLE) {
+                    mLoaderPulleyCurrentPosition = LOADER_PULLEY_POSITION_MIDDLE;
+                    mShooterController.evLoaderPulleyMiddle();
+                }
+            }
         }
+
 
          // Now check if the current position matches the target position
         if (mLoaderPulleyCurrentPosition != mLoaderPulleyTargetPostion){
