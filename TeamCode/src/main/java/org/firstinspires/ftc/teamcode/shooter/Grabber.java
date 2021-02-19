@@ -172,12 +172,15 @@ public class Grabber {
         // new position, stop the movement
         if (mGrabberMoving){
             if (mGrabberMotor != null){
-                if (!mGrabberMotor.isBusy()){
-                    mGrabberMoving = false;
-                    // Reached destination
-                    mGrabberMotor.setPower(0d);  // Set power to 0 to brake
-                    // Not sure if this is necessary, but example shows it
-                    mGrabberMotor.setMode(DcMotor.RunMode.RUN_USING_ENCODER);
+                // TODO Can't call isBusy in RUN_USING_ENCODER but it shouldn't be that way here.  figure out why not
+                if (mGrabberMotor.getMode() == DcMotor.RunMode.RUN_TO_POSITION) {
+                    if (!mGrabberMotor.isBusy()) {
+                        mGrabberMoving = false;
+                        // Reached destination
+                        mGrabberMotor.setPower(0d);  // Set power to 0 to brake
+                        // Not sure if this is necessary, but example shows it
+                        mGrabberMotor.setMode(DcMotor.RunMode.RUN_USING_ENCODER);
+                    }
                 }
             }
         }

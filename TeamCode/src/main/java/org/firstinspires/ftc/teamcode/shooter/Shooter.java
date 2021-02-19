@@ -326,12 +326,16 @@ public class Shooter {
             if (mLoaderPulleyCurrentPosition != LOADER_PULLEY_POSITION_HIGH) {
                 mLoaderPulleyCurrentPosition = LOADER_PULLEY_POSITION_HIGH;
                 mShooterController.evLoaderPulleyHigh();
+                // Add call to stop
+                stopLoaderPulley();
             }
             else if (hue >=75 || isLowTouchSensorPressed){
                 // yellow tape detection or Low Touch Sensor Pressed
                 if (mLoaderPulleyCurrentPosition != LOADER_PULLEY_POSITION_LOW) {
                     mLoaderPulleyCurrentPosition = LOADER_PULLEY_POSITION_LOW;
                     mShooterController.evLoaderPulleyLow();
+                    // Add call to stop
+                    stopLoaderPulley();
                 }
             } else {
                 // black tape in the middle

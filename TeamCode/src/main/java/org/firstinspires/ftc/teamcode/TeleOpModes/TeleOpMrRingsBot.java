@@ -97,7 +97,7 @@ public class TeleOpMrRingsBot extends OpMode {
             }
             else {
                 // trigger the evActivate event to the shooter controller
-                mShooter.getShooterController().evActivate();
+                mShooter.activateShooter();
             }
         }
         // ------------------------------------------------------
@@ -167,23 +167,20 @@ public class TeleOpMrRingsBot extends OpMode {
         // ------------------------------------------------------
         // Grabber open close on gamepad 2 left bumper
         // ------------------------------------------------------
-        if (mPad2GrabberClampEdgeDetector.sampleRisingEdge(gamepad2.left_bumper)){
+        if (mPad2GrabberClampEdgeDetector.sampleRisingEdge(gamepad2.left_bumper)) {
             if (mGrabber.isGrabberOpen()) {
                 mGrabber.closeGrabber();
-            }
-            else{
+            } else {
                 mGrabber.openGrabber();
             }
 
-
-            // ------------------------------------------------------
+        }
+        // ------------------------------------------------------
         // End of controls now
         // ------------------------------------------------------
 
         // Call the shooter service loop
         mShooter.serviceShooterLoop();
-
-       }
         // Call the grabber loop
         mGrabber.loop();
     }
