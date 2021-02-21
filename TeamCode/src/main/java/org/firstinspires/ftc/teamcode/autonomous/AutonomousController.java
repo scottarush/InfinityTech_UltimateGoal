@@ -5,10 +5,17 @@ import com.qualcomm.robotcore.eventloop.opmode.OpMode;
 import org.firstinspires.ftc.teamcode.guidance.GuidanceController;
 import org.firstinspires.ftc.teamcode.guidance.IGuidanceControllerStatusListener;
 import org.firstinspires.ftc.teamcode.robot.MrRingsBot;
+import org.firstinspires.ftc.teamcode.shooter.Grabber;
+import org.firstinspires.ftc.teamcode.shooter.IShooterListener;
+import org.firstinspires.ftc.teamcode.shooter.Shooter;
 import org.firstinspires.ftc.teamcode.util.BaseStateMachineController;
 import org.firstinspires.ftc.teamcode.util.OneShotTimer;
 
-public class AutonomousController extends BaseStateMachineController implements IGuidanceControllerStatusListener {
+public class AutonomousController extends BaseStateMachineController
+        implements IShooterListener, IGuidanceControllerStatusListener {
+
+    public static final int DEMO_SEQUENCE = 0;
+    public static final int RINGS_SEQUENCE = 1;
 
     /**
      * Max rotation power.
@@ -18,9 +25,9 @@ public class AutonomousController extends BaseStateMachineController implements 
     /**
      * rotation timeout. same value used for all transitions
      */
-    private static final int ROTATION_TIMEOUTMS = 1000;
+    private static final int ROTATION_TIMEOUTMS = 2000;
 
-     private MrRingsBot mSpeedBot = null;
+    private MrRingsBot mRingsBot = null;
 
     private GuidanceController mGuidanceController;
 
@@ -30,24 +37,39 @@ public class AutonomousController extends BaseStateMachineController implements 
             transition("evRotationTimeoutError");
         }
     });
-      /**
+    /**
      * Constructor
      * @param opMode
-     * @param speedBot
+     * @param ringsBot
      */
     public AutonomousController(final OpMode opMode,
                                 GuidanceController guidanceController,
-                                MrRingsBot speedBot) {
+                                MrRingsBot ringsBot) {
         super(false);
         mGuidanceController = guidanceController;
-        mSpeedBot = speedBot;
+        mRingsBot = ringsBot;
 
         // initialize the base class
-        init(opMode,new FilterDevStateMachineContext(this));
+        init(opMode,new AutonomousStateMachineContext(this));
 
         mGuidanceController.addGuidanceControllerStatusListener(this);
-     }
 
+        mRingsBot.getShooter().addShooterListener(this);
+    }
+
+    /**
+     * starts the selected sequence.
+     */
+    public void startSequence(int sequence){
+        switch(sequence){
+            case RINGS_SEQUENCE:
+                transition("evStartRings");
+                break;
+            case DEMO_SEQUENCE:
+            default:
+                transition("evStartDemo");
+        }
+    }
 
     @Override
     public void rotationComplete() {
@@ -65,6 +87,11 @@ public class AutonomousController extends BaseStateMachineController implements 
     @Override
     public void moveComplete() {
         transition("evMoveComplete");
+    }
+
+    @Override
+    public void readyToShoot() {
+        transition("evReadyToShoot");
     }
 
     /**
@@ -108,34 +135,88 @@ public class AutonomousController extends BaseStateMachineController implements 
         mGuidanceController.strafe(meters,1.0d);
     }
 
+    /**
+     * Opens the grabber
+     */
+    public void openGrabber(){
+        mRingsBot.getGrabber().openGrabber();
+    }
+    /**
+     * Closes the grabber
+     */
+    public void closeGrabber(){
+        mRingsBot.getGrabber().closeGrabber();
+    }
+    /**
+     * Activates shooter
+     */
+    public void activateShooter(){
+        mRingsBot.getShooter().activateShooter();
+    }
+    /**
+     * Deactivates shooter
+     */
+    public void deactivateShooter(){
+        mRingsBot.getShooter().deactivateShooter();
+    }
 
     /**
-     * Called from the OpMode loop until the state machine reaches Success
+     * moves grabber to retracted position
      */
-    public void loop(){
-        // If we haven't started then kick if off.
-        boolean triggerStart = false;
-        if (mStateMachineContext != null){
-            if (((FilterDevStateMachineContext)mStateMachineContext).getState() ==
-                    FilterDevStateMachineContext.FilterDevStateMachine.Idle){
-                triggerStart = true;
-            }
-        }
-        // Start event depends upon the selected sequence
-        if (triggerStart){
-            transition("evStartDemo");
-        }
+    public void setGrabberRetracted(){
+        mRingsBot.getGrabber().setGrabberPosition(Grabber.GRABBER_FULLY_RETRACTED);
+    }
+    /**
+     * moves grabber to clear position
+     */
+    public void setGrabberClearPulley(){
+        mRingsBot.getGrabber().setGrabberPosition(Grabber.GRABBER_CLEAR_PULLEY);
+    }
+    /**
+     * moves grabber to lowered position
+     */
+    public void setGrabberLowered(){
+        mRingsBot.getGrabber().setGrabberPosition(Grabber.GRABBER_LOWERED);
+    }
+    /**
+     * moves grabber to carry position
+     */
+    public void setGrabberCarry(){
+        mRingsBot.getGrabber().setGrabberPosition(Grabber.GRABBER_CARRY);
+    }
 
-        // Service all the timers in order to trigger any timeout callbacks/events
-        serviceTimers();
-     }
+    /**
+     *
+     * Shoots a ring. Presumes that a ring has been loaded in the pulley
+     */
+    public void shootRing(){
+        mRingsBot.getShooter().shoot();
+    }
 
+    /**
+     * Returns true if ready to shoot, false if not for any reason
+     */
+    public boolean isShooterReady(){
+        return mRingsBot.getShooter().isShooterReady();
+    }
+    /**
+     * Sets the shooter distance to midfield high
+     */
+    public void setShooterDistanceMidfieldHighGoal(){
+        mRingsBot.getShooter().setShooterDistance(Shooter.SPEED_SETTING_MIDFIELD_HIGH_GOAL);
+    }
+    /**
+     * Sets the shooter distance to midfield low goal
+     */
+    public void setShooterDistanceMidfieldLowGoal(){
+        mRingsBot.getShooter().setShooterDistance(Shooter.SPEED_SETTING_MIDFIELD_LOW_GOAL);
+    }
 
-     /**
+    /**
      * Called from state machine to stop the robot
      */
     public void stop(){
-        mSpeedBot.getDrivetrain().stop();
+        mRingsBot.getDrivetrain().stop();
     }
 
 }

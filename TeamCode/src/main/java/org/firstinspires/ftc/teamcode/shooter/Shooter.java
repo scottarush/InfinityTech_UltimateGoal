@@ -3,16 +3,19 @@ package org.firstinspires.ftc.teamcode.shooter;
 import android.graphics.Color;
 
 import com.qualcomm.hardware.rev.RevColorSensorV3;
+import com.qualcomm.hardware.rev.RevTouchSensor;
 import com.qualcomm.robotcore.eventloop.opmode.OpMode;
 import com.qualcomm.robotcore.hardware.DcMotor;
 import com.qualcomm.robotcore.hardware.DcMotorSimple;
-import com.qualcomm.robotcore.hardware.HardwareMap;
+import com.qualcomm.robotcore.hardware.I2cDeviceSynchReadHistory;
 import com.qualcomm.robotcore.hardware.NormalizedRGBA;
 import com.qualcomm.robotcore.util.ElapsedTime;
-import com.qualcomm.hardware.rev.RevTouchSensor;
 
 import org.firstinspires.ftc.teamcode.util.LogFile;
 import org.firstinspires.ftc.teamcode.util.MiniPID;
+
+import java.util.ArrayList;
+import java.util.Iterator;
 
 /**
  * This class encapsulates the shooter and loader pulley.  It is primarily called by the ShooterController
@@ -22,13 +25,23 @@ public class Shooter {
 
     public static final boolean WHEEL_SPEED_TELEMETRY_ENABLED = false;
 
+    // delta RPM for acceptable shooting
+    public static final double DELTA_RPM_SHOOTING_WINDOW = 50d;
+
+    // Logging file setup for Shooter wheels
     public static final boolean LOGGING_ENABLED = false;
     public static final String LOG_PATHNAME = "/sdcard";
     public static final String LOG_FILENAME = "shooter.csv";
     public static final String[] LOG_COLUMNS = {"time", "left_set","left_raw","left_actual","left_pwrcmd","right_set","right_raw","right_actual","right_pwrcmd"};
     private LogFile mLogFile;
+
+    // Time variables
     private long mElapsedTimeNS = 0l;
-    private long mDeltat_ns = 0;
+    private boolean mInitElapsedTime = true;
+    private long mStartTimeNS = 0l;
+    private long mLastSystemTimeNS = 0l;
+    private long mDeltat_ns = 0l;
+
     // left motor is to the left when looking directly at the robot from the front and vice versa for right
     private DcMotor mLeftMotor = null;
     private DcMotor mRightMotor = null;
@@ -52,7 +65,6 @@ public class Shooter {
 
     private static final int NUM_ENCODER_COUNTS_PER_REV = 72;
     private static final double PER_NS_TO_PER_MINUTE = 1e9*60d;
-    private long mLastSystemTimeNS = 0;
 
     private DcMotor mLoaderPulley = null;
 
@@ -80,9 +92,9 @@ public class Shooter {
     private int mShooterDistanceSetting = SPEED_SETTING_MIDFIELD_HIGH_GOAL;
 
     // Shooter settings array in RPM
-    private static final int[] SHOOTER_SETTING_SPEEDS = new int[]{475,475, 800};
+    private static final int[] SHOOTER_SETTING_SPEEDS = new int[]{200,475, 800};
     // Spin offsets in total RPM, + is clockwise, - is counterclockwise
-    private static final int[] SHOOTER_SETTING_SPIN_OFFSET = new int[]{25,25,50};
+    private static final int[] SHOOTER_SETTING_SPIN_OFFSET = new int[]{12,25,50};
 
     // 1st order lag filter constant - same for both wheels
     private static final double SHOOTER_SPEED_LAG_FILTER_K = 1.0d;
@@ -102,10 +114,11 @@ public class Shooter {
     private static final double SPEED_INTEGRAL_GAIN = 0.0001d;
     private static final double SPEED_DERIVATIVE_GAIN = 0.0005d;
 
-    private IShooterController mShooterController = null;
+    private ShooterController mShooterController = null;
 
     private OpMode mOpMode = null;
 
+    private ArrayList<IShooterListener> mShooterListeners = new ArrayList<>();
     /**
      * Constructor
      * @param opMode needed for state machine logging in ShooterController
@@ -121,15 +134,11 @@ public class Shooter {
         mShooterController = new ShooterController(this,opMode);
     }
 
-    public IShooterController getShooterController(){
-        return mShooterController;
-    }
-
     // init the devices
-    public void init(HardwareMap ahwMap) throws Exception {
+    public void init() throws Exception {
         String initErrString = "";
         try {
-            mLeftMotor = ahwMap.get(DcMotor.class, "shooterL");
+            mLeftMotor = mOpMode.hardwareMap.get(DcMotor.class, "shooterL");
             mLeftMotor.setMode(DcMotor.RunMode.RUN_WITHOUT_ENCODER);
             // Float to reduce stress on output bearing
             mLeftMotor.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.FLOAT);
@@ -138,7 +147,7 @@ public class Shooter {
             initErrString += "Left Shooter Motor error";
         }
         try {
-            mRightMotor = ahwMap.get(DcMotor.class, "shooterR");
+            mRightMotor = mOpMode.hardwareMap.get(DcMotor.class, "shooterR");
             mRightMotor.setMode(DcMotor.RunMode.RUN_WITHOUT_ENCODER);
             mRightMotor.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.FLOAT);
             mRightMotor.setDirection(DcMotorSimple.Direction.REVERSE);
@@ -146,7 +155,7 @@ public class Shooter {
             initErrString += ", Right Shooter Motor error";
         }
         try {
-            mLoaderPulley = ahwMap.get(DcMotor.class, "loader");
+            mLoaderPulley = mOpMode.hardwareMap.get(DcMotor.class, "loader");
             mLoaderPulley.setMode(DcMotor.RunMode.RUN_USING_ENCODER);
             mLoaderPulley.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
             mLoaderPulley.setDirection(DcMotorSimple.Direction.FORWARD);
@@ -154,21 +163,21 @@ public class Shooter {
             initErrString += ", Loader Pulley Motor error";
         }
         try {
-            mPulleyColorSensor = ahwMap.get(RevColorSensorV3.class, "pulleyClr");
+            mPulleyColorSensor = mOpMode.hardwareMap.get(RevColorSensorV3.class, "pulleyClr");
         } catch (Exception e) {
             initErrString += ", pulley color sensor init err";
         }
         try {
-            mPulleyHighTouchSensor = ahwMap.get(RevTouchSensor.class,"highlsw");
+            mPulleyHighTouchSensor = mOpMode.hardwareMap.get(RevTouchSensor.class,"highlsw");
         } catch (Exception e) {
             initErrString += ", High Touch Sensor init err";
         }
         try {
-            mPulleyLowTouchSensor = ahwMap.get(RevTouchSensor.class,"lowlsw");
+            mPulleyLowTouchSensor = mOpMode.hardwareMap.get(RevTouchSensor.class,"lowlsw");
         } catch (Exception e) {
             initErrString += ", Low Touch Sensor init err";
         }
-        // open the log file if enabled
+         // open the log file if enabled
         if (LOGGING_ENABLED) {
             mLogFile = new LogFile(LOG_PATHNAME, LOG_FILENAME, LOG_COLUMNS);
             mLogFile.openFile();
@@ -176,8 +185,7 @@ public class Shooter {
         // Initialize set speeds
         setShooterDistance(mShooterDistanceSetting);
         if (initErrString.length() > 0) {
-            // TODO uncomment this after we fix the right motor
-//            throw new Exception(initErrString);
+            throw new Exception(initErrString);
         }
 
 
@@ -190,25 +198,32 @@ public class Shooter {
         if (LOGGING_ENABLED) {
             mLogFile.closeFile();
         }
+        stopLoaderPulley();
+        setWheelMotorPower(0d,0d);
     }
 
     /**
-     * Must be called from opmode loop to service PID speed control on the motors and
+     * Must be called from robot's/OpMode's loop to service PID speed control on the motors and
      * service the controller loop
      */
     public void serviceShooterLoop() {
         // Call the shooter controller loop first
         mShooterController.loop();
 
-        // Compute the delta since the last read
-        long systemTime = System.nanoTime();
-
-        // Compute the delta T and quantize to
-        mDeltat_ns = (int)(systemTime-mLastSystemTimeNS);
-        // Save time for next time
-        mLastSystemTimeNS = systemTime;
-        // And update the elapsed time for logging
-        mElapsedTimeNS += mDeltat_ns;
+        //  update the elapsed time for logging and compute the mDeltaT
+        if (mInitElapsedTime){
+            mElapsedTimeNS = 0l;
+            mStartTimeNS = System.nanoTime();
+            mLastSystemTimeNS = mStartTimeNS;
+            mDeltat_ns = 20000l;   // Initialize to dummy default of 20 ms for first iteration
+            mInitElapsedTime = false;
+        }
+        else {
+            // Just update the times
+            mElapsedTimeNS = System.nanoTime() - mStartTimeNS;
+            mDeltat_ns = System.nanoTime()-mLastSystemTimeNS;
+            mLastSystemTimeNS = System.nanoTime();
+        }
 
         // Now service the wheels
         serviceShooterWheels();
@@ -235,7 +250,7 @@ public class Shooter {
         // Convert to revolutions
         countsDelta = countsDelta / (double)NUM_ENCODER_COUNTS_PER_REV;
         // Divide by the delta and convert to Rev/Min
-        mLeftRawSpeed = countsDelta/ mDeltat_ns * PER_NS_TO_PER_MINUTE;
+        mLeftRawSpeed = countsDelta/ (double)mDeltat_ns * PER_NS_TO_PER_MINUTE;
         mLastLeftMotorPosition = position;
         // now filter by the lag filter
         mLeftWheelSpeed = mLeftRawSpeed * SHOOTER_SPEED_LAG_FILTER_K +
@@ -248,7 +263,7 @@ public class Shooter {
         // Convert to revolutions
         countsDelta = countsDelta / (double)NUM_ENCODER_COUNTS_PER_REV;
         // Divide by the delta and convert to Rev/Min
-        mRightRawSpeed = countsDelta/ mDeltat_ns * PER_NS_TO_PER_MINUTE;
+        mRightRawSpeed = countsDelta/ (double)mDeltat_ns * PER_NS_TO_PER_MINUTE;
         mLastRightMotorPosition = position;
         // now filter by the lag filter
         mRightWheelSpeed = mRightRawSpeed * SHOOTER_SPEED_LAG_FILTER_K +
@@ -263,7 +278,7 @@ public class Shooter {
             double right = mRightMotorSpeedPID.getOutput(mRightWheelSpeed, mRightWheelSetSpeed);
             setWheelMotorPower(left,right);
             // Compute and update the shooter ready status if it has changed
-            double delta = 100;
+            double delta = DELTA_RPM_SHOOTING_WINDOW;
             // compute thresholds for both wheels using the set speeds
             double highRightThreshold = mRightWheelSetSpeed+delta/2;
             double lowRightThreshold = mRightWheelSetSpeed-delta/2;
@@ -271,13 +286,14 @@ public class Shooter {
             double lowLeftThreshold = mLeftWheelSetSpeed-delta/2;
 
             // Now check if the filtered speeds are within the delta
-            boolean leftOK = checkSpeedThreshold(highLeftThreshold,lowLeftThreshold, mLeftWheelSpeed);
+            boolean leftOK = checkSpeedThreshold(lowLeftThreshold,highLeftThreshold, mLeftWheelSpeed);
             // TODO uncomment when we fix the right motor
             boolean rightOK = true;
-//            boolean rightOK = checkSpeedThreshold(highRightThreshold,lowRightThreshold, mRightWheelSpeed);
+//            boolean rightOK = checkSpeedThreshold(lowRightThreshold,highRightThreshold, mRightWheelSpeed);
             if (leftOK && rightOK) {
                 // shooter is ready.  trigger event to controller
                 mShooterController.evShooterSpeedReady();
+                notifyShooterReadyToShoot();
             }
             else{
                 // not ready.  call evActivate to wait until speed has stabilized again
@@ -317,32 +333,28 @@ public class Shooter {
         float hsvValues[] = new float[3];
         Color.colorToHSV(colors.toColor(), hsvValues);
         float hue = hsvValues[0];
-        // Read the touch sensors
-        boolean isLowTouchSensorPressed = mPulleyLowTouchSensor.isPressed();
-        boolean isHighTouchSensorPressed = mPulleyHighTouchSensor.isPressed();
-        // Search for the position and trigger an event to the controller if it is a change
-        if (hue < 75 || isHighTouchSensorPressed) {
-            // Must be the red or High Touch Sensor Pressed
+         // Search for the position and trigger an event to the controller if it is a change
+        if (mPulleyHighTouchSensor.isPressed()) {
             if (mLoaderPulleyCurrentPosition != LOADER_PULLEY_POSITION_HIGH) {
                 mLoaderPulleyCurrentPosition = LOADER_PULLEY_POSITION_HIGH;
                 mShooterController.evLoaderPulleyHigh();
+                 // Add call to stop
+                stopLoaderPulley();
+            }
+        }
+        else if (hue <=50 || mPulleyLowTouchSensor.isPressed()){
+            // red tape detection or Low Touch Sensor Pressed
+            if (mLoaderPulleyCurrentPosition != LOADER_PULLEY_POSITION_LOW) {
+                mLoaderPulleyCurrentPosition = LOADER_PULLEY_POSITION_LOW;
+                mShooterController.evLoaderPulleyLow();
                 // Add call to stop
                 stopLoaderPulley();
             }
-            else if (hue >=75 || isLowTouchSensorPressed){
-                // yellow tape detection or Low Touch Sensor Pressed
-                if (mLoaderPulleyCurrentPosition != LOADER_PULLEY_POSITION_LOW) {
-                    mLoaderPulleyCurrentPosition = LOADER_PULLEY_POSITION_LOW;
-                    mShooterController.evLoaderPulleyLow();
-                    // Add call to stop
-                    stopLoaderPulley();
-                }
-            } else {
-                // black tape in the middle
-                if (mLoaderPulleyCurrentPosition != LOADER_PULLEY_POSITION_MIDDLE) {
-                    mLoaderPulleyCurrentPosition = LOADER_PULLEY_POSITION_MIDDLE;
-                    mShooterController.evLoaderPulleyMiddle();
-                }
+        } else {
+            // must be on black tape in the middle
+            if (mLoaderPulleyCurrentPosition != LOADER_PULLEY_POSITION_MIDDLE) {
+                mLoaderPulleyCurrentPosition = LOADER_PULLEY_POSITION_MIDDLE;
+                mShooterController.evLoaderPulleyMiddle();
             }
         }
 
@@ -419,22 +431,22 @@ public class Shooter {
 
         return true;
     }
-    /**
-     * public function to set the speed to a specific RPM value.
-     * @param rpm center set speed
-     * @param spinOffset + is clockwise, - counterclockwise
-     **/
-    public void setShooterSpeed(int rpm,int spinOffset) {
-        // Compute the left and right speeds adding 1/2 the spinOffset to each
-        mRightWheelSetSpeed = rpm-spinOffset/2;
-        if (mRightWheelSetSpeed < 0) {
-            mRightWheelSetSpeed = 0;
-        }
-        mLeftWheelSetSpeed = rpm+spinOffset/2;
-        if (mLeftWheelSetSpeed < 0) {
-            mLeftWheelSetSpeed = 0;
-        }
-    }
+//    /**
+//     * public function to set the speed to a specific RPM value.
+//     * @param rpm center set speed
+//     * @param spinOffset + is clockwise, - counterclockwise
+//     **/
+//    public void setShooterSpeed(int rpm,int spinOffset) {
+//        // Compute the left and right speeds adding 1/2 the spinOffset to each
+//        mRightWheelSetSpeed = rpm-spinOffset/2;
+//        if (mRightWheelSetSpeed < 0) {
+//            mRightWheelSetSpeed = 0;
+//        }
+//        mLeftWheelSetSpeed = rpm+spinOffset/2;
+//        if (mLeftWheelSetSpeed < 0) {
+//            mLeftWheelSetSpeed = 0;
+//        }
+//    }
 
     /**
      * Returns current shooter speed.
@@ -538,6 +550,13 @@ public class Shooter {
         return mShooterController.isActivated();
     }
 
+    /**
+     * @return true if shooter ready to shooter
+     */
+    public boolean isShooterReady(){
+        return mShooterController.isShooterReady();
+    }
+
     private void logData(){
         // Now form the record for the log
         String[] logRecord = new String[LOG_COLUMNS.length];
@@ -556,4 +575,22 @@ public class Shooter {
         mLogFile.writeLogRow(logRecord);
     }
 
+    /**
+     * notifies listeners of shooter ready to shoot
+     */
+    private void notifyShooterReadyToShoot(){
+        for(Iterator<IShooterListener>iter=mShooterListeners.iterator();iter.hasNext();){
+            IShooterListener listener = iter.next();
+            listener.readyToShoot();
+        }
+    }
+    /**
+     * adds a listener for shooter status
+     */
+    public void addShooterListener(IShooterListener listener){
+        if (!mShooterListeners.contains(listener)){
+            mShooterListeners.add(listener);
+        }
+    }
 }
+

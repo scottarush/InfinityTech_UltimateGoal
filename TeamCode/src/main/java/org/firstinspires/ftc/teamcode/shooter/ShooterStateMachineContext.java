@@ -467,6 +467,13 @@ public class ShooterStateMachineContext
         }
 
         @Override
+        protected void evActivate(ShooterStateMachineContext context)
+        {
+
+            return;
+        }
+
+        @Override
         protected void evDeactivate(ShooterStateMachineContext context)
         {
 

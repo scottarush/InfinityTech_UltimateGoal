@@ -8,11 +8,11 @@ import org.firstinspires.ftc.teamcode.util.BaseStateMachineController;
  * this is the controller for the shooter state machine that coordinates the loading and firing for
  * the shooter
  */
-public class ShooterController extends BaseStateMachineController implements IShooterController {
+public class ShooterController extends BaseStateMachineController {
 
     private Shooter mShooter = null;
 
-    private static final boolean DEBUGGING_ENABLED = true;
+    private static final boolean DEBUGGING_ENABLED = false;
 
     public ShooterController(Shooter shooter, OpMode opMode) {
         super(DEBUGGING_ENABLED);
@@ -21,8 +21,6 @@ public class ShooterController extends BaseStateMachineController implements ISh
         init(opMode,new ShooterStateMachineContext(this));
     }
 
-
-    @Override
     public boolean isShooterReady() {
         ShooterStateMachineContext shooterContext = (ShooterStateMachineContext)mStateMachineContext;
         if (shooterContext.getState() == ShooterStateMachineContext.ShooterStateMachine.ReadyToShoot){
@@ -34,7 +32,6 @@ public class ShooterController extends BaseStateMachineController implements ISh
 
     }
 
-    @Override
     public void evShooterSpeedReady() {
         transition("evShooterSpeedReady");
     }
@@ -46,7 +43,6 @@ public class ShooterController extends BaseStateMachineController implements ISh
         transition("evActivate");
     }
 
-    @Override
     public boolean isActivated() {
         ShooterStateMachineContext shooterContext = (ShooterStateMachineContext)mStateMachineContext;
         if (shooterContext.getState() == ShooterStateMachineContext.ShooterStateMachine.Deactivated){
@@ -56,6 +52,7 @@ public class ShooterController extends BaseStateMachineController implements ISh
             return true;
         }
     }
+
 
     /**
      * called from opmodes to trigger the evDeactivate event
@@ -71,18 +68,15 @@ public class ShooterController extends BaseStateMachineController implements ISh
         transition("evShoot");
     }
 
-    @Override
     public void evLoaderPulleyHigh() {
         transition("evLoaderPulleyHigh");
     }
 
-    @Override
     public void evLoaderPulleyLow() {
         transition("evLoaderPulleyLow");
 
     }
 
-    @Override
     public void evLoaderPulleyMiddle() {
         transition("evLoaderPulleyMiddle");
     }
@@ -120,12 +114,5 @@ public class ShooterController extends BaseStateMachineController implements ISh
         mShooter.setLoaderPulleyPosition(Shooter.LOADER_PULLEY_POSITION_HIGH);
     }
 
-    /**
-     * called by state machine to determine if wheels are fast enough to shoot
-     */
-    public boolean shooterWheelsReady(){
-        // TODO Implement this
-        return true;
-    }
 
 }

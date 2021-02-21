@@ -59,6 +59,8 @@ import java.util.ArrayList;
  */
 public abstract class BaseMecanumDrive extends Drivetrain implements IGuidanceControllerCommandListener {
 
+    public static final boolean TELEMETRY_ENABLED = false;
+
     protected DcMotor mLFMotor = null;
     protected DcMotor mRFMotor = null;
     protected DcMotor mLRMotor = null;
@@ -399,9 +401,10 @@ public abstract class BaseMecanumDrive extends Drivetrain implements IGuidanceCo
             lrPower = lrPower / speedmax;
             rrPower = rrPower / speedmax;
         }
-          mOpMode.telemetry.addData("power","lf %1.2f rf %1.2f lr %1.2f rr %1.2f",lfPower,rfPower,lrPower,rrPower);
-          mOpMode.telemetry.update();
-
+        if (TELEMETRY_ENABLED) {
+            mOpMode.telemetry.addData("power", "lf %1.2f rf %1.2f lr %1.2f rr %1.2f", lfPower, rfPower, lrPower, rrPower);
+            mOpMode.telemetry.update();
+        }
         setPower(lfPower,rfPower,lrPower,rrPower);
     }
 
@@ -420,7 +423,7 @@ public abstract class BaseMecanumDrive extends Drivetrain implements IGuidanceCo
         if (mRFMotor != null)
             mRFMotor.setPower(rf);
         if (mLRMotor != null)
-        mLRMotor.setPower(lr);
+            mLRMotor.setPower(lr);
         if (mRRMotor != null)
             mRRMotor.setPower(rr);
     }

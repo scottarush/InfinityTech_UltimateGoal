@@ -3,7 +3,7 @@ package org.firstinspires.ftc.teamcode.guidance;
 public interface IGuidanceControllerStatusListener {
 
     /**
-     * called when a doRotation triggered rotation is complete.
+     * called when a rotation is complete.
      */
     void rotationComplete();
 

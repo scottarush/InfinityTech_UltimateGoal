@@ -1,1 +1,1 @@
-java -jar ../../../../../../../../lib/Smc.jar -java FilterDevStateMachine.sm
+java -jar ../../../../../../../../lib/Smc.jar -java AutonomousStateMachine.sm

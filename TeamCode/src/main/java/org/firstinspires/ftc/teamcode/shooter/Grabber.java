@@ -4,7 +4,6 @@ import com.qualcomm.hardware.rev.RevTouchSensor;
 import com.qualcomm.robotcore.eventloop.opmode.OpMode;
 import com.qualcomm.robotcore.hardware.DcMotor;
 import com.qualcomm.robotcore.hardware.DcMotorSimple;
-import com.qualcomm.robotcore.hardware.HardwareMap;
 import com.qualcomm.robotcore.hardware.Servo;
 
 import org.firstinspires.ftc.teamcode.util.EdgeDetector;
@@ -65,7 +64,6 @@ public class Grabber {
 
     private Servo mLeftServo = null;
     private Servo mRightServo = null;
-    private HardwareMap mHWMap = null;
 
     private DcMotor mGrabberMotor = null;
     private OpMode mOpMode = null;
@@ -84,31 +82,29 @@ public class Grabber {
     private double mRightServoPosition = RIGHT_SERVO_CLOSED_POSITION;
 
     public Grabber(OpMode opMode) {
-        opMode = mOpMode;
+        mOpMode = opMode;
     }
 
     /**
      * Initializes the grabber
-     * @param ahwMap hardwareMap
      * @throws Exception on any hardware detect error.
      */
-    public void init(HardwareMap ahwMap) throws Exception {
-        mHWMap = ahwMap;
+    public void init() throws Exception {
         String initErrString = "";
         try {
-            mLeftServo = mHWMap.get(Servo.class, "lgrabberservo");
+            mLeftServo = mOpMode.hardwareMap.get(Servo.class, "lgrabberservo");
             mLeftServo.setPosition(LEFT_SERVO_OPEN_POSITION);
         } catch (Exception e) {
-            initErrString += "left grabber servo err";
+            initErrString += ",left grabber servo err";
         }
         try {
-            mRightServo = mHWMap.get(Servo.class, "rgrabberservo");
+            mRightServo = mOpMode.hardwareMap.get(Servo.class, "rgrabberservo");
             mRightServo.setPosition(RIGHT_SERVO_OPEN_POSITION);
         } catch (Exception e) {
-            initErrString += "right grabber servo err";
+            initErrString += ", right grabber servo err";
         }
         try {
-            mGrabberMotor = mHWMap.get(DcMotor.class, "grabbermotor");
+            mGrabberMotor = mOpMode.hardwareMap.get(DcMotor.class, "grabbermotor");
             mGrabberMotor.setDirection(DcMotorSimple.Direction.REVERSE);
             mGrabberMotor.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
             mGrabberMotor.setMode(DcMotor.RunMode.RUN_USING_ENCODER);
@@ -121,12 +117,12 @@ public class Grabber {
             }
 
         } catch (Exception e) {
-            initErrString += "grabber motor error";
+            initErrString += ", grabber motor error";
         }
         try {
-            mLimitSwitch = mHWMap.get(RevTouchSensor.class, "grabberlsw");
+            mLimitSwitch = mOpMode.hardwareMap.get(RevTouchSensor.class, "grabberlsw");
         } catch (Exception e) {
-            initErrString += "grabber limit sw error";
+            initErrString += ", grabber limit sw error";
         }
 
         if (initErrString.length() > 0) {
@@ -164,7 +160,7 @@ public class Grabber {
     /**
      * must be called from OpMode loop function when using automatic mode.
      */
-    public void loop(){
+    public void serviceGrabberLoop(){
         // Check the limit switch and update the encoder the positions if pressed.
         checkLimitSwitch();
 

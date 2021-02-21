@@ -14,19 +14,15 @@ import java.util.ArrayList;
 import java.util.Iterator;
 
 public abstract class Drivetrain {
-    /* local OpMode members. */
-    public HardwareMap mHWMap = null;
-
     /** OpMode in order to access telemetry from subclasses. **/
     protected OpMode mOpMode;
 
 
+    /**
+     * Base class constructor calls child class init function after saving opmode
+     * @param opMode
+     */
     public Drivetrain(OpMode opMode) {
-        init(opMode);
-    }
-
-
-    private void init(OpMode opMode){
         this.mOpMode = opMode;
     }
 
@@ -34,7 +30,7 @@ public abstract class Drivetrain {
     /* Initialize standard Hardware interfaces.
      * NOTE:  This class throws Exception on any hardware initIMU error so be sure to catch and
      * report to Telemetry in your initialization. */
-    public abstract void init(HardwareMap ahwMap) throws Exception;
+    public abstract void init() throws Exception;
 
 
     /**
@@ -52,7 +48,7 @@ public abstract class Drivetrain {
     protected DcMotor tryMapMotor(String motorName) throws Exception {
         DcMotor motor = null;
         try {
-            motor = mHWMap.get(DcMotor.class, motorName);
+            motor = mOpMode.hardwareMap.get(DcMotor.class, motorName);
         }
         catch(Exception e){
             // Throw an exception for the caller to catch so we can debug.

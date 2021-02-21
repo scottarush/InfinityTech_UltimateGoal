@@ -53,6 +53,7 @@
         evLoaderPulleyLow ReadyToShoot { }
         // Shut it down
         evDeactivate Deactivated {}
+        evActivate nil { }
     }
 
 %%

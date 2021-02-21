@@ -55,7 +55,7 @@ public class TestTankDrive extends OpMode{
     public void init() {
         try{
            drivetrain = new MrRingsBotMecanumDrive(this);
-           drivetrain.init(hardwareMap);
+           drivetrain.init();
          }
         catch(Exception e){
             telemetry.addData("Robot Init Error","%s",e.getMessage());

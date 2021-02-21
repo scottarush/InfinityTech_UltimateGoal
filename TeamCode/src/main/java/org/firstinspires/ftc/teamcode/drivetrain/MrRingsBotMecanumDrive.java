@@ -46,15 +46,13 @@ public class MrRingsBotMecanumDrive extends BaseMecanumDrive {
 
     public MrRingsBotMecanumDrive(OpMode opMode){
         super(opMode);
+
     }
 
     /* Initialize standard Hardware interfaces.
      * NOTE:  This class throws Exception on any hardware initIMU error so be sure to catch and
      * report to Telemetry in your initialization. */
-    public void init(HardwareMap ahwMap) throws Exception {
-        // Save reference to Hardware map
-        mHWMap = ahwMap;
-
+    public void init() throws Exception {
         // Define and Initialize Motors
         String motorInitError = "";
         DcMotor motor = null;
@@ -62,7 +60,7 @@ public class MrRingsBotMecanumDrive extends BaseMecanumDrive {
             motor = tryMapMotor("lf");
 //            lfMotor = new WrappedDCMotor(motor,ENCODER_COUNTS_PER_MOTOR_SHAFT_ROTATION, PIMOTOR_KP, PIMOTOR_KI);
             mLFMotor = motor;
-            mLFMotor.setDirection(DcMotorSimple.Direction.FORWARD);
+            mLFMotor.setDirection(DcMotorSimple.Direction.REVERSE);
             mLFMotor.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
         }
         catch (Exception e){
@@ -70,9 +68,8 @@ public class MrRingsBotMecanumDrive extends BaseMecanumDrive {
         }
         try {
             motor = tryMapMotor("rf");
-//            rfMotor = new WrappedDCMotor(motor,ENCODER_COUNTS_PER_MOTOR_SHAFT_ROTATION, PIMOTOR_KP, PIMOTOR_KI);
             mRFMotor = motor;
-            mRFMotor.setDirection(DcMotorSimple.Direction.REVERSE);
+            mRFMotor.setDirection(DcMotorSimple.Direction.FORWARD);
             mRFMotor.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
 
         }
@@ -81,9 +78,8 @@ public class MrRingsBotMecanumDrive extends BaseMecanumDrive {
         }
         try {
             motor = tryMapMotor("lr");
-//            lrMotor = new WrappedDCMotor(motor,ENCODER_COUNTS_PER_MOTOR_SHAFT_ROTATION, PIMOTOR_KP, PIMOTOR_KI);
             mLRMotor = motor;
-            mLRMotor.setDirection(DcMotorSimple.Direction.FORWARD);
+            mLRMotor.setDirection(DcMotorSimple.Direction.REVERSE);
             mLRMotor.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
 
         }
@@ -92,9 +88,8 @@ public class MrRingsBotMecanumDrive extends BaseMecanumDrive {
         }
         try {
             motor = tryMapMotor("rr");
-//            rrMotor = new WrappedDCMotor(motor,ENCODER_COUNTS_PER_MOTOR_SHAFT_ROTATION, PIMOTOR_KP, PIMOTOR_KI);
             mRRMotor = motor;
-            mRRMotor.setDirection(DcMotorSimple.Direction.REVERSE);
+            mRRMotor.setDirection(DcMotorSimple.Direction.FORWARD);
             mRRMotor.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
 
         }

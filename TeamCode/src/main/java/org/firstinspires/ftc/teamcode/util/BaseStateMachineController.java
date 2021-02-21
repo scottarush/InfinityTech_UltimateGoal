@@ -43,6 +43,7 @@ public class BaseStateMachineController {
 
     public BaseStateMachineController(boolean debuggingEnabled){
         mDebuggingEnabled = debuggingEnabled;
+
     }
     /**
      * This method must be called by subclasses to service the common mTimer as well as
@@ -60,7 +61,6 @@ public class BaseStateMachineController {
      * by subclasses for additional functionality.
      */
     public void loop() {
-
         serviceTimers();
     }
     /**
@@ -112,7 +112,7 @@ public class BaseStateMachineController {
     /***
      * Needed to queue events into the state machine
      */
-    private static HashMap<String, Method> mTransition_map;
+    private HashMap<String, Method> mTransition_map;
     private LinkedList<String> mTransition_queue;
 
     /**

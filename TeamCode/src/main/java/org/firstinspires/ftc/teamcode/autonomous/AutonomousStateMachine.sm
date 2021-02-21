@@ -1,0 +1,69 @@
+%class AutonomousController
+%package org.firstinspires.ftc.teamcode.autonomous
+// http://smc.sourceforge.net/
+%start AutonomousStateMachine::Idle
+
+%map AutonomousStateMachine
+%%
+    Idle
+    {
+        evStartDemo jump(Demo::Start) { }
+    }
+%%
+
+    // StateMachine for Demo sequence
+%map Demo
+%%
+    Start
+        Entry {
+            // Move straight up to within 6" of the white line
+            moveStraight(-24d);
+        }
+    {
+        evMoveComplete ActivateShooter { }
+    }
+    Rotate
+        Entry {
+            rotateToHeading(180);
+        }
+    {
+        evRotationComplete ActivateShooter { }
+    }
+
+    ActivateShooter
+        Entry{
+            activateShooter();
+         }
+    {
+        evReadyToShoot Shooting {}
+    }
+
+    Shooting
+        Entry{
+            shootRing();
+            startTimer(3000);
+        }
+    {
+        evTimeout Shutdown {  }
+    }
+    Shutdown
+        Entry{
+            deactivateShooter();
+            startTimer(1000);
+        }
+    {
+    evTimeout Complete { }
+    }
+
+
+    /*
+    * Final state
+    */
+    Complete
+        Entry{
+            stop();
+        }
+    {
+
+    }
+%%

@@ -1,9 +1,11 @@
 package org.firstinspires.ftc.teamcode.ringdetect;
 
+import com.qualcomm.robotcore.eventloop.opmode.Disabled;
 import com.qualcomm.robotcore.eventloop.opmode.OpMode;
 import com.qualcomm.robotcore.eventloop.opmode.TeleOp;
 
 @TeleOp(name="RingDetectorTest", group="Robot")
+@Disabled
 public class RingDetectorTestOpMode extends OpMode {
 
     private int mRingDetectorConfiguration = RingDetectorNeuralNetwork.CONFIGURATION_CAMERA_ONLY;
@@ -78,7 +80,6 @@ public class RingDetectorTestOpMode extends OpMode {
          }
          **/
 
-        mRingDetector.serviceRingDetector();
 
         long startTime = System.currentTimeMillis();
         mLastResult = mRingDetector.doDetection();

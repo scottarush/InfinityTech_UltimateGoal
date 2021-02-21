@@ -3,6 +3,7 @@ package org.firstinspires.ftc.teamcode.ringdetect;
 import android.graphics.Bitmap;
 import android.os.Environment;
 
+import com.qualcomm.robotcore.eventloop.opmode.Disabled;
 import com.qualcomm.robotcore.eventloop.opmode.OpMode;
 import com.qualcomm.robotcore.eventloop.opmode.TeleOp;
 
@@ -13,7 +14,7 @@ import org.firstinspires.ftc.teamcode.util.ImageUtils;
 import java.io.File;
 
 @TeleOp(name="ImageCaptureOpMode", group="Robot")
-//@Disabled
+@Disabled
 public class ImageCaptureOpMode extends OpMode implements ICaptureCameraListener {
 
 
