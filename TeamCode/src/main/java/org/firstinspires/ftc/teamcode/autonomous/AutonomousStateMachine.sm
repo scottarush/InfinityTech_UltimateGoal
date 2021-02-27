@@ -8,9 +8,9 @@
     Idle
     {
         evStartDemo jump(Demo::Start) { }
+        evBlueAutonomous jump(BlueAutonomous::Start) { }
     }
 %%
-
     // StateMachine for Demo sequence
 %map Demo
 %%
@@ -63,6 +63,65 @@
         Entry{
             stop();
         }
+    {
+
+    }
+%%
+// StateMachine for Blue Autonomous sequence
+// Initial state:  Robot grabber end touching wall on right blue line.  Camera over top of blue line
+%map BlueAutonomous
+%%
+    Start
+    Entry {
+        // Move straight up 24 inches (backward
+        moveStraight(-24d);
+
+    }
+    {
+        evMoveComplete ShiftLeftToMeasureRings { }
+    }
+    ShiftLeftToMeasureRings
+        Entry {
+            strafe(11d);
+        }
+    {
+        evMoveComplete MeasureRings { }
+    }
+
+    MeasureRings
+    Entry{
+        startRingsMeasurement();
+    }
+    {
+        evNoRingsDetected DoNoRingSequence {}
+        evOneRingDetected StartOneRing {}
+        evFourRingsDetected DoFourRingsSequence {}
+    }
+    StartOneRing
+    Entry{
+        // Strafe right (while facing backward) 24 inches
+        strafe(-24d);
+    }
+    {
+        evMoveComplete OneRingForwardToPowerShot { }
+    }
+    OneRingForwardToPowerShot
+    Entry{
+        // move forward (while facing backward) to the white line to
+        moveStraight(-36d);
+    }
+    {
+        evMoveComplete nil { shootRing();
+                             startTimer(1000d); }
+        evTimeout
+    }
+    /*
+    * Final state
+    */
+    End
+        Entry{
+        stop();
+    }
     {
 
     }

@@ -4,6 +4,8 @@ import com.qualcomm.robotcore.eventloop.opmode.OpMode;
 
 import org.firstinspires.ftc.teamcode.guidance.GuidanceController;
 import org.firstinspires.ftc.teamcode.guidance.IGuidanceControllerStatusListener;
+import org.firstinspires.ftc.teamcode.ringdetect.RingDetector;
+import org.firstinspires.ftc.teamcode.ringdetect.RingDetectorNeuralNetwork;
 import org.firstinspires.ftc.teamcode.robot.MrRingsBot;
 import org.firstinspires.ftc.teamcode.shooter.Grabber;
 import org.firstinspires.ftc.teamcode.shooter.IShooterListener;
@@ -133,6 +135,28 @@ public class AutonomousController extends BaseStateMachineController
     public void strafe(double distance) {
         double meters = distance / 39.37d;
         mGuidanceController.strafe(meters,1.0d);
+    }
+
+    /**
+     * Called to start a ring measurement.  RingDetector will trigger
+     * a RingD
+     */
+    public int startRingsMeasurement(){
+        // TODO call the ring detector to start an averaging measurement
+        return RingDetectorNeuralNetwork.LABEL_NO_RING;
+    }
+
+    /**
+     * Called to activate the ring detector.
+     */
+    public void activateRingDetector(){
+
+    }
+    /**
+     * Called to deactivate the ring detector.
+     */
+    public void deactivateRingDetector(){
+
     }
 
     /**

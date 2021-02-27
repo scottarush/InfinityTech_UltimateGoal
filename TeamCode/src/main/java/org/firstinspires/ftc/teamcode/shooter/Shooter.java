@@ -23,7 +23,7 @@ import java.util.Iterator;
  */
 public class Shooter {
 
-    public static final boolean WHEEL_SPEED_TELEMETRY_ENABLED = false;
+    public static final boolean WHEEL_SPEED_TELEMETRY_ENABLED = true;
 
     // delta RPM for acceptable shooting
     public static final double DELTA_RPM_SHOOTING_WINDOW = 50d;
@@ -92,7 +92,8 @@ public class Shooter {
     private int mShooterDistanceSetting = SPEED_SETTING_MIDFIELD_HIGH_GOAL;
 
     // Shooter settings array in RPM
-    private static final int[] SHOOTER_SETTING_SPEEDS = new int[]{200,475, 800};
+    private static final int[] SHOOTER_SETTING_SPEEDS = new int[]{200,500,650};
+
     // Spin offsets in total RPM, + is clockwise, - is counterclockwise
     private static final int[] SHOOTER_SETTING_SPIN_OFFSET = new int[]{12,25,50};
 
@@ -288,8 +289,7 @@ public class Shooter {
             // Now check if the filtered speeds are within the delta
             boolean leftOK = checkSpeedThreshold(lowLeftThreshold,highLeftThreshold, mLeftWheelSpeed);
             // TODO uncomment when we fix the right motor
-            boolean rightOK = true;
-//            boolean rightOK = checkSpeedThreshold(lowRightThreshold,highRightThreshold, mRightWheelSpeed);
+               boolean rightOK = checkSpeedThreshold(lowRightThreshold,highRightThreshold, mRightWheelSpeed);
             if (leftOK && rightOK) {
                 // shooter is ready.  trigger event to controller
                 mShooterController.evShooterSpeedReady();
@@ -487,7 +487,6 @@ public class Shooter {
         }
         if (mRightMotor != null){
             mRightMotor.setPower(rightPower);
-            mRightMotor.setPower(0d);
         }
     }
 
