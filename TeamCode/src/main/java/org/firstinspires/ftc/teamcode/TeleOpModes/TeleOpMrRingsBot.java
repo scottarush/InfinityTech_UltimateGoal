@@ -30,6 +30,7 @@ public class TeleOpMrRingsBot extends OpMode {
     private EdgeDetector mPad2ActivateButtonEdgeDetector = new EdgeDetector();
 
     private EdgeDetector mPad1PulleyOverrideButtonEdgeDetector = new EdgeDetector();
+    private EdgeDetector mPad1GrabberClampEdgeDetector = new EdgeDetector();
 
     private EdgeDetector mPad1ShootButtonEdgeDetector = new EdgeDetector();
     private EdgeDetector mPad2ShootButtonEdgeDetector = new EdgeDetector();
@@ -86,10 +87,11 @@ public class TeleOpMrRingsBot extends OpMode {
         // Do tank mode drive read on gamepad1.
         // ------------------------------------------------------
         // Run wheels in tank mode (note: The joystick goes negative when pushed forwards, so negate it)
-        double xleft = gamepad1.left_stick_x;
-        double yleft = -gamepad1.left_stick_y;
-        double xright = gamepad1.right_stick_x;
-        double yright = -gamepad1.right_stick_y;
+        // Feb 28: turning in tank mode seems to be reversed.  Changed xleft & xright to - stick
+        double xleft = -gamepad1.left_stick_x;
+        double yleft = gamepad1.left_stick_y;
+        double xright = -gamepad1.right_stick_x;
+        double yright = gamepad1.right_stick_y;
 
         // the speeds with the new gamepad inputs
         mRingsBot.getDrivetrain().setTankDriveJoystickInput(xleft,yleft,xright,yright);
@@ -153,6 +155,9 @@ public class TeleOpMrRingsBot extends OpMode {
         // ------------------------------------------------------
         // Manual pully override on gamepad1 left bumper
         // ------------------------------------------------------
+
+        // Temporarily disable, make gamepad1.left_bumper the same as gamepad2
+        /*
         if (mPad1PulleyOverrideButtonEdgeDetector.sampleRisingEdge(gamepad1.left_bumper)){
             // Toggle the pulley position
             switch (mRingsBot.getShooter().getLoaderPulleyPosition()) {
@@ -171,10 +176,12 @@ public class TeleOpMrRingsBot extends OpMode {
                     break;
             }
         }
+        */
+
         // ------------------------------------------------------
         // Grabber open close on gamepad 2 left bumper
         // ------------------------------------------------------
-        if (mPad2GrabberClampEdgeDetector.sampleRisingEdge(gamepad2.left_bumper)) {
+        if (mPad2GrabberClampEdgeDetector.sampleRisingEdge(gamepad2.left_bumper) || mPad1GrabberClampEdgeDetector.sampleRisingEdge(gamepad1.left_bumper)) {
             if (mRingsBot.getGrabber().isGrabberOpen()) {
                 mRingsBot.getGrabber().closeGrabber();
             } else {
