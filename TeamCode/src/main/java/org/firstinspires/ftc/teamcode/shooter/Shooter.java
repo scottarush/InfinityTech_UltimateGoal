@@ -91,11 +91,18 @@ public class Shooter {
     public static final int SPEED_SETTING_MIDFIELD_HIGH_GOAL = 2;
     private int mShooterDistanceSetting = SPEED_SETTING_MIDFIELD_HIGH_GOAL;
 
+    /**
+     * From 04MAR21 Meeting, here are the best values all from the white line:
+     * High goal:  665 w/o spin
+     * Mid goal:  600 w/o spin
+     * Power shot:  630 w/ 50 rpm clockwise spin
+     * Low goal:  300 w/o spin
+     */
     // Shooter settings array in RPM
-    private static final int[] SHOOTER_SETTING_SPEEDS = new int[]{200,500,650};
+    private static final int[] SHOOTER_SETTING_SPEEDS = new int[]{600,630,665};
 
     // Spin offsets in total RPM, + is clockwise, - is counterclockwise
-    private static final int[] SHOOTER_SETTING_SPIN_OFFSET = new int[]{12,25,50};
+    private static final int[] SHOOTER_SETTING_SPIN_OFFSET = new int[]{0,50,0};
 
     // 1st order lag filter constant - same for both wheels
     private static final double SHOOTER_SPEED_LAG_FILTER_K = 1.0d;
