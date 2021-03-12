@@ -3,63 +3,112 @@
 // http://smc.sourceforge.net/
 %start AutonomousStateMachine::Idle
 
+// StateMachine for Autonomous sequence
+// 1.  Wobble goal is hanging off robot hld by gripper
+// 2. Touching the wall
 %map AutonomousStateMachine
 %%
     Idle
     {
-        evStartDemo jump(Demo::Start) { }
-        evBlueAutonomous jump(BlueAutonomous::Start) { }
+        evStart Start { }
     }
-%%
-    // StateMachine for Demo sequence
-%map Demo
-%%
+    // Start of moving to measure the rings
+    // then jump to the specific sequence for the ring condition.
     Start
         Entry {
-            // Move straight up to within 6" of the white line
-            moveStraight(-24d);
+            // Move forward to within 6" of the rings
+            moveStraight(+22d);
         }
     {
-        evMoveComplete ActivateShooter { }
+        // On move complete, go to measure the ring
+        evMoveComplete MeasureRing {  }
     }
-    Rotate
+
+    MeasureRing
         Entry {
-            rotateToHeading(180);
-        }
-    {
-        evRotationComplete ActivateShooter { }
-    }
-
-    ActivateShooter
-        Entry{
-            activateShooter();
-         }
-    {
-        evReadyToShoot Shooting {}
-    }
-
-    Shooting
-        Entry{
-            shootRing();
+            // Activate the ring detector on entry
+ //           activateRingDetector();
+            // Start a failsoft timer after 5 seconds and default to 4 rings
             startTimer(3000);
         }
-    {
-        evTimeout Shutdown {  }
-    }
-    Shutdown
-        Entry{
-            deactivateShooter();
-            startTimer(1000);
+        Exit {
+            // Shut off the ring detector since we don't need it any more.
+ //           deactivateRingDetector();
         }
     {
-    evTimeout Complete { }
+        evNoRings jump(NoRingSequence::Start) { }
+        evTimeoutComplete jump(NoRingSequence:Start) { }
+//        evOneRing jump(OneSequence::Start)  { }
+//        evFourRings jump(FourRingsSequence::Start) { }
+    }
+%%
+
+// Sub-sequence for NoRingSequence where we have to drop the wobble goal
+// in Square A.
+%map NoRingSequence
+%%
+    Start
+        Entry{
+            // Move straight 40" to the center line.
+            moveStraight(+49d);
+        }
+    {
+        evMoveComplete RotateToSquareA { }
     }
 
+    RotateToSquareA
+        Entry{
+            rotateToHeading(+90);
+        }
+    {
+        evRotationComplete nil { moveStraight(+6d); }
 
+        // Once the move is complete, then just release the grabber to drop
+        // the wobble goal in the square and wait for 1/2 second before
+        // moving away to shoot the ring.
+        evMoveComplete nil { releaseGrabber();
+                          startTimer(500);  }
+        // After the dleay, activate the shooter to get the wheels moving (now that
+        // the wobble goal is out of the way), then move and shoot the power shot
+        evTimeoutComplete RotateToPowerShot { activateShooter(); }
+    }
+
+    RotateToPowerShot
+        Entry {
+            // Move backward 36 inches
+            moveStraight(-36d);
+        }
+    {
+        // After backward move, then rotate back to heading 0
+        evMoveComplete nil { rotateToHeading(0); }
+        // After rotation complete, then move and shoot
+        evRotationComplete ShootPowerShot {}
+    }
+
+    ShootPowerShot
+        Entry{
+            // Back up to behind the white line
+            moveStraight(-12d);
+        }
+    {
+        // After backup complete, then shoot and start a 2 second timer before moving to the white
+        // line
+        evMoveComplete nil { shootRing();  startTimer(2000); }
+
+        // After timer complets, sho, move forward 12" to park over the white line and go to end state
+        evTimeoutComplete MoveToWhiteLine { }
+    }
+    MoveToWhiteLine
+        Entry{
+            moveStraight(12d);
+        }
+    {
+        evMoveComplete Stop { }
+    }
     /*
     * Final state
     */
-    Complete
+    Stop
         Entry{
             stop();
         }
@@ -67,62 +116,4 @@
 
     }
 %%
-// StateMachine for Blue Autonomous sequence
-// Initial state:  Robot grabber end touching wall on right blue line.  Camera over top of blue line
-%map BlueAutonomous
-%%
-    Start
-    Entry {
-        // Move straight up 24 inches (backward
-        moveStraight(-24d);
 
-    }
-    {
-        evMoveComplete ShiftLeftToMeasureRings { }
-    }
-    ShiftLeftToMeasureRings
-        Entry {
-            strafe(11d);
-        }
-    {
-        evMoveComplete MeasureRings { }
-    }
-
-    MeasureRings
-    Entry{
-        startRingsMeasurement();
-    }
-    {
-        evNoRingsDetected DoNoRingSequence {}
-        evOneRingDetected StartOneRing {}
-        evFourRingsDetected DoFourRingsSequence {}
-    }
-    StartOneRing
-    Entry{
-        // Strafe right (while facing backward) 24 inches
-        strafe(-24d);
-    }
-    {
-        evMoveComplete OneRingForwardToPowerShot { }
-    }
-    OneRingForwardToPowerShot
-    Entry{
-        // move forward (while facing backward) to the white line to
-        moveStraight(-36d);
-    }
-    {
-        evMoveComplete nil { shootRing();
-                             startTimer(1000d); }
-        evTimeout
-    }
-    /*
-    * Final state
-    */
-    End
-        Entry{
-        stop();
-    }
-    {
-
-    }
-%%
