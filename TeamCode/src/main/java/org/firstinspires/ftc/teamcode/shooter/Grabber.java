@@ -93,13 +93,13 @@ public class Grabber {
         String initErrString = "";
         try {
             mLeftServo = mOpMode.hardwareMap.get(Servo.class, "lgrabberservo");
-            mLeftServo.setPosition(LEFT_SERVO_OPEN_POSITION);
+            mLeftServo.setPosition(LEFT_SERVO_CLOSED_POSITION);
         } catch (Exception e) {
             initErrString += ",left grabber servo err";
         }
         try {
             mRightServo = mOpMode.hardwareMap.get(Servo.class, "rgrabberservo");
-            mRightServo.setPosition(RIGHT_SERVO_OPEN_POSITION);
+            mRightServo.setPosition(RIGHT_SERVO_CLOSED_POSITION);
         } catch (Exception e) {
             initErrString += ", right grabber servo err";
         }
