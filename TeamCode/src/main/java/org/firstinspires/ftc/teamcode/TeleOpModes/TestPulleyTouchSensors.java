@@ -61,7 +61,7 @@ public class TestPulleyTouchSensors extends LinearOpMode {
 
 
         mPulleyHighTouchSensor = hardwareMap.get(RevTouchSensor.class, "highlsw");
-        mPulleyLowTouchSensor = hardwareMap.get(RevTouchSensor.class,"lowlsw");
+        // mPulleyLowTouchSensor = hardwareMap.get(RevTouchSensor.class,"lowlsw");
 
         // Wait for the start button
         telemetry.addData(">", "Press Start to test Touch Sensors" );

@@ -72,10 +72,23 @@ public class Shooter {
     public static final int LOADER_PULLEY_POSITION_LOW = 0;
     public static final int LOADER_PULLEY_POSITION_MIDDLE = 1;
     public static final int LOADER_PULLEY_POSITION_HIGH = 2;
+
+    // Loader pulley state enumeration
+    public static final int LOADER_PULLEY_STATE_READY = 0;
+    public static final int LOADER_PULLEY_STATE_SHOOTING = 1;
+    public static final int LOADER_PULLEY_STATE_SHOT = 2;
+    public static final int LOADER_PULLEY_STATE_RETURNING = 3;
+    private int mLoaderPulleyState;
+
     private int mLoaderPulleyCurrentPosition = LOADER_PULLEY_POSITION_LOW;
     private int mLoaderPulleyTargetPostion = LOADER_PULLEY_POSITION_LOW;
 
     private static final double LOADER_PULLY_POWER = 0.4d;
+
+    private int mLoaderPulleyEncoderValueLow = 0;
+    private int mLoaderPulleyEncoderValueHigh = 145;
+    private int mLoaderPulleyEncoderValueCurrent;
+    private double power = 0.5;
 
     /**
      * Speed setting for dumping into the low goal from right by the low goal
@@ -164,9 +177,17 @@ public class Shooter {
         }
         try {
             mLoaderPulley = mOpMode.hardwareMap.get(DcMotor.class, "loader");
-            mLoaderPulley.setMode(DcMotor.RunMode.RUN_USING_ENCODER);
             mLoaderPulley.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
-            mLoaderPulley.setDirection(DcMotorSimple.Direction.FORWARD);
+            // Set initial state
+            mLoaderPulley.setMode(DcMotor.RunMode.STOP_AND_RESET_ENCODER);
+            // with motor stopped and encoder set to zero, set the EncoderValueLow variable
+            mLoaderPulleyEncoderValueCurrent = mLoaderPulley.getCurrentPosition();
+            mLoaderPulleyEncoderValueLow = mLoaderPulleyEncoderValueCurrent;
+            //
+            mLoaderPulley.setDirection(DcMotor.Direction.REVERSE);
+            mLoaderPulley.setTargetPosition(mLoaderPulleyEncoderValueLow);
+            mLoaderPulley.setMode(DcMotor.RunMode.RUN_USING_ENCODER);
+            mLoaderPulleyState = LOADER_PULLEY_STATE_READY;
         } catch (Exception e) {
             initErrString += ", Loader Pulley Motor error";
         }
@@ -236,7 +257,8 @@ public class Shooter {
         // Now service the wheels
         serviceShooterWheels();
         // And the pulley
-        serviceLoaderPulley();
+        // Changed to New code:
+        serviceLoaderPulleyNew();
 
         // And log data for this cycle if enabled
         if (LOGGING_ENABLED){
@@ -295,8 +317,7 @@ public class Shooter {
 
             // Now check if the filtered speeds are within the delta
             boolean leftOK = checkSpeedThreshold(lowLeftThreshold,highLeftThreshold, mLeftWheelSpeed);
-            // TODO uncomment when we fix the right motor
-               boolean rightOK = checkSpeedThreshold(lowRightThreshold,highRightThreshold, mRightWheelSpeed);
+            boolean rightOK = checkSpeedThreshold(lowRightThreshold,highRightThreshold, mRightWheelSpeed);
             if (leftOK && rightOK) {
                 // shooter is ready.  trigger event to controller
                 mShooterController.evShooterSpeedReady();
@@ -331,40 +352,88 @@ public class Shooter {
         return mLoaderPulleyCurrentPosition;
     }
 
+    private void serviceLoaderPulleyNew(){
+        // Read the pulley motor encoder value
+        mLoaderPulleyEncoderValueCurrent = mLoaderPulley.getCurrentPosition();
+
+        switch (mLoaderPulleyState){
+            case LOADER_PULLEY_STATE_READY:
+                if (mLoaderPulleyCurrentPosition == LOADER_PULLEY_POSITION_LOW && mLoaderPulleyTargetPostion == LOADER_PULLEY_POSITION_HIGH) {
+                    // shoot();
+                    mLoaderPulley.setDirection(DcMotorSimple.Direction.REVERSE);
+                    mLoaderPulley.setTargetPosition(mLoaderPulleyEncoderValueHigh);
+                    mLoaderPulley.setMode(DcMotor.RunMode.RUN_TO_POSITION);
+                    mLoaderPulley.setPower(power);
+                    mLoaderPulleyState = LOADER_PULLEY_STATE_SHOOTING;
+                    mShooterController.evLoaderPulleyMiddle();
+                }
+                break;
+            case LOADER_PULLEY_STATE_SHOOTING:
+                if (mPulleyHighTouchSensor.isPressed() || !mLoaderPulley.isBusy()) {
+                    // shot
+                    mLoaderPulley.setPower(0.0);
+                    mLoaderPulleyState = LOADER_PULLEY_STATE_SHOT;
+                    mShooterController.evLoaderPulleyHigh();
+                }
+                break;
+            case LOADER_PULLEY_STATE_SHOT:
+                mLoaderPulleyTargetPostion = LOADER_PULLEY_POSITION_LOW;
+                mLoaderPulley.setDirection(DcMotorSimple.Direction.FORWARD);
+                mLoaderPulley.setTargetPosition(mLoaderPulleyEncoderValueLow);
+                mLoaderPulley.setMode(DcMotor.RunMode.RUN_TO_POSITION);
+                mLoaderPulley.setPower(power);
+                mLoaderPulleyState = LOADER_PULLEY_STATE_RETURNING;
+                mShooterController.evLoaderPulleyMiddle();
+                break;
+            case LOADER_PULLEY_STATE_RETURNING:
+                if (!mLoaderPulley.isBusy()) {
+                    mLoaderPulley.setPower(0.0);
+                    mLoaderPulleyState = LOADER_PULLEY_STATE_READY;
+                    mShooterController.evLoaderPulleyLow();
+                }
+                break;
+            default:
+                break;
+        }
+
+    }
+
     /**
      * services the loader pulley.  Must be called once per loop from the serviceShooterLoop.
      */
     private void serviceLoaderPulley(){
+
+        // Read the pulley motor encoder value
+        mLoaderPulleyEncoderValueCurrent = mLoaderPulley.getCurrentPosition();
+
         // Read the pulley color sensor
         NormalizedRGBA colors = mPulleyColorSensor.getNormalizedColors();
         float hsvValues[] = new float[3];
         Color.colorToHSV(colors.toColor(), hsvValues);
         float hue = hsvValues[0];
-         // Search for the position and trigger an event to the controller if it is a change
-        if (mPulleyHighTouchSensor.isPressed()) {
-            if (mLoaderPulleyCurrentPosition != LOADER_PULLEY_POSITION_HIGH) {
-                mLoaderPulleyCurrentPosition = LOADER_PULLEY_POSITION_HIGH;
-                mShooterController.evLoaderPulleyHigh();
-                 // Add call to stop
-                stopLoaderPulley();
-            }
-        }
-        else if (hue <=50 || mPulleyLowTouchSensor.isPressed()){
-            // red tape detection or Low Touch Sensor Pressed
-            if (mLoaderPulleyCurrentPosition != LOADER_PULLEY_POSITION_LOW) {
-                mLoaderPulleyCurrentPosition = LOADER_PULLEY_POSITION_LOW;
-                mShooterController.evLoaderPulleyLow();
-                // Add call to stop
-                stopLoaderPulley();
-            }
-        } else {
-            // must be on black tape in the middle
-            if (mLoaderPulleyCurrentPosition != LOADER_PULLEY_POSITION_MIDDLE) {
-                mLoaderPulleyCurrentPosition = LOADER_PULLEY_POSITION_MIDDLE;
-                mShooterController.evLoaderPulleyMiddle();
-            }
-        }
 
+        // Search for the position and trigger an event to the controller if it is a change
+        // High Touch Sensor is Pressed
+        if (isLoaderPulleyMoving()) {
+            if (mPulleyHighTouchSensor.isPressed()) {
+                if (mLoaderPulleyCurrentPosition != LOADER_PULLEY_POSITION_HIGH) {
+                    mLoaderPulleyCurrentPosition = LOADER_PULLEY_POSITION_HIGH;
+                    mLoaderPulleyEncoderValueHigh = mLoaderPulleyEncoderValueCurrent;
+                    // Trigger the event
+                    mShooterController.evLoaderPulleyHigh();
+                    // Stop the pulley
+                    stopLoaderPulley();
+                    // Call return to Low Position
+                    goToLoaderPulleyPositionLow();
+                } else {
+                    // must be on black tape in the middle
+                    if (mLoaderPulleyCurrentPosition != LOADER_PULLEY_POSITION_MIDDLE) {
+                        mLoaderPulleyCurrentPosition = LOADER_PULLEY_POSITION_MIDDLE;
+                        mShooterController.evLoaderPulleyMiddle();
+                    }
+                }
+            }
+        }
 
          // Now check if the current position matches the target position
         if (mLoaderPulleyCurrentPosition != mLoaderPulleyTargetPostion){
@@ -392,7 +461,7 @@ public class Shooter {
         else{
             // Stop the motor
             if (mLoaderPulley != null) {
-                mLoaderPulley.setPower(0d);
+                stopLoaderPulley();
             }
         }
     }
@@ -473,6 +542,7 @@ public class Shooter {
      * triggers an automated shooter
      */
     public void shoot(){
+        mLoaderPulleyTargetPostion = LOADER_PULLEY_POSITION_HIGH;
         mShooterController.evShoot();
     }
 
@@ -539,12 +609,24 @@ public class Shooter {
             mLoaderPulley.setPower(0d);
         }
     }
+    /*
+        Return loader pulley to LOW position
+     */
+    public void goToLoaderPulleyPositionLow(){
+        if (mLoaderPulley != null){
+            mLoaderPulleyTargetPostion = LOADER_PULLEY_POSITION_LOW;
+            mLoaderPulley.setDirection(DcMotorSimple.Direction.FORWARD);
+            mLoaderPulley.setTargetPosition(mLoaderPulleyEncoderValueLow);
+            mLoaderPulley.setMode(DcMotor.RunMode.RUN_TO_POSITION);
+            mLoaderPulley.setPower(LOADER_PULLY_POWER);
+        }
+    }
     /**
      * @return true if loader pulley moving, false if not.
      */
     public boolean isLoaderPulleyMoving(){
         if (mLoaderPulley != null) {
-            return (mLoaderPulley.getPower() != 0d);
+            return (mLoaderPulley.isBusy());
         }
         return false;
     }
