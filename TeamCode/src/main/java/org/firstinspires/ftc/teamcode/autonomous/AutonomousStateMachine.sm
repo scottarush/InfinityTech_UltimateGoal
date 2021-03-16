@@ -17,7 +17,7 @@
     Start
         Entry {
             // Move forward to within 6" of the rings
-            moveStraight(+22d);
+            moveStraight(-22d);
         }
     {
         // On move complete, go to measure the ring
@@ -50,7 +50,7 @@
     Start
         Entry{
             // Move straight 49" to the center line.
-            moveStraight(+49d);
+            moveStraight(-49d);
         }
     {
         evMoveComplete RotateToSquareA { }
@@ -59,11 +59,11 @@
     RotateToSquareA
         Entry{
             // Rotate 90 degrees to the left
-            rotateToHeading(-90);
+            rotateToHeading(+90);
         }
     {
         // After rotation complete, move forward 6"
-        evRotationComplete nil { moveStraight(+6d); }
+        evRotationComplete nil { moveStraight(-6d); }
 
         // Once the move is complete, then just open the grabber to drop
         // the wobble goal in the square and wait for 1/2 second before
@@ -78,7 +78,7 @@
     RotateToPowerShot
         Entry {
             // Move backward 36 inches
-            moveStraight(-36d);
+            moveStraight(+36d);
         }
     {
         // After backward move, then rotate back to heading 0 toward the power shot
@@ -90,7 +90,7 @@
     ShootPowerShot
         Entry{
             // Back up to behind the white line
-            moveStraight(-12d);
+            moveStraight(+12d);
         }
     {
         // After backup complete, then shoot and start a 2 second timer before moving to the white
@@ -102,7 +102,7 @@
     }
     MoveToWhiteLine
         Entry{
-            moveStraight(12d);
+            moveStraight(-12d);
         }
     {
         evMoveComplete Stop { }
