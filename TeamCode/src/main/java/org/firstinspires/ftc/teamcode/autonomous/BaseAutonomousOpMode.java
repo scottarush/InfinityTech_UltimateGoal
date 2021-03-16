@@ -133,7 +133,7 @@ public class BaseAutonomousOpMode {
 
         // If we haven't started then trigger the start event
         if (!mSequenceStarted){
-            mAutonomousController.startSequence(AutonomousController.DEMO_SEQUENCE);
+            mAutonomousController.startSequence(AutonomousController.RINGS_SEQUENCE);
             mSequenceStarted = true;
         }
 
