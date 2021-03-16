@@ -65,7 +65,7 @@ public class AutonomousController extends BaseStateMachineController
     public void startSequence(int sequence){
         switch(sequence){
             case RINGS_SEQUENCE:
-                transition("evStartRings");
+                transition("evStart");
                 break;
             case DEMO_SEQUENCE:
             default:
