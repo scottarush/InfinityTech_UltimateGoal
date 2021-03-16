@@ -167,8 +167,9 @@ public class KalmanTracker {
         Point rotated = vp.rotate(-getEstimatedHeading());
 
 
-        // Have to negate the wzw and wz_imu because we want to use left-handed orientation angles
-        // instead of the right-handed angles produced by the measurements
+        // Have to negate the wzw and wz_imu because we want to use left-handed (i.e. compass-orientation
+        // where angle increases in clockwise direction) orientation angles instead of the right-handed
+        // angles produced by the measurements
         DMatrixRMaj z = new DMatrixRMaj(new double[][] {{rotated.x},{rotated.y},{-wzw},{-theta_imu}});
 
         // Do Kalman predict step
