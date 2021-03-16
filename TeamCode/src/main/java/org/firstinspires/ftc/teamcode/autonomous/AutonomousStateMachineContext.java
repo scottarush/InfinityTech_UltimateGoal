@@ -279,7 +279,7 @@ public class AutonomousStateMachineContext
             {
                 AutonomousController ctxt = context.getOwner();
 
-            ctxt.moveStraight(+22d);
+            ctxt.moveStraight(-22d);
             return;
         }
 
@@ -424,7 +424,7 @@ public class AutonomousStateMachineContext
             {
                 AutonomousController ctxt = context.getOwner();
 
-            ctxt.moveStraight(+49d);
+            ctxt.moveStraight(-49d);
             return;
         }
 
@@ -466,7 +466,7 @@ public class AutonomousStateMachineContext
             {
                 AutonomousController ctxt = context.getOwner();
 
-            ctxt.rotateToHeading(-90);
+            ctxt.rotateToHeading(+90);
             return;
         }
 
@@ -499,7 +499,7 @@ public class AutonomousStateMachineContext
             context.clearState();
             try
             {
-                ctxt.moveStraight(+6d);
+                ctxt.moveStraight(-6d);
             }
             finally
             {
@@ -557,7 +557,7 @@ public class AutonomousStateMachineContext
             {
                 AutonomousController ctxt = context.getOwner();
 
-            ctxt.moveStraight(-36d);
+            ctxt.moveStraight(+36d);
             return;
         }
 
@@ -618,7 +618,7 @@ public class AutonomousStateMachineContext
             {
                 AutonomousController ctxt = context.getOwner();
 
-            ctxt.moveStraight(-12d);
+            ctxt.moveStraight(+12d);
             return;
         }
 
@@ -680,7 +680,7 @@ public class AutonomousStateMachineContext
             {
                 AutonomousController ctxt = context.getOwner();
 
-            ctxt.moveStraight(12d);
+            ctxt.moveStraight(-12d);
             return;
         }
 
