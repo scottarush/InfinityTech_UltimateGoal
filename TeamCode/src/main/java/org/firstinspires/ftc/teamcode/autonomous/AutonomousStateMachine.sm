@@ -37,19 +37,19 @@
         }
     {
         evNoRings jump(NoRingSequence::Start) { }
-        evTimeoutComplete jump(NoRingSequence:Start) { }
+        evTimeoutComplete jump(NoRingSequence::Start) { }
 //        evOneRing jump(OneSequence::Start)  { }
 //        evFourRings jump(FourRingsSequence::Start) { }
     }
 %%
 
-// Sub-sequence for NoRingSequence where we have to drop the wobble goal
+// Sub-state machine for NoRingSequence where we have to drop the wobble goal
 // in Square A.
 %map NoRingSequence
 %%
     Start
         Entry{
-            // Move straight 40" to the center line.
+            // Move straight 49" to the center line.
             moveStraight(+49d);
         }
     {
@@ -58,17 +58,19 @@
 
     RotateToSquareA
         Entry{
-            rotateToHeading(+90);
+            // Rotate 90 degrees to the left
+            rotateToHeading(-90);
         }
     {
+        // After rotation complete, move forward 6"
         evRotationComplete nil { moveStraight(+6d); }
 
-        // Once the move is complete, then just release the grabber to drop
+        // Once the move is complete, then just open the grabber to drop
         // the wobble goal in the square and wait for 1/2 second before
         // moving away to shoot the ring.
-        evMoveComplete nil { releaseGrabber();
-                          startTimer(500);  }
-        // After the dleay, activate the shooter to get the wheels moving (now that
+        evMoveComplete nil { openGrabber();
+                             startTimer(500);  }
+        // After the delay, activate the shooter to get the wheels moving (now that
         // the wobble goal is out of the way), then move and shoot the power shot
         evTimeoutComplete RotateToPowerShot { activateShooter(); }
     }
@@ -79,7 +81,7 @@
             moveStraight(-36d);
         }
     {
-        // After backward move, then rotate back to heading 0
+        // After backward move, then rotate back to heading 0 toward the power shot
         evMoveComplete nil { rotateToHeading(0); }
         // After rotation complete, then move and shoot
         evRotationComplete ShootPowerShot {}

@@ -42,10 +42,10 @@ public class AutonomousStateMachineContext
         return;
     }
 
-    public void evReadyToShoot()
+    public void evNoRings()
     {
-        _transition = "evReadyToShoot";
-        getState().evReadyToShoot(this);
+        _transition = "evNoRings";
+        getState().evNoRings(this);
         _transition = "";
         return;
     }
@@ -58,18 +58,18 @@ public class AutonomousStateMachineContext
         return;
     }
 
-    public void evStartDemo()
+    public void evStart()
     {
-        _transition = "evStartDemo";
-        getState().evStartDemo(this);
+        _transition = "evStart";
+        getState().evStart(this);
         _transition = "";
         return;
     }
 
-    public void evTimeout()
+    public void evTimeoutComplete()
     {
-        _transition = "evTimeout";
-        getState().evTimeout(this);
+        _transition = "evTimeoutComplete";
+        getState().evTimeoutComplete(this);
         _transition = "";
         return;
     }
@@ -143,7 +143,7 @@ public class AutonomousStateMachineContext
             Default(context);
         }
 
-        protected void evReadyToShoot(AutonomousStateMachineContext context)
+        protected void evNoRings(AutonomousStateMachineContext context)
         {
             Default(context);
         }
@@ -153,12 +153,12 @@ public class AutonomousStateMachineContext
             Default(context);
         }
 
-        protected void evStartDemo(AutonomousStateMachineContext context)
+        protected void evStart(AutonomousStateMachineContext context)
         {
             Default(context);
         }
 
-        protected void evTimeout(AutonomousStateMachineContext context)
+        protected void evTimeoutComplete(AutonomousStateMachineContext context)
         {
             Default(context);
         }
@@ -200,6 +200,10 @@ public class AutonomousStateMachineContext
 
         public static final AutonomousStateMachine_Idle Idle =
             new AutonomousStateMachine_Idle("AutonomousStateMachine.Idle", 0);
+        public static final AutonomousStateMachine_Start Start =
+            new AutonomousStateMachine_Start("AutonomousStateMachine.Start", 1);
+        public static final AutonomousStateMachine_MeasureRing MeasureRing =
+            new AutonomousStateMachine_MeasureRing("AutonomousStateMachine.MeasureRing", 2);
     }
 
     protected static class AutonomousStateMachine_Default
@@ -238,11 +242,11 @@ public class AutonomousStateMachineContext
         }
 
         @Override
-        protected void evStartDemo(AutonomousStateMachineContext context)
+        protected void evStart(AutonomousStateMachineContext context)
         {
 
             (context.getState()).exit(context);
-            context.setState(Demo.Start);
+            context.setState(AutonomousStateMachine.Start);
             (context.getState()).entry(context);
             return;
         }
@@ -258,7 +262,101 @@ public class AutonomousStateMachineContext
         private static final long serialVersionUID = 1L;
     }
 
-    /* package */ static abstract class Demo
+    private static final class AutonomousStateMachine_Start
+        extends AutonomousStateMachine_Default
+    {
+    //-------------------------------------------------------
+    // Member methods.
+    //
+
+        private AutonomousStateMachine_Start(String name, int id)
+        {
+            super (name, id);
+        }
+
+        @Override
+        protected void entry(AutonomousStateMachineContext context)
+            {
+                AutonomousController ctxt = context.getOwner();
+
+            ctxt.moveStraight(+22d);
+            return;
+        }
+
+        @Override
+        protected void evMoveComplete(AutonomousStateMachineContext context)
+        {
+
+            (context.getState()).exit(context);
+            context.setState(AutonomousStateMachine.MeasureRing);
+            (context.getState()).entry(context);
+            return;
+        }
+
+    //-------------------------------------------------------
+    // Member data.
+    //
+
+        //---------------------------------------------------
+        // Constants.
+        //
+
+        private static final long serialVersionUID = 1L;
+    }
+
+    private static final class AutonomousStateMachine_MeasureRing
+        extends AutonomousStateMachine_Default
+    {
+    //-------------------------------------------------------
+    // Member methods.
+    //
+
+        private AutonomousStateMachine_MeasureRing(String name, int id)
+        {
+            super (name, id);
+        }
+
+        @Override
+        protected void entry(AutonomousStateMachineContext context)
+            {
+                AutonomousController ctxt = context.getOwner();
+
+            ctxt.startTimer(3000);
+            return;
+        }
+
+        @Override
+        protected void evNoRings(AutonomousStateMachineContext context)
+        {
+
+            (context.getState()).exit(context);
+            context.setState(NoRingSequence.Start);
+            (context.getState()).entry(context);
+            return;
+        }
+
+        @Override
+        protected void evTimeoutComplete(AutonomousStateMachineContext context)
+        {
+
+            (context.getState()).exit(context);
+            context.setState(NoRingSequence.Start);
+            (context.getState()).entry(context);
+            return;
+        }
+
+    //-------------------------------------------------------
+    // Member data.
+    //
+
+        //---------------------------------------------------
+        // Constants.
+        //
+
+        private static final long serialVersionUID = 1L;
+    }
+
+    /* package */ static abstract class NoRingSequence
     {
     //-----------------------------------------------------------
     // Member methods.
@@ -272,28 +370,28 @@ public class AutonomousStateMachineContext
         // Constants.
         //
 
-        public static final Demo_Start Start =
-            new Demo_Start("Demo.Start", 1);
-        public static final Demo_Rotate Rotate =
-            new Demo_Rotate("Demo.Rotate", 2);
-        public static final Demo_ActivateShooter ActivateShooter =
-            new Demo_ActivateShooter("Demo.ActivateShooter", 3);
-        public static final Demo_Shooting Shooting =
-            new Demo_Shooting("Demo.Shooting", 4);
-        public static final Demo_Shutdown Shutdown =
-            new Demo_Shutdown("Demo.Shutdown", 5);
-        public static final Demo_Complete Complete =
-            new Demo_Complete("Demo.Complete", 6);
+        public static final NoRingSequence_Start Start =
+            new NoRingSequence_Start("NoRingSequence.Start", 3);
+        public static final NoRingSequence_RotateToSquareA RotateToSquareA =
+            new NoRingSequence_RotateToSquareA("NoRingSequence.RotateToSquareA", 4);
+        public static final NoRingSequence_RotateToPowerShot RotateToPowerShot =
+            new NoRingSequence_RotateToPowerShot("NoRingSequence.RotateToPowerShot", 5);
+        public static final NoRingSequence_ShootPowerShot ShootPowerShot =
+            new NoRingSequence_ShootPowerShot("NoRingSequence.ShootPowerShot", 6);
+        public static final NoRingSequence_MoveToWhiteLine MoveToWhiteLine =
+            new NoRingSequence_MoveToWhiteLine("NoRingSequence.MoveToWhiteLine", 7);
+        public static final NoRingSequence_Stop Stop =
+            new NoRingSequence_Stop("NoRingSequence.Stop", 8);
     }
 
-    protected static class Demo_Default
+    protected static class NoRingSequence_Default
         extends AutonomousControllerState
     {
     //-----------------------------------------------------------
     // Member methods.
     //
 
-        protected Demo_Default(String name, int id)
+        protected NoRingSequence_Default(String name, int id)
         {
             super (name, id);
         }
@@ -309,14 +407,14 @@ public class AutonomousStateMachineContext
         private static final long serialVersionUID = 1L;
     }
 
-    private static final class Demo_Start
-        extends Demo_Default
+    private static final class NoRingSequence_Start
+        extends NoRingSequence_Default
     {
     //-------------------------------------------------------
     // Member methods.
     //
 
-        private Demo_Start(String name, int id)
+        private NoRingSequence_Start(String name, int id)
         {
             super (name, id);
         }
@@ -326,7 +424,7 @@ public class AutonomousStateMachineContext
             {
                 AutonomousController ctxt = context.getOwner();
 
-            ctxt.moveStraight(-24d);
+            ctxt.moveStraight(+49d);
             return;
         }
 
@@ -335,7 +433,7 @@ public class AutonomousStateMachineContext
         {
 
             (context.getState()).exit(context);
-            context.setState(Demo.ActivateShooter);
+            context.setState(NoRingSequence.RotateToSquareA);
             (context.getState()).entry(context);
             return;
         }
@@ -351,14 +449,14 @@ public class AutonomousStateMachineContext
         private static final long serialVersionUID = 1L;
     }
 
-    private static final class Demo_Rotate
-        extends Demo_Default
+    private static final class NoRingSequence_RotateToSquareA
+        extends NoRingSequence_Default
     {
     //-------------------------------------------------------
     // Member methods.
     //
 
-        private Demo_Rotate(String name, int id)
+        private NoRingSequence_RotateToSquareA(String name, int id)
         {
             super (name, id);
         }
@@ -368,7 +466,117 @@ public class AutonomousStateMachineContext
             {
                 AutonomousController ctxt = context.getOwner();
 
-            ctxt.rotateToHeading(180);
+            ctxt.rotateToHeading(-90);
+            return;
+        }
+
+        @Override
+        protected void evMoveComplete(AutonomousStateMachineContext context)
+        {
+            AutonomousController ctxt = context.getOwner();
+
+            AutonomousControllerState endState = context.getState();
+            context.clearState();
+            try
+            {
+                ctxt.openGrabber();
+                ctxt.startTimer(500);
+            }
+            finally
+            {
+                context.setState(endState);
+            }
+
+            return;
+        }
+
+        @Override
+        protected void evRotationComplete(AutonomousStateMachineContext context)
+        {
+            AutonomousController ctxt = context.getOwner();
+
+            AutonomousControllerState endState = context.getState();
+            context.clearState();
+            try
+            {
+                ctxt.moveStraight(+6d);
+            }
+            finally
+            {
+                context.setState(endState);
+            }
+
+            return;
+        }
+
+        @Override
+        protected void evTimeoutComplete(AutonomousStateMachineContext context)
+        {
+            AutonomousController ctxt = context.getOwner();
+
+            (context.getState()).exit(context);
+            context.clearState();
+            try
+            {
+                ctxt.activateShooter();
+            }
+            finally
+            {
+                context.setState(NoRingSequence.RotateToPowerShot);
+                (context.getState()).entry(context);
+            }
+
+            return;
+        }
+
+    //-------------------------------------------------------
+    // Member data.
+    //
+
+        //---------------------------------------------------
+        // Constants.
+        //
+
+        private static final long serialVersionUID = 1L;
+    }
+
+    private static final class NoRingSequence_RotateToPowerShot
+        extends NoRingSequence_Default
+    {
+    //-------------------------------------------------------
+    // Member methods.
+    //
+
+        private NoRingSequence_RotateToPowerShot(String name, int id)
+        {
+            super (name, id);
+        }
+
+        @Override
+        protected void entry(AutonomousStateMachineContext context)
+            {
+                AutonomousController ctxt = context.getOwner();
+
+            ctxt.moveStraight(-36d);
+            return;
+        }
+
+        @Override
+        protected void evMoveComplete(AutonomousStateMachineContext context)
+        {
+            AutonomousController ctxt = context.getOwner();
+
+            AutonomousControllerState endState = context.getState();
+            context.clearState();
+            try
+            {
+                ctxt.rotateToHeading(0);
+            }
+            finally
+            {
+                context.setState(endState);
+            }
+
             return;
         }
 
@@ -377,7 +585,7 @@ public class AutonomousStateMachineContext
         {
 
             (context.getState()).exit(context);
-            context.setState(Demo.ActivateShooter);
+            context.setState(NoRingSequence.ShootPowerShot);
             (context.getState()).entry(context);
             return;
         }
@@ -393,14 +601,14 @@ public class AutonomousStateMachineContext
         private static final long serialVersionUID = 1L;
     }
 
-    private static final class Demo_ActivateShooter
-        extends Demo_Default
+    private static final class NoRingSequence_ShootPowerShot
+        extends NoRingSequence_Default
     {
     //-------------------------------------------------------
     // Member methods.
     //
 
-        private Demo_ActivateShooter(String name, int id)
+        private NoRingSequence_ShootPowerShot(String name, int id)
         {
             super (name, id);
         }
@@ -410,16 +618,36 @@ public class AutonomousStateMachineContext
             {
                 AutonomousController ctxt = context.getOwner();
 
-            ctxt.activateShooter();
+            ctxt.moveStraight(-12d);
             return;
         }
 
         @Override
-        protected void evReadyToShoot(AutonomousStateMachineContext context)
+        protected void evMoveComplete(AutonomousStateMachineContext context)
+        {
+            AutonomousController ctxt = context.getOwner();
+
+            AutonomousControllerState endState = context.getState();
+            context.clearState();
+            try
+            {
+                ctxt.shootRing();
+                ctxt.startTimer(2000);
+            }
+            finally
+            {
+                context.setState(endState);
+            }
+
+            return;
+        }
+
+        @Override
+        protected void evTimeoutComplete(AutonomousStateMachineContext context)
         {
 
             (context.getState()).exit(context);
-            context.setState(Demo.Shooting);
+            context.setState(NoRingSequence.MoveToWhiteLine);
             (context.getState()).entry(context);
             return;
         }
@@ -435,14 +663,14 @@ public class AutonomousStateMachineContext
         private static final long serialVersionUID = 1L;
     }
 
-    private static final class Demo_Shooting
-        extends Demo_Default
+    private static final class NoRingSequence_MoveToWhiteLine
+        extends NoRingSequence_Default
     {
     //-------------------------------------------------------
     // Member methods.
     //
 
-        private Demo_Shooting(String name, int id)
+        private NoRingSequence_MoveToWhiteLine(String name, int id)
         {
             super (name, id);
         }
@@ -452,17 +680,16 @@ public class AutonomousStateMachineContext
             {
                 AutonomousController ctxt = context.getOwner();
 
-            ctxt.shootRing();
-            ctxt.startTimer(3000);
+            ctxt.moveStraight(12d);
             return;
         }
 
         @Override
-        protected void evTimeout(AutonomousStateMachineContext context)
+        protected void evMoveComplete(AutonomousStateMachineContext context)
         {
 
             (context.getState()).exit(context);
-            context.setState(Demo.Shutdown);
+            context.setState(NoRingSequence.Stop);
             (context.getState()).entry(context);
             return;
         }
@@ -478,57 +705,14 @@ public class AutonomousStateMachineContext
         private static final long serialVersionUID = 1L;
     }
 
-    private static final class Demo_Shutdown
-        extends Demo_Default
+    private static final class NoRingSequence_Stop
+        extends NoRingSequence_Default
     {
     //-------------------------------------------------------
     // Member methods.
     //
 
-        private Demo_Shutdown(String name, int id)
-        {
-            super (name, id);
-        }
-
-        @Override
-        protected void entry(AutonomousStateMachineContext context)
-            {
-                AutonomousController ctxt = context.getOwner();
-
-            ctxt.deactivateShooter();
-            ctxt.startTimer(1000);
-            return;
-        }
-
-        @Override
-        protected void evTimeout(AutonomousStateMachineContext context)
-        {
-
-            (context.getState()).exit(context);
-            context.setState(Demo.Complete);
-            (context.getState()).entry(context);
-            return;
-        }
-
-    //-------------------------------------------------------
-    // Member data.
-    //
-
-        //---------------------------------------------------
-        // Constants.
-        //
-
-        private static final long serialVersionUID = 1L;
-    }
-
-    private static final class Demo_Complete
-        extends Demo_Default
-    {
-    //-------------------------------------------------------
-    // Member methods.
-    //
-
-        private Demo_Complete(String name, int id)
+        private NoRingSequence_Stop(String name, int id)
         {
             super (name, id);
         }
