@@ -86,11 +86,11 @@ public class TeleOpMrRingsBot extends OpMode {
         // ------------------------------------------------------
         // Do tank mode drive read on gamepad1.
         // ------------------------------------------------------
-        // Run wheels in tank mode.  Since front and rear m
+        // Run wheels in tank mode. Reverse signs on y since forward is negative on the controller
         double xleft = gamepad1.left_stick_x;
-        double yleft = gamepad1.left_stick_y;
+        double yleft = -gamepad1.left_stick_y;
         double xright = gamepad1.right_stick_x;
-        double yright = gamepad1.right_stick_y;
+        double yright = -gamepad1.right_stick_y;
 
         // the speeds with the new gamepad inputs
         mRingsBot.getDrivetrain().setTankDriveJoystickInput(xleft,yleft,xright,yright);

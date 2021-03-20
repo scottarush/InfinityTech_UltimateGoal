@@ -8,7 +8,6 @@ import com.qualcomm.robotcore.eventloop.opmode.TeleOp;
 @Disabled
 public class RingDetectorTestOpMode extends OpMode {
 
-    private int mRingDetectorConfiguration = RingDetectorNeuralNetwork.CONFIGURATION_CAMERA_ONLY;
     private boolean mLastConfigurationButtonState = false;
 
     private RingDetector mRingDetector = null;
@@ -16,7 +15,7 @@ public class RingDetectorTestOpMode extends OpMode {
     private int mLastResult = RingDetectorNeuralNetwork.UNKNOWN;
     @Override
     public void init() {
-        mRingDetector = new RingDetector(mRingDetectorConfiguration,this);
+        mRingDetector = new RingDetector(this);
         String initErrs = "";
         try {
             mRingDetector.init();
@@ -43,49 +42,11 @@ public class RingDetectorTestOpMode extends OpMode {
 
     public void loop() {
 
-        // detect the tag button edge and change tag state if rising edge
-        /**       boolean edgeDetect = false;
-         boolean buttonState = gamepad1.y;
-         if (buttonState) {
-         // button pressed. check if last false
-         if (mLastConfigurationButtonState == false) {
-         edgeDetect = true;
-         }
-         }
-         // Save tag button for next time
-         mLastConfigurationButtonState = buttonState;
-
-         // if we had a rising edge, cycle to the next tag
-         if (edgeDetect == true) {
-         if (mRingDetectorConfiguration == RingDetectorNeuralNetwork.ALL_SENSORS) {
-         mRingDetectorConfiguration = RingDetectorNeuralNetwork.NO_DISTANCE_SENSOR;
-         } else if (mRingDetectorConfiguration == RingDetectorNeuralNetwork.NO_DISTANCE_SENSOR) {
-         mRingDetectorConfiguration = RingDetectorNeuralNetwork.NO_MID_COLOR_SENSOR;
-         } else if (mRingDetectorConfiguration == RingDetectorNeuralNetwork.NO_MID_COLOR_SENSOR) {
-         mRingDetectorConfiguration = RingDetectorNeuralNetwork.NO_MID_COLOR_SENSOR;
-         } else if (mRingDetectorConfiguration == RingDetectorNeuralNetwork.NO_MID_COLOR_SENSOR) {
-         mRingDetectorConfiguration = RingDetectorNeuralNetwork.ALL_SENSORS;
-         }
-         // Re-initialize the ring detector with the new configuration
-         mRingDetector.stop();  // To close log file
-         // Now re-init
-         mRingDetector = new RingDetector(this);
-         String initErrs = "";
-         try {
-         mRingDetector.init();
-         }
-         catch(Exception e){
-         initErrs += e.getMessage();
-         }
-         }
-         **/
-
-
         long startTime = System.currentTimeMillis();
-        mLastResult = mRingDetector.doDetection();
+        mLastResult = mRingDetector.doSingleInference();
         int detectTime = (int)(System.currentTimeMillis()-startTime);
         String sinference = RingDetectorNeuralNetwork.convertResultToString(mLastResult);
-        telemetry.addData("NNFile", RingDetectorNeuralNetwork.getNeuralNetworkFilename(mRingDetector.getRingDetectorConfiguration()));
+        telemetry.addData("NNFile", RingDetectorNeuralNetwork.getNeuralNetworkFilename());
         telemetry.addData("Inference Result", sinference);
         telemetry.addData("Inference Time(ms)",detectTime);
         telemetry.update();

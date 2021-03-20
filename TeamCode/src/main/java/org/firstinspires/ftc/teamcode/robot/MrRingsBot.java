@@ -75,6 +75,12 @@ public class MrRingsBot {
     }
 
     /**
+     * @return reference to RingDetector
+     */
+    public RingDetector getRingDetector(){
+        return mRingDetector;
+    }
+    /**
      * Loop function must be called from the OpMode loop in order to service
      * the shooter and grabber loops for PID control and state machines.\
      *
@@ -147,7 +153,7 @@ public class MrRingsBot {
         }
         // Initialize the ring detector if enabled
         if (mEnableRingDetector) {
-            mRingDetector = new RingDetector(RingDetectorNeuralNetwork.CONFIGURATION_CAMERA_ONLY, mOpMode);
+            mRingDetector = new RingDetector(mOpMode);
             try {
                 mRingDetector.init();
             } catch (Exception e) {
@@ -199,12 +205,12 @@ public class MrRingsBot {
      * must be called from the opmode's stop function.
      */
     public void stop(){
+        getDrivetrain().stop();
+        mShooter.stop();
         // Call stop to close the log file
         if (mEnableRingDetector) {
             mRingDetector.stop();
         }
-        getDrivetrain().stop();
-        mShooter.stop();
     }
     /**
      *

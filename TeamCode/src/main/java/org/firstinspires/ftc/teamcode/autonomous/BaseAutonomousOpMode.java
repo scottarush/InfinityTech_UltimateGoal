@@ -66,7 +66,7 @@ public class BaseAutonomousOpMode {
     public void init() throws Exception {
         String initErrs = "";
         try {
-            mRingsBot= new MrRingsBot(mOpmode, true,false);
+            mRingsBot= new MrRingsBot(mOpmode, true,true);
             mRingsBot.init();
         }
         catch(Exception e){
@@ -161,7 +161,6 @@ public class BaseAutonomousOpMode {
         if (LOGGING_ENABLED) {
             mLogFile.closeFile();
         }
-        mGuidanceController.closeLogFile();
         mRingsBot.stop();
     }
 

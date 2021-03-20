@@ -4,7 +4,7 @@ import com.qualcomm.robotcore.eventloop.opmode.OpMode;
 
 import org.firstinspires.ftc.teamcode.guidance.GuidanceController;
 import org.firstinspires.ftc.teamcode.guidance.IGuidanceControllerStatusListener;
-import org.firstinspires.ftc.teamcode.ringdetect.RingDetector;
+import org.firstinspires.ftc.teamcode.ringdetect.IRingDetectorResultListener;
 import org.firstinspires.ftc.teamcode.ringdetect.RingDetectorNeuralNetwork;
 import org.firstinspires.ftc.teamcode.robot.MrRingsBot;
 import org.firstinspires.ftc.teamcode.shooter.Grabber;
@@ -14,7 +14,7 @@ import org.firstinspires.ftc.teamcode.util.BaseStateMachineController;
 import org.firstinspires.ftc.teamcode.util.OneShotTimer;
 
 public class AutonomousController extends BaseStateMachineController
-        implements IShooterListener, IGuidanceControllerStatusListener {
+        implements IShooterListener, IGuidanceControllerStatusListener, IRingDetectorResultListener {
 
     public static final int DEMO_SEQUENCE = 0;
     public static final int RINGS_SEQUENCE = 1;
@@ -138,25 +138,41 @@ public class AutonomousController extends BaseStateMachineController
     }
 
     /**
-     * Called to start a ring measurement.  RingDetector will trigger
-     * a RingD
+     * Called to start ring measurement.  RingDetector will trigger
+     * a detection after an average period.
      */
-    public int startRingsMeasurement(){
-        // TODO call the ring detector to start an averaging measurement
-        return RingDetectorNeuralNetwork.LABEL_NO_RING;
+    public void startRingsMeasurement(){
+        mRingsBot.getRingDetector().doAveragedInference(10,this);
+    }
+
+    @Override
+    public void averageDetectionResult(int result) {
+
+        switch(result){
+            case RingDetectorNeuralNetwork.LABEL_NO_RING:
+                transition("evNoRings");
+                break;
+            case RingDetectorNeuralNetwork.LABEL_ONE_RING:
+                transition("evOneRing");
+                break;
+            case RingDetectorNeuralNetwork.LABEL_FOUR_RINGS:
+                transition("evFourRings");
+                break;
+        }
     }
 
     /**
      * Called to activate the ring detector.
      */
     public void activateRingDetector(){
-
+        mRingsBot.getRingDetector().startDetection();
     }
     /**
-     * Called to deactivate the ring detector.
+     * Called to deactivate the ring detector.  Actually pauses
+     * the ring detector.
      */
     public void deactivateRingDetector(){
-
+        mRingsBot.getRingDetector().pauseDetection();
     }
 
     /**
@@ -237,10 +253,11 @@ public class AutonomousController extends BaseStateMachineController
     }
 
     /**
-     * Called from state machine to stop the robot
+     * Called from state machine to stop the robot and release resources.  This can
+     * only be called once at shutdown.
      */
     public void stop(){
-        mRingsBot.getDrivetrain().stop();
+        mRingsBot.stop();
     }
 
 }

@@ -108,16 +108,4 @@ public class MrRingsBotMecanumDrive extends BaseMecanumDrive {
 
     }
 
-    /**
-     * Overriden because the motors are miswired with the xFronts on Rear outputs and vice
-     * versa.  Easier to override and negate ys than to rewire.
-     * @param xleft x coordinate of left stick
-     * @param yleft y coordinate of left stick
-     * @param xright x coordinate of right stick
-     * @param yright y coordinate of right stick
-     */
-    @Override
-    public void setTankDriveJoystickInput(double xleft, double yleft, double xright, double yright) {
-        super.setTankDriveJoystickInput(-xleft, yleft, -xright, yright);
-    }
 }

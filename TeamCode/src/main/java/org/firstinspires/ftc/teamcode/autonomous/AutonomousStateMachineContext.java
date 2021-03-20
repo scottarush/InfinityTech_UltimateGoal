@@ -34,6 +34,14 @@ public class AutonomousStateMachineContext
         return;
     }
 
+    public void evFourRings()
+    {
+        _transition = "evFourRings";
+        getState().evFourRings(this);
+        _transition = "";
+        return;
+    }
+
     public void evMoveComplete()
     {
         _transition = "evMoveComplete";
@@ -46,6 +54,14 @@ public class AutonomousStateMachineContext
     {
         _transition = "evNoRings";
         getState().evNoRings(this);
+        _transition = "";
+        return;
+    }
+
+    public void evOneRing()
+    {
+        _transition = "evOneRing";
+        getState().evOneRing(this);
         _transition = "";
         return;
     }
@@ -138,12 +154,22 @@ public class AutonomousStateMachineContext
         protected void entry(AutonomousStateMachineContext context) {}
         protected void exit(AutonomousStateMachineContext context) {}
 
+        protected void evFourRings(AutonomousStateMachineContext context)
+        {
+            Default(context);
+        }
+
         protected void evMoveComplete(AutonomousStateMachineContext context)
         {
             Default(context);
         }
 
         protected void evNoRings(AutonomousStateMachineContext context)
+        {
+            Default(context);
+        }
+
+        protected void evOneRing(AutonomousStateMachineContext context)
         {
             Default(context);
         }
@@ -321,7 +347,28 @@ public class AutonomousStateMachineContext
             {
                 AutonomousController ctxt = context.getOwner();
 
-            ctxt.startTimer(3000);
+            ctxt.activateRingDetector();
+            ctxt.startTimer(5000);
+            ctxt.startRingsMeasurement();
+            return;
+        }
+
+        @Override
+        protected void exit(AutonomousStateMachineContext context)
+            {
+            AutonomousController ctxt = context.getOwner();
+
+            ctxt.deactivateRingDetector();
+            return;
+        }
+
+        @Override
+        protected void evFourRings(AutonomousStateMachineContext context)
+        {
+
+            (context.getState()).exit(context);
+            context.setState(FourRingsSequence.Start);
+            (context.getState()).entry(context);
             return;
         }
 
@@ -331,6 +378,16 @@ public class AutonomousStateMachineContext
 
             (context.getState()).exit(context);
             context.setState(NoRingSequence.Start);
+            (context.getState()).entry(context);
+            return;
+        }
+
+        @Override
+        protected void evOneRing(AutonomousStateMachineContext context)
+        {
+
+            (context.getState()).exit(context);
+            context.setState(OneRingSequence.Start);
             (context.getState()).entry(context);
             return;
         }
@@ -713,6 +770,768 @@ public class AutonomousStateMachineContext
     //
 
         private NoRingSequence_Stop(String name, int id)
+        {
+            super (name, id);
+        }
+
+        @Override
+        protected void entry(AutonomousStateMachineContext context)
+            {
+                AutonomousController ctxt = context.getOwner();
+
+            ctxt.stop();
+            return;
+        }
+
+    //-------------------------------------------------------
+    // Member data.
+    //
+
+        //---------------------------------------------------
+        // Constants.
+        //
+
+        private static final long serialVersionUID = 1L;
+    }
+
+    /* package */ static abstract class OneRingSequence
+    {
+    //-----------------------------------------------------------
+    // Member methods.
+    //
+
+    //-----------------------------------------------------------
+    // Member data.
+    //
+
+        //-------------------------------------------------------
+        // Constants.
+        //
+
+        public static final OneRingSequence_Start Start =
+            new OneRingSequence_Start("OneRingSequence.Start", 9);
+        public static final OneRingSequence_RotateToSquareA RotateToSquareA =
+            new OneRingSequence_RotateToSquareA("OneRingSequence.RotateToSquareA", 10);
+        public static final OneRingSequence_RotateToPowerShot RotateToPowerShot =
+            new OneRingSequence_RotateToPowerShot("OneRingSequence.RotateToPowerShot", 11);
+        public static final OneRingSequence_ShootPowerShot ShootPowerShot =
+            new OneRingSequence_ShootPowerShot("OneRingSequence.ShootPowerShot", 12);
+        public static final OneRingSequence_MoveToWhiteLine MoveToWhiteLine =
+            new OneRingSequence_MoveToWhiteLine("OneRingSequence.MoveToWhiteLine", 13);
+        public static final OneRingSequence_Stop Stop =
+            new OneRingSequence_Stop("OneRingSequence.Stop", 14);
+    }
+
+    protected static class OneRingSequence_Default
+        extends AutonomousControllerState
+    {
+    //-----------------------------------------------------------
+    // Member methods.
+    //
+
+        protected OneRingSequence_Default(String name, int id)
+        {
+            super (name, id);
+        }
+
+    //-----------------------------------------------------------
+    // Member data.
+    //
+
+        //---------------------------------------------------
+        // Constants.
+        //
+
+        private static final long serialVersionUID = 1L;
+    }
+
+    private static final class OneRingSequence_Start
+        extends OneRingSequence_Default
+    {
+    //-------------------------------------------------------
+    // Member methods.
+    //
+
+        private OneRingSequence_Start(String name, int id)
+        {
+            super (name, id);
+        }
+
+        @Override
+        protected void entry(AutonomousStateMachineContext context)
+            {
+                AutonomousController ctxt = context.getOwner();
+
+            ctxt.moveStraight(49d);
+            return;
+        }
+
+        @Override
+        protected void evMoveComplete(AutonomousStateMachineContext context)
+        {
+
+            (context.getState()).exit(context);
+            context.setState(OneRingSequence.RotateToSquareA);
+            (context.getState()).entry(context);
+            return;
+        }
+
+    //-------------------------------------------------------
+    // Member data.
+    //
+
+        //---------------------------------------------------
+        // Constants.
+        //
+
+        private static final long serialVersionUID = 1L;
+    }
+
+    private static final class OneRingSequence_RotateToSquareA
+        extends OneRingSequence_Default
+    {
+    //-------------------------------------------------------
+    // Member methods.
+    //
+
+        private OneRingSequence_RotateToSquareA(String name, int id)
+        {
+            super (name, id);
+        }
+
+        @Override
+        protected void entry(AutonomousStateMachineContext context)
+            {
+                AutonomousController ctxt = context.getOwner();
+
+            ctxt.rotateToHeading(-90);
+            return;
+        }
+
+        @Override
+        protected void evMoveComplete(AutonomousStateMachineContext context)
+        {
+            AutonomousController ctxt = context.getOwner();
+
+            AutonomousControllerState endState = context.getState();
+            context.clearState();
+            try
+            {
+                ctxt.openGrabber();
+                ctxt.startTimer(500);
+            }
+            finally
+            {
+                context.setState(endState);
+            }
+
+            return;
+        }
+
+        @Override
+        protected void evRotationComplete(AutonomousStateMachineContext context)
+        {
+            AutonomousController ctxt = context.getOwner();
+
+            AutonomousControllerState endState = context.getState();
+            context.clearState();
+            try
+            {
+                ctxt.moveStraight(-6d);
+            }
+            finally
+            {
+                context.setState(endState);
+            }
+
+            return;
+        }
+
+        @Override
+        protected void evTimeoutComplete(AutonomousStateMachineContext context)
+        {
+            AutonomousController ctxt = context.getOwner();
+
+            (context.getState()).exit(context);
+            context.clearState();
+            try
+            {
+                ctxt.activateShooter();
+            }
+            finally
+            {
+                context.setState(OneRingSequence.RotateToPowerShot);
+                (context.getState()).entry(context);
+            }
+
+            return;
+        }
+
+    //-------------------------------------------------------
+    // Member data.
+    //
+
+        //---------------------------------------------------
+        // Constants.
+        //
+
+        private static final long serialVersionUID = 1L;
+    }
+
+    private static final class OneRingSequence_RotateToPowerShot
+        extends OneRingSequence_Default
+    {
+    //-------------------------------------------------------
+    // Member methods.
+    //
+
+        private OneRingSequence_RotateToPowerShot(String name, int id)
+        {
+            super (name, id);
+        }
+
+        @Override
+        protected void entry(AutonomousStateMachineContext context)
+            {
+                AutonomousController ctxt = context.getOwner();
+
+            ctxt.moveStraight(-36d);
+            return;
+        }
+
+        @Override
+        protected void evMoveComplete(AutonomousStateMachineContext context)
+        {
+            AutonomousController ctxt = context.getOwner();
+
+            AutonomousControllerState endState = context.getState();
+            context.clearState();
+            try
+            {
+                ctxt.rotateToHeading(0);
+            }
+            finally
+            {
+                context.setState(endState);
+            }
+
+            return;
+        }
+
+        @Override
+        protected void evRotationComplete(AutonomousStateMachineContext context)
+        {
+
+            (context.getState()).exit(context);
+            context.setState(OneRingSequence.ShootPowerShot);
+            (context.getState()).entry(context);
+            return;
+        }
+
+    //-------------------------------------------------------
+    // Member data.
+    //
+
+        //---------------------------------------------------
+        // Constants.
+        //
+
+        private static final long serialVersionUID = 1L;
+    }
+
+    private static final class OneRingSequence_ShootPowerShot
+        extends OneRingSequence_Default
+    {
+    //-------------------------------------------------------
+    // Member methods.
+    //
+
+        private OneRingSequence_ShootPowerShot(String name, int id)
+        {
+            super (name, id);
+        }
+
+        @Override
+        protected void entry(AutonomousStateMachineContext context)
+            {
+                AutonomousController ctxt = context.getOwner();
+
+            ctxt.moveStraight(-12d);
+            return;
+        }
+
+        @Override
+        protected void evMoveComplete(AutonomousStateMachineContext context)
+        {
+            AutonomousController ctxt = context.getOwner();
+
+            AutonomousControllerState endState = context.getState();
+            context.clearState();
+            try
+            {
+                ctxt.shootRing();
+                ctxt.startTimer(2000);
+            }
+            finally
+            {
+                context.setState(endState);
+            }
+
+            return;
+        }
+
+        @Override
+        protected void evTimeoutComplete(AutonomousStateMachineContext context)
+        {
+
+            (context.getState()).exit(context);
+            context.setState(OneRingSequence.MoveToWhiteLine);
+            (context.getState()).entry(context);
+            return;
+        }
+
+    //-------------------------------------------------------
+    // Member data.
+    //
+
+        //---------------------------------------------------
+        // Constants.
+        //
+
+        private static final long serialVersionUID = 1L;
+    }
+
+    private static final class OneRingSequence_MoveToWhiteLine
+        extends OneRingSequence_Default
+    {
+    //-------------------------------------------------------
+    // Member methods.
+    //
+
+        private OneRingSequence_MoveToWhiteLine(String name, int id)
+        {
+            super (name, id);
+        }
+
+        @Override
+        protected void entry(AutonomousStateMachineContext context)
+            {
+                AutonomousController ctxt = context.getOwner();
+
+            ctxt.moveStraight(12d);
+            return;
+        }
+
+        @Override
+        protected void evMoveComplete(AutonomousStateMachineContext context)
+        {
+
+            (context.getState()).exit(context);
+            context.setState(OneRingSequence.Stop);
+            (context.getState()).entry(context);
+            return;
+        }
+
+    //-------------------------------------------------------
+    // Member data.
+    //
+
+        //---------------------------------------------------
+        // Constants.
+        //
+
+        private static final long serialVersionUID = 1L;
+    }
+
+    private static final class OneRingSequence_Stop
+        extends OneRingSequence_Default
+    {
+    //-------------------------------------------------------
+    // Member methods.
+    //
+
+        private OneRingSequence_Stop(String name, int id)
+        {
+            super (name, id);
+        }
+
+        @Override
+        protected void entry(AutonomousStateMachineContext context)
+            {
+                AutonomousController ctxt = context.getOwner();
+
+            ctxt.stop();
+            return;
+        }
+
+    //-------------------------------------------------------
+    // Member data.
+    //
+
+        //---------------------------------------------------
+        // Constants.
+        //
+
+        private static final long serialVersionUID = 1L;
+    }
+
+    /* package */ static abstract class FourRingsSequence
+    {
+    //-----------------------------------------------------------
+    // Member methods.
+    //
+
+    //-----------------------------------------------------------
+    // Member data.
+    //
+
+        //-------------------------------------------------------
+        // Constants.
+        //
+
+        public static final FourRingsSequence_Start Start =
+            new FourRingsSequence_Start("FourRingsSequence.Start", 15);
+        public static final FourRingsSequence_RotateToSquareA RotateToSquareA =
+            new FourRingsSequence_RotateToSquareA("FourRingsSequence.RotateToSquareA", 16);
+        public static final FourRingsSequence_RotateToPowerShot RotateToPowerShot =
+            new FourRingsSequence_RotateToPowerShot("FourRingsSequence.RotateToPowerShot", 17);
+        public static final FourRingsSequence_ShootPowerShot ShootPowerShot =
+            new FourRingsSequence_ShootPowerShot("FourRingsSequence.ShootPowerShot", 18);
+        public static final FourRingsSequence_MoveToWhiteLine MoveToWhiteLine =
+            new FourRingsSequence_MoveToWhiteLine("FourRingsSequence.MoveToWhiteLine", 19);
+        public static final FourRingsSequence_Stop Stop =
+            new FourRingsSequence_Stop("FourRingsSequence.Stop", 20);
+    }
+
+    protected static class FourRingsSequence_Default
+        extends AutonomousControllerState
+    {
+    //-----------------------------------------------------------
+    // Member methods.
+    //
+
+        protected FourRingsSequence_Default(String name, int id)
+        {
+            super (name, id);
+        }
+
+    //-----------------------------------------------------------
+    // Member data.
+    //
+
+        //---------------------------------------------------
+        // Constants.
+        //
+
+        private static final long serialVersionUID = 1L;
+    }
+
+    private static final class FourRingsSequence_Start
+        extends FourRingsSequence_Default
+    {
+    //-------------------------------------------------------
+    // Member methods.
+    //
+
+        private FourRingsSequence_Start(String name, int id)
+        {
+            super (name, id);
+        }
+
+        @Override
+        protected void entry(AutonomousStateMachineContext context)
+            {
+                AutonomousController ctxt = context.getOwner();
+
+            ctxt.moveStraight(49d);
+            return;
+        }
+
+        @Override
+        protected void evMoveComplete(AutonomousStateMachineContext context)
+        {
+
+            (context.getState()).exit(context);
+            context.setState(FourRingsSequence.RotateToSquareA);
+            (context.getState()).entry(context);
+            return;
+        }
+
+    //-------------------------------------------------------
+    // Member data.
+    //
+
+        //---------------------------------------------------
+        // Constants.
+        //
+
+        private static final long serialVersionUID = 1L;
+    }
+
+    private static final class FourRingsSequence_RotateToSquareA
+        extends FourRingsSequence_Default
+    {
+    //-------------------------------------------------------
+    // Member methods.
+    //
+
+        private FourRingsSequence_RotateToSquareA(String name, int id)
+        {
+            super (name, id);
+        }
+
+        @Override
+        protected void entry(AutonomousStateMachineContext context)
+            {
+                AutonomousController ctxt = context.getOwner();
+
+            ctxt.rotateToHeading(270);
+            return;
+        }
+
+        @Override
+        protected void evMoveComplete(AutonomousStateMachineContext context)
+        {
+            AutonomousController ctxt = context.getOwner();
+
+            AutonomousControllerState endState = context.getState();
+            context.clearState();
+            try
+            {
+                ctxt.openGrabber();
+                ctxt.startTimer(500);
+            }
+            finally
+            {
+                context.setState(endState);
+            }
+
+            return;
+        }
+
+        @Override
+        protected void evRotationComplete(AutonomousStateMachineContext context)
+        {
+            AutonomousController ctxt = context.getOwner();
+
+            AutonomousControllerState endState = context.getState();
+            context.clearState();
+            try
+            {
+                ctxt.moveStraight(-6d);
+            }
+            finally
+            {
+                context.setState(endState);
+            }
+
+            return;
+        }
+
+        @Override
+        protected void evTimeoutComplete(AutonomousStateMachineContext context)
+        {
+            AutonomousController ctxt = context.getOwner();
+
+            (context.getState()).exit(context);
+            context.clearState();
+            try
+            {
+                ctxt.activateShooter();
+            }
+            finally
+            {
+                context.setState(FourRingsSequence.RotateToPowerShot);
+                (context.getState()).entry(context);
+            }
+
+            return;
+        }
+
+    //-------------------------------------------------------
+    // Member data.
+    //
+
+        //---------------------------------------------------
+        // Constants.
+        //
+
+        private static final long serialVersionUID = 1L;
+    }
+
+    private static final class FourRingsSequence_RotateToPowerShot
+        extends FourRingsSequence_Default
+    {
+    //-------------------------------------------------------
+    // Member methods.
+    //
+
+        private FourRingsSequence_RotateToPowerShot(String name, int id)
+        {
+            super (name, id);
+        }
+
+        @Override
+        protected void entry(AutonomousStateMachineContext context)
+            {
+                AutonomousController ctxt = context.getOwner();
+
+            ctxt.moveStraight(-36d);
+            return;
+        }
+
+        @Override
+        protected void evMoveComplete(AutonomousStateMachineContext context)
+        {
+            AutonomousController ctxt = context.getOwner();
+
+            AutonomousControllerState endState = context.getState();
+            context.clearState();
+            try
+            {
+                ctxt.rotateToHeading(0);
+            }
+            finally
+            {
+                context.setState(endState);
+            }
+
+            return;
+        }
+
+        @Override
+        protected void evRotationComplete(AutonomousStateMachineContext context)
+        {
+
+            (context.getState()).exit(context);
+            context.setState(FourRingsSequence.ShootPowerShot);
+            (context.getState()).entry(context);
+            return;
+        }
+
+    //-------------------------------------------------------
+    // Member data.
+    //
+
+        //---------------------------------------------------
+        // Constants.
+        //
+
+        private static final long serialVersionUID = 1L;
+    }
+
+    private static final class FourRingsSequence_ShootPowerShot
+        extends FourRingsSequence_Default
+    {
+    //-------------------------------------------------------
+    // Member methods.
+    //
+
+        private FourRingsSequence_ShootPowerShot(String name, int id)
+        {
+            super (name, id);
+        }
+
+        @Override
+        protected void entry(AutonomousStateMachineContext context)
+            {
+                AutonomousController ctxt = context.getOwner();
+
+            ctxt.moveStraight(-12d);
+            return;
+        }
+
+        @Override
+        protected void evMoveComplete(AutonomousStateMachineContext context)
+        {
+            AutonomousController ctxt = context.getOwner();
+
+            AutonomousControllerState endState = context.getState();
+            context.clearState();
+            try
+            {
+                ctxt.shootRing();
+                ctxt.startTimer(2000);
+            }
+            finally
+            {
+                context.setState(endState);
+            }
+
+            return;
+        }
+
+        @Override
+        protected void evTimeoutComplete(AutonomousStateMachineContext context)
+        {
+
+            (context.getState()).exit(context);
+            context.setState(FourRingsSequence.MoveToWhiteLine);
+            (context.getState()).entry(context);
+            return;
+        }
+
+    //-------------------------------------------------------
+    // Member data.
+    //
+
+        //---------------------------------------------------
+        // Constants.
+        //
+
+        private static final long serialVersionUID = 1L;
+    }
+
+    private static final class FourRingsSequence_MoveToWhiteLine
+        extends FourRingsSequence_Default
+    {
+    //-------------------------------------------------------
+    // Member methods.
+    //
+
+        private FourRingsSequence_MoveToWhiteLine(String name, int id)
+        {
+            super (name, id);
+        }
+
+        @Override
+        protected void entry(AutonomousStateMachineContext context)
+            {
+                AutonomousController ctxt = context.getOwner();
+
+            ctxt.moveStraight(12d);
+            return;
+        }
+
+        @Override
+        protected void evMoveComplete(AutonomousStateMachineContext context)
+        {
+
+            (context.getState()).exit(context);
+            context.setState(FourRingsSequence.Stop);
+            (context.getState()).entry(context);
+            return;
+        }
+
+    //-------------------------------------------------------
+    // Member data.
+    //
+
+        //---------------------------------------------------
+        // Constants.
+        //
+
+        private static final long serialVersionUID = 1L;
+    }
+
+    private static final class FourRingsSequence_Stop
+        extends FourRingsSequence_Default
+    {
+    //-------------------------------------------------------
+    // Member methods.
+    //
+
+        private FourRingsSequence_Stop(String name, int id)
         {
             super (name, id);
         }

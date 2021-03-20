@@ -40,9 +40,6 @@ public class GuidanceController {
     private boolean mDirection = true;
 
     private KalmanTracker mKalmanTracker = null;
-    private LogFile mLogFile = null;
-    private static boolean ENABLE_LOGGING = false;
-    public static final String[] LOG_COLUMNS = {"px","py","theta","distance","projection","angle"};
 
     private Point mPathLineStart = null;
     private Point mPathLineEnd = null;
@@ -142,15 +139,7 @@ public class GuidanceController {
         mStrafePowerPID.setMaxIOutput(mGCParameters.strafeModePowerMaxIntegOutput);
         mStrafePowerPID.setOutputLimits(-1.0d,1.0d);
 
-        if (ENABLE_LOGGING){
-            mLogFile = new LogFile("/sdcard","gclog.csv",LOG_COLUMNS);
-            mLogFile.openFile();
-        }
-    }
 
-    public void closeLogFile(){
-        if (ENABLE_LOGGING)
-            mLogFile.closeFile();
     }
 
     /**
