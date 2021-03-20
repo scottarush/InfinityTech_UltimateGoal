@@ -86,11 +86,11 @@ public class TestTankDrive extends OpMode{
      */
     @Override
     public void loop() {
-         // Run wheels in tank mode (note: The joystick goes negative when pushed forwards, so negate it)
+         // Run wheels in tank mode
         double xleft = gamepad1.left_stick_x;
-        double yleft = -gamepad1.left_stick_y;
+        double yleft = gamepad1.left_stick_y;
         double xright = gamepad1.right_stick_x;
-        double yright = -gamepad1.right_stick_y;
+        double yright = gamepad1.right_stick_y;
 
         // the speeds with the new gamepad inputs
         drivetrain.setTankDriveJoystickInput(xleft,yleft,xright,yright);

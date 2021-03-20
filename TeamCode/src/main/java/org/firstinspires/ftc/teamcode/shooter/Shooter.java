@@ -1,14 +1,10 @@
 package org.firstinspires.ftc.teamcode.shooter;
 
-import android.graphics.Color;
-
 import com.qualcomm.hardware.rev.RevColorSensorV3;
 import com.qualcomm.hardware.rev.RevTouchSensor;
 import com.qualcomm.robotcore.eventloop.opmode.OpMode;
 import com.qualcomm.robotcore.hardware.DcMotor;
 import com.qualcomm.robotcore.hardware.DcMotorSimple;
-import com.qualcomm.robotcore.hardware.I2cDeviceSynchReadHistory;
-import com.qualcomm.robotcore.hardware.NormalizedRGBA;
 import com.qualcomm.robotcore.util.ElapsedTime;
 
 import org.firstinspires.ftc.teamcode.util.LogFile;
@@ -23,7 +19,7 @@ import java.util.Iterator;
  */
 public class Shooter {
 
-    public static final boolean WHEEL_SPEED_TELEMETRY_ENABLED = true;
+    public static final boolean WHEEL_SPEED_TELEMETRY_ENABLED = false;
 
     // delta RPM for acceptable shooting
     public static final double DELTA_RPM_SHOOTING_WINDOW = 50d;
@@ -258,7 +254,7 @@ public class Shooter {
         serviceShooterWheels();
         // And the pulley
         // Changed to New code:
-        serviceLoaderPulleyNew();
+        serviceLoaderPulley();
 
         // And log data for this cycle if enabled
         if (LOGGING_ENABLED){
@@ -352,7 +348,7 @@ public class Shooter {
         return mLoaderPulleyCurrentPosition;
     }
 
-    private void serviceLoaderPulleyNew(){
+    private void serviceLoaderPulley(){
         // Read the pulley motor encoder value
         mLoaderPulleyEncoderValueCurrent = mLoaderPulley.getCurrentPosition();
 
@@ -398,73 +394,6 @@ public class Shooter {
 
     }
 
-    /**
-     * services the loader pulley.  Must be called once per loop from the serviceShooterLoop.
-     */
-    private void serviceLoaderPulley(){
-
-        // Read the pulley motor encoder value
-        mLoaderPulleyEncoderValueCurrent = mLoaderPulley.getCurrentPosition();
-
-        // Read the pulley color sensor
-        NormalizedRGBA colors = mPulleyColorSensor.getNormalizedColors();
-        float hsvValues[] = new float[3];
-        Color.colorToHSV(colors.toColor(), hsvValues);
-        float hue = hsvValues[0];
-
-        // Search for the position and trigger an event to the controller if it is a change
-        // High Touch Sensor is Pressed
-        if (isLoaderPulleyMoving()) {
-            if (mPulleyHighTouchSensor.isPressed()) {
-                if (mLoaderPulleyCurrentPosition != LOADER_PULLEY_POSITION_HIGH) {
-                    mLoaderPulleyCurrentPosition = LOADER_PULLEY_POSITION_HIGH;
-                    mLoaderPulleyEncoderValueHigh = mLoaderPulleyEncoderValueCurrent;
-                    // Trigger the event
-                    mShooterController.evLoaderPulleyHigh();
-                    // Stop the pulley
-                    stopLoaderPulley();
-                    // Call return to Low Position
-                    goToLoaderPulleyPositionLow();
-                } else {
-                    // must be on black tape in the middle
-                    if (mLoaderPulleyCurrentPosition != LOADER_PULLEY_POSITION_MIDDLE) {
-                        mLoaderPulleyCurrentPosition = LOADER_PULLEY_POSITION_MIDDLE;
-                        mShooterController.evLoaderPulleyMiddle();
-                    }
-                }
-            }
-        }
-
-         // Now check if the current position matches the target position
-        if (mLoaderPulleyCurrentPosition != mLoaderPulleyTargetPostion){
-            // They are not the same to move to the target position
-            boolean up = true;
-            switch(mLoaderPulleyTargetPostion){
-                case LOADER_PULLEY_POSITION_HIGH:
-                    up = true;
-                    break;
-                case LOADER_PULLEY_POSITION_LOW:
-                    up = false;
-                    break;
-                default:
-            }
-
-            if (mLoaderPulley != null) {
-                if (up) {
-                    mLoaderPulley.setDirection(DcMotorSimple.Direction.REVERSE);
-                } else {
-                    mLoaderPulley.setDirection(DcMotorSimple.Direction.FORWARD);
-                }
-                mLoaderPulley.setPower(LOADER_PULLY_POWER);
-            }
-        }
-        else{
-            // Stop the motor
-            if (mLoaderPulley != null) {
-                stopLoaderPulley();
-            }
-        }
-    }
 
     /**
      * utility to check if a speed is within two limits

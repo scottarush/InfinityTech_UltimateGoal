@@ -41,7 +41,7 @@ import com.qualcomm.robotcore.util.ElapsedTime;
 import org.firstinspires.ftc.robotcontroller.external.samples.HardwarePushbot;
 
 @TeleOp(name="Test Pulley Drive By Encoder", group="Robot")
-//@Disabled
+@Disabled
 public class TestPulleyDriveByEncoder_Linear extends LinearOpMode {
 
     /* Declare OpMode members. */

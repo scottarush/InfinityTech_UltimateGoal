@@ -86,11 +86,10 @@ public class TeleOpMrRingsBot extends OpMode {
         // ------------------------------------------------------
         // Do tank mode drive read on gamepad1.
         // ------------------------------------------------------
-        // Run wheels in tank mode (note: The joystick goes negative when pushed forwards, so negate it)
-        // Feb 28: turning in tank mode seems to be reversed.  Changed xleft & xright to - stick
-        double xleft = -gamepad1.left_stick_x;
+        // Run wheels in tank mode.  Since front and rear m
+        double xleft = gamepad1.left_stick_x;
         double yleft = gamepad1.left_stick_y;
-        double xright = -gamepad1.right_stick_x;
+        double xright = gamepad1.right_stick_x;
         double yright = gamepad1.right_stick_y;
 
         // the speeds with the new gamepad inputs
