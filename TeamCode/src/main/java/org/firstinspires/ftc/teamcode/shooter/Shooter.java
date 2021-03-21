@@ -224,7 +224,7 @@ public class Shooter {
             mLogFile.closeFile();
         }
         stopLoaderPulley();
-        setWheelMotorPower(0d,0d);
+        deactivateShooter();
     }
 
     /**

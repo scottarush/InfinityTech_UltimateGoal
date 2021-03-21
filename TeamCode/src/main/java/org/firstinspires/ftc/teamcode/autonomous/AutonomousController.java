@@ -23,7 +23,7 @@ public class AutonomousController extends BaseStateMachineController
      * Max rotation power.
      */
     private static final double MAX_ROTATION_POWER = 0.75d;
-
+    private static final double STRAIGHT_MODE_MAX_POWER = 0.5d;
     /**
      * rotation timeout. same value used for all transitions
      */
@@ -33,12 +33,6 @@ public class AutonomousController extends BaseStateMachineController
 
     private GuidanceController mGuidanceController;
 
-    private OneShotTimer mRotationTimeoutTimer = new OneShotTimer(ROTATION_TIMEOUTMS, new OneShotTimer.IOneShotTimerCallback() {
-        @Override
-        public void timeoutComplete() {
-            transition("evRotationTimeoutError");
-        }
-    });
     /**
      * Constructor
      * @param opMode
@@ -75,9 +69,7 @@ public class AutonomousController extends BaseStateMachineController
 
     @Override
     public void rotationComplete() {
-        // Cancel the timeout error timer
-        mRotationTimeoutTimer.cancel();
-        // And notify the state machine
+        // notify the state machine
         transition("evRotationComplete");
     }
 
@@ -92,21 +84,23 @@ public class AutonomousController extends BaseStateMachineController
     }
 
     @Override
+    public void strafeComplete() {
+        transition("evStrafeComplete");
+    }
+
+    @Override
     public void readyToShoot() {
         transition("evReadyToShoot");
     }
 
     /**
      * called from state machine to start a rotation using the guidance controller.
-     * If the rotation fails to complete in the default rotation timeout an evRotationTimeoutError
-     * will be triggered
      * @param angle rotation in degrees with positive angles to the right
      */
     public void rotateToHeading(int angle){
         // Convert angle to floating point radians
         double radianAngle = (double)angle * Math.PI/180d;
         mGuidanceController.rotateToHeading(radianAngle);
-        mRotationTimeoutTimer.start();
     }
     /**
      * called from state machine to do a rotation to point to a target point using the
@@ -116,7 +110,6 @@ public class AutonomousController extends BaseStateMachineController
      **/
     public void rotateToTarget(double targetx,double targety){
         mGuidanceController.rotateToTarget(targetx,targety);
-        mRotationTimeoutTimer.start();
     }
 
     /**
@@ -125,7 +118,7 @@ public class AutonomousController extends BaseStateMachineController
      */
     public void moveStraight(double distance){
         double meters = distance / 39.37d;
-        mGuidanceController.moveStraight(meters,1.0d);
+        mGuidanceController.moveStraight(meters,STRAIGHT_MODE_MAX_POWER);
     }
     /**
      * Strafes the robot left (negative distance) or right (positive distance).

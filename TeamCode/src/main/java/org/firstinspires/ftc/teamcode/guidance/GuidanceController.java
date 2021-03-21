@@ -13,8 +13,7 @@ import java.util.Iterator;
 public class GuidanceController {
 
     private MiniPID mRotationModePID = null;
-    private MiniPID mRotationSlowdownModePID = null;
-    private MiniPID mPathSteeringPID = null;
+     private MiniPID mPathSteeringPID = null;
     private MiniPID mPathPowerPID = null;
     private MiniPID mStraightPowerPID = null;
     private MiniPID mStraightHeadingPID = null;
@@ -26,10 +25,9 @@ public class GuidanceController {
     private double mPowerCommand = 0d;
     public static final int STOPPED = 0;
     public static final int ROTATION_MODE = 1;
-    public static final int ROTATION_SLOWDOWN_MODE = 2;
-    public static final int PATH_MODE = 3;
-    public static final int STRAIGHT_MODE = 4;
-    public static final int STRAFE_MODE = 5;
+    public static final int PATH_MODE = 2;
+    public static final int STRAIGHT_MODE = 3;
+    public static final int STRAFE_MODE = 4;
     private int mMode = STOPPED;
 
     public static final double MAX_STRAFE_HEADING_ERROR = Math.PI/180;
@@ -55,22 +53,12 @@ public class GuidanceController {
         /**
          * Minimum angle threshold for rotation mode to complete
          */
-        public double rotationModeStopAngleError = Math.PI/180;
-        /**
-         * Angular velocity threshold to stop in radians per sec.
-         */
-        public double rotationModeStopAngularVelocityThreshold = 30.0d*Math.PI/180;
-        public double rotationSlowdownModeEntryTime = 0.400;
+        public double rotationModeStopAngleError = 7d*Math.PI/180;
 
-        public double rotationModePropGain = 0.7d;
-        public double rotationModeIntegGain = 0.05d;
+        public double rotationModePropGain = 0.6d;
+        public double rotationModeIntegGain = 0.01d;
         public double rotationModeMaxIntegGain = 0.2d;
-        public double rotationModeDerivGain = 4.0d;
-
-        public double rotationSlowdownModePropGain = 2.0d;
-        public double rotationSlowdownModeIntegGain = 0.1d;
-        public double rotationSlowdownModeMaxIntegGain = 0.5d;
-        public double rotationSlowdownModeDerivGain = 8.0d;
+        public double rotationModeDerivGain = 7.0d;
 
         /**
          * Maximum angle to target to be able to enter path mode.
@@ -115,10 +103,6 @@ public class GuidanceController {
         mRotationModePID.setMaxIOutput(mGCParameters.rotationModeMaxIntegGain);
         mRotationModePID.setOutputLimits(-1.0,1.0d);
 
-        mRotationSlowdownModePID = new MiniPID(mGCParameters.rotationSlowdownModePropGain,mGCParameters.rotationSlowdownModeIntegGain,mGCParameters.rotationSlowdownModeDerivGain);
-        mRotationSlowdownModePID.setMaxIOutput(mGCParameters.rotationSlowdownModeMaxIntegGain);
-        mRotationSlowdownModePID.setOutputLimits(-1.0,1.0d);
-
         mPathSteeringPID = new MiniPID(mGCParameters.pathModeSteeringPropGain,mGCParameters.pathModeSteeringIntegGain,mGCParameters.pathModeSteeringDerivGain);
         mPathSteeringPID.setMaxIOutput(mGCParameters.pathModeSteeringMaxIntegOutput);
         mPathSteeringPID.setOutputLimits(-1.0,1.0d);
@@ -129,7 +113,6 @@ public class GuidanceController {
 
         mStraightPowerPID = new MiniPID(mGCParameters.straightModePowerPropGain,mGCParameters.straightModePowerIntegGain,mGCParameters.straightModePowerDerivGain);
         mStraightPowerPID.setMaxIOutput(mGCParameters.straightModePowerMaxIntegOutput);
-        mStraightPowerPID.setOutputLimits(-1.0d,1.0d);
 
         mStraightHeadingPID = new MiniPID(mGCParameters.straightModeHeadingPropGain,mGCParameters.straightModeHeadingIntegGain,mGCParameters.straightModeHeadingDerivGain);
         mStraightHeadingPID.setMaxIOutput(mGCParameters.straightModeHeadingMaxIntegOutput);
@@ -250,7 +233,6 @@ public class GuidanceController {
         // Clear all commands in case robot was moving
         clearAllCommands();
         mRotationModePID.reset();
-        mRotationSlowdownModePID.reset();
     }
     /**
      * Does a rotation maneuver to point the robot at the provided point.
@@ -344,9 +326,7 @@ public class GuidanceController {
     public void updateCommand(){
         // check if we need to make a mode transition
         switch(mMode){
-             case ROTATION_MODE:
-            case ROTATION_SLOWDOWN_MODE:
-                 updateRotationMode();
+             case ROTATION_MODE: updateRotationMode();
                break;
              case PATH_MODE:
                  updatePathMode();
@@ -367,45 +347,21 @@ public class GuidanceController {
     private void updateRotationMode(){
         // Compute current heading to target error threshold to decide if we need to stop
         double error = mKalmanTracker.getEstimatedHeading()-mTargetHeading;
-        // Check if we need to enter slowdown mode to use a different PID set to deal with angular momentum overshoot
-        boolean slowdownTransition = false;
-        if (mMode == ROTATION_MODE){
-            double stoppingAngle = Math.abs(mKalmanTracker.getEstimatedAngularVelocity()) * mGCParameters.rotationSlowdownModeEntryTime;
-            if (Math.abs(error) <= stoppingAngle) {
-                mMode = ROTATION_SLOWDOWN_MODE;
-                // Make one initial call to the separate PID
-                mRotationSlowdownModePID.getOutput(mKalmanTracker.getEstimatedHeading(),mTargetHeading);
-                // Set this flag to use the non slowdown one for this cycle so that the differential component will be correct
-                // the slowdown PID on the next one.
-                slowdownTransition = true;
-             }
-         }
         if (Math.abs(error) <= mGCParameters.rotationModeStopAngleError){
-            // Now check if the angular velocity has slowed enough to stop
-            if (Math.abs(mKalmanTracker.getEstimatedAngularVelocity()) <= mGCParameters.rotationModeStopAngularVelocityThreshold) {
-                mMode = STOPPED;
-                mRotationCommand = 0d;
-                // Notify command listeners to stop the rotation command
-                for (Iterator<IGuidanceControllerCommandListener> iter = mCommandListeners.iterator(); iter.hasNext(); ) {
-                    IGuidanceControllerCommandListener listener = iter.next();
-                    listener.setRotationCommand(0d);
-                }
-                // And status listeners that the maneuver is complete
-                notifyRotationComplete();
-                return;
+            mMode = STOPPED;
+            mRotationCommand = 0d;
+            // Notify command listeners to stop the rotation command
+            for (Iterator<IGuidanceControllerCommandListener> iter = mCommandListeners.iterator(); iter.hasNext(); ) {
+                IGuidanceControllerCommandListener listener = iter.next();
+                listener.setRotationCommand(0d);
             }
+            // And status listeners that the maneuver is complete
+            notifyRotationComplete();
+            return;
         }
         // Otherwise, drop through to compute regular rotation command
+        mRotationCommand = mRotationModePID.getOutput(mKalmanTracker.getEstimatedHeading(),mTargetHeading);
 
-        // check which PID to use, but only use the SlowdownMode one on the second frame after the entry into the slowdown
-        // region.  Otherwise, the differential component, which is critical to slowing down the turn, will not yet be valid
-        // because it takes 2 frames to compute differential component.
-        if ((mMode == ROTATION_SLOWDOWN_MODE) && (!slowdownTransition)){
-            mRotationCommand = mRotationSlowdownModePID.getOutput(mKalmanTracker.getEstimatedHeading(),mTargetHeading);
-        }
-        else{
-            mRotationCommand = mRotationModePID.getOutput(mKalmanTracker.getEstimatedHeading(),mTargetHeading);
-        }
         for(Iterator<IGuidanceControllerCommandListener> iter = mCommandListeners.iterator(); iter.hasNext();){
             IGuidanceControllerCommandListener listener = iter.next();
             listener.setRotationCommand(mRotationCommand);
@@ -591,7 +547,7 @@ public class GuidanceController {
             // notify that the command is complete
             for(Iterator<IGuidanceControllerStatusListener> iter = mStatusListeners.iterator(); iter.hasNext();){
                 IGuidanceControllerStatusListener listener = iter.next();
-                listener.moveComplete();
+                listener.strafeComplete();
             }
         }
     }
@@ -621,9 +577,7 @@ public class GuidanceController {
         switch(mMode) {
             case ROTATION_MODE:
                 return "ROTATION";
-            case ROTATION_SLOWDOWN_MODE:
-                return "ROTATION_SLOWDOWN";
-            case PATH_MODE:
+             case PATH_MODE:
                 return "PATH";
             case STRAIGHT_MODE:
                 return "STRAIGHT";

@@ -195,7 +195,7 @@ public class BaseAutonomousOpMode {
         // Now form the record for the log
         String[] logRecord = new String[LOG_COLUMNS.length];
         int logIndex = 0;
-        double time = (double)mRingsBot.getElapsedTimeMS()/1e9d;
+        double time = (double)mRingsBot.getElapsedTimeMS()/1e3d;
         logRecord[logIndex++] = String.format("%4.3f",time);
         // Now the speeds
         double[] speeds = mRingsBot.getDrivetrain().getWheelSpeeds();

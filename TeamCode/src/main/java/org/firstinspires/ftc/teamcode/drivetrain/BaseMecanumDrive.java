@@ -251,10 +251,10 @@ public abstract class BaseMecanumDrive extends Drivetrain implements IGuidanceCo
         double motorPower[] = new double[4];
 
         power = limitUnity(power);
-        motorPower[0] = power+headingCorrection;
-        motorPower[1] = power-headingCorrection;
-        motorPower[2] = power+headingCorrection;
-        motorPower[3] = power-headingCorrection;
+        motorPower[0] = power-headingCorrection;
+        motorPower[1] = power+headingCorrection;
+        motorPower[2] = power-headingCorrection;
+        motorPower[3] = power+headingCorrection;
         for(int i=0;i < mMotorList.size();i++){
             mMotorList.get(i).setPower(motorPower[i]);
         }
@@ -265,10 +265,10 @@ public abstract class BaseMecanumDrive extends Drivetrain implements IGuidanceCo
         double motorPower[] = new double[4];
 
         power = limitUnity(power);
-        motorPower[0] = power+headingCorrection;
-        motorPower[1] = -power-headingCorrection;
-        motorPower[2] = -power+headingCorrection;
-        motorPower[3] = power-headingCorrection;
+        motorPower[0] = power-headingCorrection;
+        motorPower[1] = -power+headingCorrection;
+        motorPower[2] = -power-headingCorrection;
+        motorPower[3] = power+headingCorrection;
         for(int i=0;i < mMotorList.size();i++){
             mMotorList.get(i).setPower(motorPower[i]);
         }
@@ -310,10 +310,10 @@ public abstract class BaseMecanumDrive extends Drivetrain implements IGuidanceCo
         if (Math.abs(rotation) > 1.0d){
             rotation = Math.signum(rotation);
         }
-        motorPower[0] = rotation;
-        motorPower[1] = -rotation;
-        motorPower[2] = rotation;
-        motorPower[3] = -rotation;
+        motorPower[0] = -rotation;
+        motorPower[1] = rotation;
+        motorPower[2] = -rotation;
+        motorPower[3] = rotation;
         for(int i=0;i < mMotorList.size();i++){
             mMotorList.get(i).setPower(motorPower[i]);
         }

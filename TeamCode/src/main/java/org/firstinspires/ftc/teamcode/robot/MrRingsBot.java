@@ -224,7 +224,7 @@ public class MrRingsBot {
      * returns elapsed time in milliseconds.  Used for development logging.
      */
     public int getElapsedTimeMS(){
-        return (int)Math.round((double)mElapsedTimeNS / 1000d);
+        return (int)Math.round((double)mElapsedTimeNS / 1000000d);
     }
 
     /**
