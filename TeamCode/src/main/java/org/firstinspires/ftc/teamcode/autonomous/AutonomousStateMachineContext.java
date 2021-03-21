@@ -230,6 +230,8 @@ public class AutonomousStateMachineContext
             new AutonomousStateMachine_Start("AutonomousStateMachine.Start", 1);
         public static final AutonomousStateMachine_MeasureRing MeasureRing =
             new AutonomousStateMachine_MeasureRing("AutonomousStateMachine.MeasureRing", 2);
+        public static final AutonomousStateMachine_Stop Stop =
+            new AutonomousStateMachine_Stop("AutonomousStateMachine.Stop", 3);
     }
 
     protected static class AutonomousStateMachine_Default
@@ -348,7 +350,7 @@ public class AutonomousStateMachineContext
                 AutonomousController ctxt = context.getOwner();
 
             ctxt.activateRingDetector();
-            ctxt.startTimer(5000);
+            ctxt.startTimer(3000);
             ctxt.startRingsMeasurement();
             return;
         }
@@ -413,6 +415,38 @@ public class AutonomousStateMachineContext
         private static final long serialVersionUID = 1L;
     }
 
+    private static final class AutonomousStateMachine_Stop
+        extends AutonomousStateMachine_Default
+    {
+    //-------------------------------------------------------
+    // Member methods.
+    //
+
+        private AutonomousStateMachine_Stop(String name, int id)
+        {
+            super (name, id);
+        }
+
+        @Override
+        protected void entry(AutonomousStateMachineContext context)
+            {
+                AutonomousController ctxt = context.getOwner();
+
+            ctxt.stop();
+            return;
+        }
+
+    //-------------------------------------------------------
+    // Member data.
+    //
+
+        //---------------------------------------------------
+        // Constants.
+        //
+
+        private static final long serialVersionUID = 1L;
+    }
+
     /* package */ static abstract class NoRingSequence
     {
     //-----------------------------------------------------------
@@ -428,17 +462,17 @@ public class AutonomousStateMachineContext
         //
 
         public static final NoRingSequence_Start Start =
-            new NoRingSequence_Start("NoRingSequence.Start", 3);
+            new NoRingSequence_Start("NoRingSequence.Start", 4);
         public static final NoRingSequence_RotateToSquareA RotateToSquareA =
-            new NoRingSequence_RotateToSquareA("NoRingSequence.RotateToSquareA", 4);
+            new NoRingSequence_RotateToSquareA("NoRingSequence.RotateToSquareA", 5);
         public static final NoRingSequence_RotateToPowerShot RotateToPowerShot =
-            new NoRingSequence_RotateToPowerShot("NoRingSequence.RotateToPowerShot", 5);
+            new NoRingSequence_RotateToPowerShot("NoRingSequence.RotateToPowerShot", 6);
         public static final NoRingSequence_ShootPowerShot ShootPowerShot =
-            new NoRingSequence_ShootPowerShot("NoRingSequence.ShootPowerShot", 6);
+            new NoRingSequence_ShootPowerShot("NoRingSequence.ShootPowerShot", 7);
         public static final NoRingSequence_MoveToWhiteLine MoveToWhiteLine =
-            new NoRingSequence_MoveToWhiteLine("NoRingSequence.MoveToWhiteLine", 7);
+            new NoRingSequence_MoveToWhiteLine("NoRingSequence.MoveToWhiteLine", 8);
         public static final NoRingSequence_Stop Stop =
-            new NoRingSequence_Stop("NoRingSequence.Stop", 8);
+            new NoRingSequence_Stop("NoRingSequence.Stop", 9);
     }
 
     protected static class NoRingSequence_Default
@@ -809,17 +843,17 @@ public class AutonomousStateMachineContext
         //
 
         public static final OneRingSequence_Start Start =
-            new OneRingSequence_Start("OneRingSequence.Start", 9);
+            new OneRingSequence_Start("OneRingSequence.Start", 10);
         public static final OneRingSequence_RotateToSquareA RotateToSquareA =
-            new OneRingSequence_RotateToSquareA("OneRingSequence.RotateToSquareA", 10);
+            new OneRingSequence_RotateToSquareA("OneRingSequence.RotateToSquareA", 11);
         public static final OneRingSequence_RotateToPowerShot RotateToPowerShot =
-            new OneRingSequence_RotateToPowerShot("OneRingSequence.RotateToPowerShot", 11);
+            new OneRingSequence_RotateToPowerShot("OneRingSequence.RotateToPowerShot", 12);
         public static final OneRingSequence_ShootPowerShot ShootPowerShot =
-            new OneRingSequence_ShootPowerShot("OneRingSequence.ShootPowerShot", 12);
+            new OneRingSequence_ShootPowerShot("OneRingSequence.ShootPowerShot", 13);
         public static final OneRingSequence_MoveToWhiteLine MoveToWhiteLine =
-            new OneRingSequence_MoveToWhiteLine("OneRingSequence.MoveToWhiteLine", 13);
+            new OneRingSequence_MoveToWhiteLine("OneRingSequence.MoveToWhiteLine", 14);
         public static final OneRingSequence_Stop Stop =
-            new OneRingSequence_Stop("OneRingSequence.Stop", 14);
+            new OneRingSequence_Stop("OneRingSequence.Stop", 15);
     }
 
     protected static class OneRingSequence_Default
@@ -1190,17 +1224,17 @@ public class AutonomousStateMachineContext
         //
 
         public static final FourRingsSequence_Start Start =
-            new FourRingsSequence_Start("FourRingsSequence.Start", 15);
+            new FourRingsSequence_Start("FourRingsSequence.Start", 16);
         public static final FourRingsSequence_RotateToSquareA RotateToSquareA =
-            new FourRingsSequence_RotateToSquareA("FourRingsSequence.RotateToSquareA", 16);
+            new FourRingsSequence_RotateToSquareA("FourRingsSequence.RotateToSquareA", 17);
         public static final FourRingsSequence_RotateToPowerShot RotateToPowerShot =
-            new FourRingsSequence_RotateToPowerShot("FourRingsSequence.RotateToPowerShot", 17);
+            new FourRingsSequence_RotateToPowerShot("FourRingsSequence.RotateToPowerShot", 18);
         public static final FourRingsSequence_ShootPowerShot ShootPowerShot =
-            new FourRingsSequence_ShootPowerShot("FourRingsSequence.ShootPowerShot", 18);
+            new FourRingsSequence_ShootPowerShot("FourRingsSequence.ShootPowerShot", 19);
         public static final FourRingsSequence_MoveToWhiteLine MoveToWhiteLine =
-            new FourRingsSequence_MoveToWhiteLine("FourRingsSequence.MoveToWhiteLine", 19);
+            new FourRingsSequence_MoveToWhiteLine("FourRingsSequence.MoveToWhiteLine", 20);
         public static final FourRingsSequence_Stop Stop =
-            new FourRingsSequence_Stop("FourRingsSequence.Stop", 20);
+            new FourRingsSequence_Stop("FourRingsSequence.Stop", 21);
     }
 
     protected static class FourRingsSequence_Default

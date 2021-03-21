@@ -17,21 +17,23 @@
     Start
         Entry {
             // Move forward to within 6" of the rings
-            //moveStraight(22d);
-            rotateToHeading(270);
+            moveStraight(22d);
+            //rotateToHeading(270);
         }
     {
         // On move complete, go to measure the ring
         evMoveComplete MeasureRing {  }
-        evRotateComplete Stop { }
+       // evRotateComplete Stop { }
     }
 
     MeasureRing
         Entry {
             // Activate the ring detector on entry
             activateRingDetector();
-            // Start a failsoft timer after 5 seconds and default to 4 rings
-            startTimer(5000);
+            // Start a failsoft timer after 3 seconds and default to 4 rings to avoid
+            // running over them if there happens to be more than one.  It appears
+            // that this won't be necessary as the camera is workign properly
+            startTimer(3000);
             // and start the averaging measurement
             startRingsMeasurement();
         }
@@ -49,6 +51,7 @@
         Entry {
             stop();
         }
+    {
     }
 %%
 

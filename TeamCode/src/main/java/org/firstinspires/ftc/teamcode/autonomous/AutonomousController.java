@@ -142,7 +142,7 @@ public class AutonomousController extends BaseStateMachineController
      * a detection after an average period.
      */
     public void startRingsMeasurement(){
-        mRingsBot.getRingDetector().doAveragedInference(10,this);
+        mRingsBot.getRingDetector().doAveragedInference(5,this);
     }
 
     @Override
