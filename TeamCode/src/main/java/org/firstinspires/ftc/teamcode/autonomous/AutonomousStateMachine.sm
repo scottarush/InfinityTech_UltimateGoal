@@ -18,21 +18,21 @@
     // then jump to the specific sequence for the ring condition.
     MoveForward
         Entry {
-            // Move forward
-            moveStraight(26d);
+            // Move forward to the front of the stacker stack
+            moveStraight(24d);
         }
     {
         // On move complete, go to measure the ring
-        evMoveComplete StrafeLeftToMeasure {  }
+        evMoveComplete MeasureRing {  }
     }
-    StrafeLeftToMeasure
-        Entry{
-            // Move left slightly to center on the starter stack
-            strafe(-2d);
-        }
-    {
-        evStrafeComplete MeasureRing {}
-    }
+//    StrafeLeftToMeasure
+//        Entry{
+//            // Move left slightly to center on the starter stack
+//            strafe(-2d);
+//        }
+//    {
+//        evStrafeComplete MeasureRing {}
+//    }
     MeasureRing
         Entry {
             // Activate the ring detector on entry
@@ -52,7 +52,7 @@
         evNoRings jump(NoRingSequence::Start) { }
         evOneRing jump(OneRingSequence::Start)  { }
         evFourRings jump(FourRingsSequence::Start) { }
-        evTimeoutComplete jump(NoRingSequence::Start) { }
+        evTimeoutComplete jump(FourRingsSequence::Start) { }
     }
     Stop
         Entry {
@@ -153,8 +153,8 @@
 %%
     Start
         Entry{
-            // strafe left to get around ring
-            strafe(-24d);
+            // strafe right to go around the ring and not hit the left wobble goal (by going left instead)
+            strafe(18d);
         }
     {
         evStrafeComplete GotoSquareB { }
@@ -162,12 +162,12 @@
 
     GotoSquareB
         Entry{
-            // go forward to to left of square B
-            moveStraight(73d);
+            // go forward to to right of square B
+            moveStraight(72d);
         }
     {
-        // After move complete, then rotate 90 to right to point into square b
-        evMoveComplete nil {  rotateToHeading(90); }
+        // After move complete, then rotate 90 to left to point into square b
+        evMoveComplete nil {  rotateToHeading(-90); }
         evRotationComplete MoveIntoSquareB { }
     }
 
@@ -200,29 +200,18 @@
             activateShooter();
         }
     {
-        // After orienting toward the goal, then move straight backward behind the white line
+        // After orienting toward the goal, move straight backward behind the white line
         evRotationComplete nil { moveStraight(-36d);  }
-        evMoveComplete StrafeToPowerShot { }
+        evMoveComplete DoPowerShot { }
     }
-    StrafeToPowerShot
-        Entry {
-            // There's a bug somehow that skips the strafe state so start a timer to wait one second
-            // before beginning strafe. TODO - NEED TO FIX THIS
-            startTimer(1000);
-        }
-    {
-        // After strafe complete, then start a 2 second timer before moving to the white line
-        evStrafeComplete DoPowerShot { }
-        // Strafe to right 24" to line up for power shot
-        evTimeout nil {  strafe(24);  }
-    }
+
     DoPowerShot
         Entry {
             shootRing();
             startTimer(2000);
         }
     {
-        // After timer complets, move forward 12" to park over the white line and go to end state
+        // After timer completes, move forward 12" to park over the white line and go to end state
         evTimeout MoveToWhiteLine { }
     }
 
@@ -248,59 +237,81 @@
 //-----------------------------------------------------------------------------------
 %map FourRingsSequence
 %%
-Start
-Entry{
-// Move straight 49" to the center line.
-moveStraight(49d);
-}
+    Start
+        Entry{
+            // strafe left to get around ring
+            strafe(-24d);
+        }
+    {
+        evStrafeComplete GotoSquareB { }
+    }
+
+    GotoSquareB
+        Entry{
+            // go forward to to left of square B
+            moveStraight(73d);
+        }
+    {
+        // After move complete, then rotate 90 to right to point into square b
+        evMoveComplete nil {  rotateToHeading(90); }
+        evRotationComplete MoveIntoSquareB { }
+    }
+
+    MoveIntoSquareB
+        Entry{
+            moveStraight(6d);
+        }
 {
-evMoveComplete RotateToSquareA { }
+evMoveComplete DropWobbleGoal { }
 }
 
-RotateToSquareA
+DropWobbleGoal
 Entry{
-// Rotate to heading
-rotateToHeading(-90);
-}
-{
-// After rotation complete, move forward 6"
-evRotationComplete nil { moveStraight(-6d); }
-
-// Once the move is complete, then just open the grabber to drop
+// just open the grabber to drop
 // the wobble goal in the square and wait for 1/2 second before
 // moving away to shoot the ring.
-evMoveComplete nil { openGrabber();
-startTimer(500);  }
-// After the delay, activate the shooter to get the wheels moving (now that
-// the wobble goal is out of the way), then move and shoot the power shot
-evTimeout RotateToPowerShot { activateShooter(); }
+openGrabber();
+startTimer(500);
 }
-
-RotateToPowerShot
+{
+// After the timeout, move back 6" to be able to clear the wobble goal
+evTimeout nil { moveStraight(-6d); }
+evMoveComplete RotateToGoal { }
+}
+RotateToGoal
 Entry {
-// Move backward 36 inches
-moveStraight(-36d);
+// rotate back to heading 0 to face the goal
+rotateToHeading(0);
+// And activte the shooter
+activateShooter();
 }
 {
-// After backward move, then rotate back to heading 0 toward the power shot
-evMoveComplete nil { rotateToHeading(0); }
-// After rotation complete, then move and shoot
-evRotationComplete ShootPowerShot {}
+// After orienting toward the goal, then move straight backward behind the white line
+evRotationComplete nil { moveStraight(-36d);  }
+evMoveComplete StrafeToPowerShot { }
 }
-
-ShootPowerShot
-Entry{
-// Back up to behind the white line
-moveStraight(-12d);
+StrafeToPowerShot
+Entry {
+// There's a bug somehow that skips the strafe state so start a timer to wait one second
+// before beginning strafe. TODO - NEED TO FIX THIS
+startTimer(1000);
 }
 {
-// After backup complete, then shoot and start a 2 second timer before moving to the white
-// line
-evMoveComplete nil { shootRing();  startTimer(2000); }
-
-// After timer complets, sho, move forward 12" to park over the white line and go to end state
+// After strafe complete, then start a 2 second timer before moving to the white line
+evStrafeComplete DoPowerShot { }
+// Strafe to right 24" to line up for power shot
+evTimeout nil {  strafe(24);  }
+}
+DoPowerShot
+Entry {
+shootRing();
+startTimer(2000);
+}
+{
+// After timer complets, move forward 12" to park over the white line and go to end state
 evTimeout MoveToWhiteLine { }
 }
+
 MoveToWhiteLine
 Entry{
 moveStraight(12d);
@@ -308,15 +319,11 @@ moveStraight(12d);
 {
 evMoveComplete Stop { }
 }
-/*
-    * Final state
-    */
+// Final state for OneRing
 Stop
 Entry{
 stop();
 }
 {
-
 }
 %%
-
