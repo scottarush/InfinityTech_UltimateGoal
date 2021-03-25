@@ -395,7 +395,7 @@ public class AutonomousStateMachineContext
         {
 
             (context.getState()).exit(context);
-            context.setState(FourRingsSequence.Start);
+            context.setState(OneRingSequence.Start);
             (context.getState()).entry(context);
             return;
         }
@@ -405,7 +405,7 @@ public class AutonomousStateMachineContext
         {
 
             (context.getState()).exit(context);
-            context.setState(NoRingSequence.Start);
+            context.setState(OneRingSequence.Start);
             (context.getState()).entry(context);
             return;
         }
