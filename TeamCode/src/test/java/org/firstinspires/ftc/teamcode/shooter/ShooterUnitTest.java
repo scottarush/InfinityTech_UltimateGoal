@@ -31,7 +31,7 @@ public class ShooterUnitTest {
             }
         });
         try {
-            mShooter.init(map);
+            mShooter.init();
         }
         catch(Exception e){
             e.printStackTrace();

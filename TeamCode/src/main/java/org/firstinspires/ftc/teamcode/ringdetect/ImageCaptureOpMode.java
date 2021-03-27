@@ -14,7 +14,7 @@ import org.firstinspires.ftc.teamcode.util.ImageUtils;
 import java.io.File;
 
 @TeleOp(name="ImageCaptureOpMode", group="Robot")
-//@Disabled
+@Disabled
 public class ImageCaptureOpMode extends OpMode implements ICaptureCameraListener {
 
 

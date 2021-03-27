@@ -94,7 +94,7 @@ public class NetworkVerifier {
         RingDetectorNeuralNetwork ringnn=null;
         try {
             ringnn =
-                    new RingDetectorNeuralNetwork(nnFilePath,RingDetectorNeuralNetwork.CONFIGURATION_ALL_SENSORS,logFile,false);
+                    new RingDetectorNeuralNetwork(nnFilePath,logFile,false);
         }
         catch(Exception e){
             e.printStackTrace();
