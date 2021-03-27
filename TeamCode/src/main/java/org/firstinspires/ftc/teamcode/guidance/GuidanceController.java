@@ -173,17 +173,16 @@ public class GuidanceController {
         return true;
     }
     /**
-     * Moves the robot straight forward (+) or backward (-) at the current heading.
+     * Moves the robot straight forward (+) or backward (-) at a specific target heading.
      * Listeners are notified on completion via the IGuidanceControllerStatusListener interface.
      * @param distance distance to move in meters + for forward, - for backward
      * @param maxPower maximum power from 0d to 1.0d
      **/
-    public void moveStraight(double distance,double maxPower){
+    public void moveStraight(double distance,double maxPower,double targetHeading) {
         mMode = STRAIGHT_MODE;
+        mTargetHeading = targetHeading;
         mStraightPowerPID.setOutputLimits(-maxPower,maxPower);
-        // Save TargetHeading as current heading to keep us straight
-        mTargetHeading = mKalmanTracker.getEstimatedHeading();
-          // Compute the target point
+        // Compute the target point
         double px = mKalmanTracker.getEstimatedXPosition() + Math.sin(mTargetHeading)*distance;
         double py = mKalmanTracker.getEstimatedYPosition() + Math.cos(mTargetHeading)*distance;
         mTargetPoint = new Point(px,py);
@@ -192,18 +191,20 @@ public class GuidanceController {
         mStraightPowerPID.reset();
         mStraightHeadingPID.reset();
     }
+
     /**
-     * Strafes the robot left (negative distance) or right (positive distance).
+     * Strafes the robot left (negative distance) or right (positive distance) maintaining
+     * the target heading
      * Listeners are notified on completion via the IGuidanceControllerStatusListener interface.
      * @param distance distance to strafe in meters + for right, - for left
      * @param maxPower maximum power from 0d to 1.0d
      **/
-    public void strafe(double distance,double maxPower){
+    public void strafe(double distance,double maxPower,double targetHeading){
         mMode = STRAFE_MODE;
         mStrafePowerPID.setOutputLimits(-maxPower,maxPower);
 
         // Compute the heading angle to strafe base on left or right
-        double strafeHeading = mKalmanTracker.getEstimatedHeading();
+        double strafeHeading = targetHeading;
         if (distance >= 0d) {
             strafeHeading += Math.PI / 2;
         }

@@ -116,18 +116,20 @@ public class AutonomousController extends BaseStateMachineController
      * called from state machine to drive forward or rearward
      * @param distance in inches + for forward, - for rearward
      */
-    public void moveStraight(double distance){
+    public void moveStraight(double distance,int targetHeading){
         double meters = distance / 39.37d;
-        mGuidanceController.moveStraight(meters,STRAIGHT_MODE_MAX_POWER);
+        double radianAngle = (double)targetHeading * Math.PI/180d;
+        mGuidanceController.moveStraight(meters,STRAIGHT_MODE_MAX_POWER,radianAngle);
     }
     /**
      * Strafes the robot left (negative distance) or right (positive distance).
      * Listeners are notified on completion via the IGuidanceControllerStatusListener interface.
      * @param distance distance to strafe in inches + for right, - for left
      **/
-    public void strafe(double distance) {
+    public void strafe(double distance,int targetHeading) {
         double meters = distance / 39.37d;
-        mGuidanceController.strafe(meters,1.0d);
+        double radianAngle = (double)targetHeading * Math.PI/180d;
+        mGuidanceController.strafe(meters,1.0d,radianAngle);
     }
 
     /**

@@ -18,21 +18,14 @@
     // then jump to the specific sequence for the ring condition.
     MoveForward
         Entry {
-            // Move forward to the front of the stacker stack
-            moveStraight(24d);
+            // Move forward to the front of the stacker on 0 degree target heading
+            moveStraight(24d,0);
         }
     {
         // On move complete, go to measure the ring
         evMoveComplete MeasureRing {  }
     }
-//    StrafeLeftToMeasure
-//        Entry{
-//            // Move left slightly to center on the starter stack
-//            strafe(-2d);
-//        }
-//    {
-//        evStrafeComplete MeasureRing {}
-//    }
+
     MeasureRing
         Entry {
             // Activate the ring detector on entry
@@ -68,8 +61,8 @@
 %%
     Start
         Entry{
-            // Move straight 49" to the center line.
-            moveStraight(49d);
+            // Move straight 49" to the center line on a 0 degree heading
+            moveStraight(49d,0);
         }
     {
         evMoveComplete RotateToSquareA { }
@@ -77,12 +70,12 @@
 
     RotateToSquareA
         Entry{
-            // Rotate 90 degrees to the left
+            // Rotate to -90 degree heading
             rotateToHeading(-90);
         }
     {
-        // After rotation complete, move forward 6"
-        evRotationComplete nil { moveStraight(6d); }
+        // After rotation complete, move forward 6" staying on -90 degree target heading
+        evRotationComplete nil { moveStraight(6d,-90); }
 
         // Once the move is complete, then
         evMoveComplete DropWobbleGoal { }
@@ -103,8 +96,8 @@
 
     MoveToPowerShot
         Entry {
-            // Move backward 36 inches
-            moveStraight(-36d);
+            // Move backward 36 inches staying on -90 degree heading
+            moveStraight(-36d,-90);
         }
     {
         // After backward move, then rotate back to heading 0 toward the power shot
@@ -115,20 +108,20 @@
 
     ShootPowerShot
         Entry{
-            // Back up to behind the white line
-            moveStraight(-12d);
+            // Back up to behind the white line pointing on 0 heading
+            moveStraight(-12d,0);
         }
     {
         // After backup complete, then shoot and start a 2 second timer before moving to the white
         // line
         evMoveComplete nil { shootRing();  startTimer(2000); }
 
-        // After timer complets, sho, move forward 12" to park over the white line and go to end state
+        // After timer completes, sho, move forward 12" to park over the white line and go to end state
         evTimeout MoveToWhiteLine { }
     }
     MoveToWhiteLine
         Entry{
-            moveStraight(12d);
+            moveStraight(12d,0);
         }
     {
         evMoveComplete Stop { }
@@ -154,7 +147,8 @@
     Start
         Entry{
             // strafe right to go around the ring and not hit the left wobble goal (by going left instead)
-            strafe(18d);
+			// Stay on 0 degree heading
+            strafe(18d,0);
         }
     {
         evStrafeComplete GotoSquareB { }
@@ -162,18 +156,19 @@
 
     GotoSquareB
         Entry{
-            // go forward to to right of square B
-            moveStraight(72d);
+            // go forward to to right of square B staying on 0 degree heading
+            moveStraight(72d,0);
         }
     {
-        // After move complete, then rotate 90 to left to point into square b
+        // After move complete, then rotate to -90 heading pointing into square b
         evMoveComplete nil {  rotateToHeading(-90); }
         evRotationComplete MoveIntoSquareB { }
     }
 
     MoveIntoSquareB
         Entry{
-            moveStraight(6d);
+			// Move forward into square B to drop the goal staying on -90
+            moveStraight(6d,-90);
         }
     {
         evMoveComplete DropWobbleGoal { }
@@ -189,7 +184,7 @@
         }
     {
         // After the timeout, move back 6" to be able to clear the wobble goal
-         evTimeout nil { moveStraight(-6d); }
+         evTimeout nil { moveStraight(-6d,-90); }
         evMoveComplete RotateToGoal { }
     }
     RotateToGoal
@@ -200,8 +195,8 @@
             activateShooter();
         }
     {
-        // After orienting toward the goal, move straight backward behind the white line
-        evRotationComplete nil { moveStraight(-36d);  }
+        // After orienting toward the goal, move straight backward behind the white line on 0 heading
+        evRotationComplete nil { moveStraight(-36d,0);  }
         evMoveComplete DoPowerShot { }
     }
 
@@ -217,7 +212,8 @@
 
     MoveToWhiteLine
         Entry{
-            moveStraight(12d);
+			// Move forward on 0 degree heading
+            moveStraight(12d,0);
         }
     {
         evMoveComplete Stop { }
@@ -240,7 +236,8 @@
     Start
         Entry{
             // strafe right to go around the ring and not hit the left wobble goal (by going left instead)
-            strafe(18d);
+			// and stay on 0 degree heading
+            strafe(18d,0);
         }
     {
         evStrafeComplete GotoSquareB { }
@@ -248,21 +245,24 @@
 
     GotoSquareB
         Entry{
-            // go forward to to right of square B
-            moveStraight(72d);
+            // go forward to 6" beyond the far end of square B
+            moveStraight(78d,0);
         }
     {
-        // After move complete, then rotate 90 to left to point into square b
-        evMoveComplete nil {  rotateToHeading(-90); }
-        evRotationComplete MoveIntoSquareB { }
+        // After move complete, then 
+        evMoveComplete MoveToColumnOverC { }
     }
 
-    MoveIntoSquareB
+    MoveToColumnOverC
         Entry{
-            moveStraight(6d);
+			// Strafe left to column C and try to avoid the left hand wall by 8 inches or so
+			// Maintain robot heading 0 to try to strafe correct heading
+            strafe(-32d,0);
         }
     {
-        evMoveComplete DropWobbleGoal { }
+		// After the strafe is complete, then drop the wobble goal
+        evStrafeComplete DropWobbleGoal { }
+		
     }
 
     DropWobbleGoal
@@ -274,20 +274,28 @@
             startTimer(500);
         }
     {
-        // After the timeout, move back 6" to be able to clear the wobble goal
-         evTimeout nil { moveStraight(-6d); }
-        evMoveComplete RotateToGoal { }
+        // After the timeout, move backward 6" to be able to clear the wobble goal
+         evTimeout nil { moveStraight(-6d,0); }
+		evMoveComplete StrafeToAlignPowerShot { }
     }
-    RotateToGoal
+    StrafeToAlignPowerShot
         Entry {
-            // rotate back to heading 0 to face the goal
-            rotateToHeading(0);
-            // And activte the shooter
+            // strafe right to align at the power shot
+            strafe(56d,0);
+            // And activate the shooter on the way
             activateShooter();
         }
     {
-        // After orienting toward the goal, move straight backward behind the white line
-        evRotationComplete nil { moveStraight(-36d);  }
+        evStrafeComplete MoveBehindWhiteLine { }
+    }
+   MoveBehindWhiteLine
+        Entry {
+            // move backward to be behind the white line maintaining heading 0
+            moveStraight(-56d,0);
+            // And activate the shooter on the way
+            activateShooter();
+        }
+    {
         evMoveComplete DoPowerShot { }
     }
 
@@ -297,18 +305,18 @@
             startTimer(2000);
         }
     {
-        // After timer completes, move forward 12" to park over the white line and go to end state
+        // After timer completes, move back park over the white line and go to end state
         evTimeout MoveToWhiteLine { }
     }
 
     MoveToWhiteLine
         Entry{
-            moveStraight(12d);
+            moveStraight(12d,0);
         }
     {
         evMoveComplete Stop { }
     }
-    // Final state for OneRing
+    // Final state for FourRingSequence
     Stop
         Entry{
             stop();

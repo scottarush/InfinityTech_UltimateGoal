@@ -333,7 +333,7 @@ public class AutonomousStateMachineContext
             {
                 AutonomousController ctxt = context.getOwner();
 
-            ctxt.moveStraight(24d);
+            ctxt.moveStraight(24d, 0);
             return;
         }
 
@@ -543,7 +543,7 @@ public class AutonomousStateMachineContext
             {
                 AutonomousController ctxt = context.getOwner();
 
-            ctxt.moveStraight(49d);
+            ctxt.moveStraight(49d, 0);
             return;
         }
 
@@ -608,7 +608,7 @@ public class AutonomousStateMachineContext
             context.clearState();
             try
             {
-                ctxt.moveStraight(6d);
+                ctxt.moveStraight(6d, -90);
             }
             finally
             {
@@ -699,7 +699,7 @@ public class AutonomousStateMachineContext
             {
                 AutonomousController ctxt = context.getOwner();
 
-            ctxt.moveStraight(-36d);
+            ctxt.moveStraight(-36d, -90);
             return;
         }
 
@@ -760,7 +760,7 @@ public class AutonomousStateMachineContext
             {
                 AutonomousController ctxt = context.getOwner();
 
-            ctxt.moveStraight(-12d);
+            ctxt.moveStraight(-12d, 0);
             return;
         }
 
@@ -822,7 +822,7 @@ public class AutonomousStateMachineContext
             {
                 AutonomousController ctxt = context.getOwner();
 
-            ctxt.moveStraight(12d);
+            ctxt.moveStraight(12d, 0);
             return;
         }
 
@@ -951,7 +951,7 @@ public class AutonomousStateMachineContext
             {
                 AutonomousController ctxt = context.getOwner();
 
-            ctxt.strafe(18d);
+            ctxt.strafe(18d, 0);
             return;
         }
 
@@ -993,7 +993,7 @@ public class AutonomousStateMachineContext
             {
                 AutonomousController ctxt = context.getOwner();
 
-            ctxt.moveStraight(72d);
+            ctxt.moveStraight(72d, 0);
             return;
         }
 
@@ -1054,7 +1054,7 @@ public class AutonomousStateMachineContext
             {
                 AutonomousController ctxt = context.getOwner();
 
-            ctxt.moveStraight(6d);
+            ctxt.moveStraight(6d, -90);
             return;
         }
 
@@ -1120,7 +1120,7 @@ public class AutonomousStateMachineContext
             context.clearState();
             try
             {
-                ctxt.moveStraight(-6d);
+                ctxt.moveStraight(-6d, -90);
             }
             finally
             {
@@ -1182,7 +1182,7 @@ public class AutonomousStateMachineContext
             context.clearState();
             try
             {
-                ctxt.moveStraight(-36d);
+                ctxt.moveStraight(-36d, 0);
             }
             finally
             {
@@ -1263,7 +1263,7 @@ public class AutonomousStateMachineContext
             {
                 AutonomousController ctxt = context.getOwner();
 
-            ctxt.moveStraight(12d);
+            ctxt.moveStraight(12d, 0);
             return;
         }
 
@@ -1338,18 +1338,20 @@ public class AutonomousStateMachineContext
             new FourRingsSequence_Start("FourRingsSequence.Start", 19);
         public static final FourRingsSequence_GotoSquareB GotoSquareB =
             new FourRingsSequence_GotoSquareB("FourRingsSequence.GotoSquareB", 20);
-        public static final FourRingsSequence_MoveIntoSquareB MoveIntoSquareB =
-            new FourRingsSequence_MoveIntoSquareB("FourRingsSequence.MoveIntoSquareB", 21);
+        public static final FourRingsSequence_MoveToColumnOverC MoveToColumnOverC =
+            new FourRingsSequence_MoveToColumnOverC("FourRingsSequence.MoveToColumnOverC", 21);
         public static final FourRingsSequence_DropWobbleGoal DropWobbleGoal =
             new FourRingsSequence_DropWobbleGoal("FourRingsSequence.DropWobbleGoal", 22);
-        public static final FourRingsSequence_RotateToGoal RotateToGoal =
-            new FourRingsSequence_RotateToGoal("FourRingsSequence.RotateToGoal", 23);
+        public static final FourRingsSequence_StrafeToAlignPowerShot StrafeToAlignPowerShot =
+            new FourRingsSequence_StrafeToAlignPowerShot("FourRingsSequence.StrafeToAlignPowerShot", 23);
+        public static final FourRingsSequence_MoveBehindWhiteLine MoveBehindWhiteLine =
+            new FourRingsSequence_MoveBehindWhiteLine("FourRingsSequence.MoveBehindWhiteLine", 24);
         public static final FourRingsSequence_DoPowerShot DoPowerShot =
-            new FourRingsSequence_DoPowerShot("FourRingsSequence.DoPowerShot", 24);
+            new FourRingsSequence_DoPowerShot("FourRingsSequence.DoPowerShot", 25);
         public static final FourRingsSequence_MoveToWhiteLine MoveToWhiteLine =
-            new FourRingsSequence_MoveToWhiteLine("FourRingsSequence.MoveToWhiteLine", 25);
+            new FourRingsSequence_MoveToWhiteLine("FourRingsSequence.MoveToWhiteLine", 26);
         public static final FourRingsSequence_Stop Stop =
-            new FourRingsSequence_Stop("FourRingsSequence.Stop", 26);
+            new FourRingsSequence_Stop("FourRingsSequence.Stop", 27);
     }
 
     protected static class FourRingsSequence_Default
@@ -1392,7 +1394,7 @@ public class AutonomousStateMachineContext
             {
                 AutonomousController ctxt = context.getOwner();
 
-            ctxt.strafe(18d);
+            ctxt.strafe(18d, 0);
             return;
         }
 
@@ -1434,35 +1436,16 @@ public class AutonomousStateMachineContext
             {
                 AutonomousController ctxt = context.getOwner();
 
-            ctxt.moveStraight(72d);
+            ctxt.moveStraight(78d, 0);
             return;
         }
 
         @Override
         protected void evMoveComplete(AutonomousStateMachineContext context)
         {
-            AutonomousController ctxt = context.getOwner();
-
-            AutonomousControllerState endState = context.getState();
-            context.clearState();
-            try
-            {
-                ctxt.rotateToHeading(-90);
-            }
-            finally
-            {
-                context.setState(endState);
-            }
-
-            return;
-        }
-
-        @Override
-        protected void evRotationComplete(AutonomousStateMachineContext context)
-        {
 
             (context.getState()).exit(context);
-            context.setState(FourRingsSequence.MoveIntoSquareB);
+            context.setState(FourRingsSequence.MoveToColumnOverC);
             (context.getState()).entry(context);
             return;
         }
@@ -1478,14 +1461,14 @@ public class AutonomousStateMachineContext
         private static final long serialVersionUID = 1L;
     }
 
-    private static final class FourRingsSequence_MoveIntoSquareB
+    private static final class FourRingsSequence_MoveToColumnOverC
         extends FourRingsSequence_Default
     {
     //-------------------------------------------------------
     // Member methods.
     //
 
-        private FourRingsSequence_MoveIntoSquareB(String name, int id)
+        private FourRingsSequence_MoveToColumnOverC(String name, int id)
         {
             super (name, id);
         }
@@ -1495,12 +1478,12 @@ public class AutonomousStateMachineContext
             {
                 AutonomousController ctxt = context.getOwner();
 
-            ctxt.moveStraight(6d);
+            ctxt.strafe(-32d, 0);
             return;
         }
 
         @Override
-        protected void evMoveComplete(AutonomousStateMachineContext context)
+        protected void evStrafeComplete(AutonomousStateMachineContext context)
         {
 
             (context.getState()).exit(context);
@@ -1547,7 +1530,7 @@ public class AutonomousStateMachineContext
         {
 
             (context.getState()).exit(context);
-            context.setState(FourRingsSequence.RotateToGoal);
+            context.setState(FourRingsSequence.StrafeToAlignPowerShot);
             (context.getState()).entry(context);
             return;
         }
@@ -1561,7 +1544,7 @@ public class AutonomousStateMachineContext
             context.clearState();
             try
             {
-                ctxt.moveStraight(-6d);
+                ctxt.moveStraight(-6d, 0);
             }
             finally
             {
@@ -1582,14 +1565,14 @@ public class AutonomousStateMachineContext
         private static final long serialVersionUID = 1L;
     }
 
-    private static final class FourRingsSequence_RotateToGoal
+    private static final class FourRingsSequence_StrafeToAlignPowerShot
         extends FourRingsSequence_Default
     {
     //-------------------------------------------------------
     // Member methods.
     //
 
-        private FourRingsSequence_RotateToGoal(String name, int id)
+        private FourRingsSequence_StrafeToAlignPowerShot(String name, int id)
         {
             super (name, id);
         }
@@ -1599,7 +1582,50 @@ public class AutonomousStateMachineContext
             {
                 AutonomousController ctxt = context.getOwner();
 
-            ctxt.rotateToHeading(0);
+            ctxt.strafe(56d, 0);
+            ctxt.activateShooter();
+            return;
+        }
+
+        @Override
+        protected void evStrafeComplete(AutonomousStateMachineContext context)
+        {
+
+            (context.getState()).exit(context);
+            context.setState(FourRingsSequence.MoveBehindWhiteLine);
+            (context.getState()).entry(context);
+            return;
+        }
+
+    //-------------------------------------------------------
+    // Member data.
+    //
+
+        //---------------------------------------------------
+        // Constants.
+        //
+
+        private static final long serialVersionUID = 1L;
+    }
+
+    private static final class FourRingsSequence_MoveBehindWhiteLine
+        extends FourRingsSequence_Default
+    {
+    //-------------------------------------------------------
+    // Member methods.
+    //
+
+        private FourRingsSequence_MoveBehindWhiteLine(String name, int id)
+        {
+            super (name, id);
+        }
+
+        @Override
+        protected void entry(AutonomousStateMachineContext context)
+            {
+                AutonomousController ctxt = context.getOwner();
+
+            ctxt.moveStraight(-56d, 0);
             ctxt.activateShooter();
             return;
         }
@@ -1611,25 +1637,6 @@ public class AutonomousStateMachineContext
             (context.getState()).exit(context);
             context.setState(FourRingsSequence.DoPowerShot);
             (context.getState()).entry(context);
-            return;
-        }
-
-        @Override
-        protected void evRotationComplete(AutonomousStateMachineContext context)
-        {
-            AutonomousController ctxt = context.getOwner();
-
-            AutonomousControllerState endState = context.getState();
-            context.clearState();
-            try
-            {
-                ctxt.moveStraight(-36d);
-            }
-            finally
-            {
-                context.setState(endState);
-            }
-
             return;
         }
 
@@ -1704,7 +1711,7 @@ public class AutonomousStateMachineContext
             {
                 AutonomousController ctxt = context.getOwner();
 
-            ctxt.moveStraight(12d);
+            ctxt.moveStraight(12d, 0);
             return;
         }
 
