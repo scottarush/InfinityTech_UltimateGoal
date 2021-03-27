@@ -51,8 +51,7 @@
     {
         evNoRings jump(NoRingSequence::Start) { }
         evOneRing jump(OneRingSequence::Start)  { }
-    //        evFourRings jump(FourRingsSequence::Start) { }
-        evFourRings jump(OneRingSequence::Start) { }
+        evFourRings jump(FourRingsSequence::Start) { }
         evTimeoutComplete jump(FourRingsSequence::Start) { }
     }
     Stop
@@ -154,21 +153,12 @@
 %%
     Start
         Entry{
-            // rotate right
-            rotateToHeading(90);
+            // strafe right to go around the ring and not hit the left wobble goal (by going left instead)
+            strafe(18d);
         }
     {
-        evRotationComplete nil { moveStraight(18d); }
-        evMoveComplete RotateTowardSquareB { }
+        evStrafeComplete GotoSquareB { }
     }
-RotateTowardSquareB
-Entry{
-// rotate back toward square B
-rotateToHeading(0);
-}
-{
-evRotationComplete GotoSquareB { }
-}
 
     GotoSquareB
         Entry{
@@ -247,82 +237,82 @@ evRotationComplete GotoSquareB { }
 //-----------------------------------------------------------------------------------
 %map FourRingsSequence
 %%
-Start
-Entry{
-// strafe right to go around the ring and not hit the left wobble goal (by going left instead)
-strafe(18d);
-}
-{
-evStrafeComplete GotoSquareB { }
-}
+    Start
+        Entry{
+            // strafe right to go around the ring and not hit the left wobble goal (by going left instead)
+            strafe(18d);
+        }
+    {
+        evStrafeComplete GotoSquareB { }
+    }
 
-GotoSquareB
-Entry{
-// go forward to to right of square B
-moveStraight(72d);
-}
-{
-// After move complete, then rotate 90 to left to point into square b
-evMoveComplete nil {  rotateToHeading(-90); }
-evRotationComplete MoveIntoSquareB { }
-}
+    GotoSquareB
+        Entry{
+            // go forward to to right of square B
+            moveStraight(72d);
+        }
+    {
+        // After move complete, then rotate 90 to left to point into square b
+        evMoveComplete nil {  rotateToHeading(-90); }
+        evRotationComplete MoveIntoSquareB { }
+    }
 
-MoveIntoSquareB
-Entry{
-moveStraight(6d);
-}
-{
-evMoveComplete DropWobbleGoal { }
-}
+    MoveIntoSquareB
+        Entry{
+            moveStraight(6d);
+        }
+    {
+        evMoveComplete DropWobbleGoal { }
+    }
 
-DropWobbleGoal
-Entry{
-// just open the grabber to drop
-// the wobble goal in the square and wait for 1/2 second before
-// moving away to shoot the ring.
-openGrabber();
-startTimer(500);
-}
-{
-// After the timeout, move back 6" to be able to clear the wobble goal
-evTimeout nil { moveStraight(-6d); }
-evMoveComplete RotateToGoal { }
-}
-RotateToGoal
-Entry {
-// rotate back to heading 0 to face the goal
-rotateToHeading(0);
-// And activte the shooter
-activateShooter();
-}
-{
-// After orienting toward the goal, move straight backward behind the white line
-evRotationComplete nil { moveStraight(-36d);  }
-evMoveComplete DoPowerShot { }
-}
+    DropWobbleGoal
+        Entry{
+            // just open the grabber to drop
+            // the wobble goal in the square and wait for 1/2 second before
+            // moving away to shoot the ring.
+            openGrabber();
+            startTimer(500);
+        }
+    {
+        // After the timeout, move back 6" to be able to clear the wobble goal
+         evTimeout nil { moveStraight(-6d); }
+        evMoveComplete RotateToGoal { }
+    }
+    RotateToGoal
+        Entry {
+            // rotate back to heading 0 to face the goal
+            rotateToHeading(0);
+            // And activte the shooter
+            activateShooter();
+        }
+    {
+        // After orienting toward the goal, move straight backward behind the white line
+        evRotationComplete nil { moveStraight(-36d);  }
+        evMoveComplete DoPowerShot { }
+    }
 
-DoPowerShot
-Entry {
-shootRing();
-startTimer(2000);
-}
-{
-// After timer completes, move forward 12" to park over the white line and go to end state
-evTimeout MoveToWhiteLine { }
-}
+    DoPowerShot
+        Entry {
+            shootRing();
+            startTimer(2000);
+        }
+    {
+        // After timer completes, move forward 12" to park over the white line and go to end state
+        evTimeout MoveToWhiteLine { }
+    }
 
-MoveToWhiteLine
-Entry{
-moveStraight(12d);
-}
-{
-evMoveComplete Stop { }
-}
-// Final state for OneRing
-Stop
-Entry{
-stop();
-}
-{
+    MoveToWhiteLine
+        Entry{
+            moveStraight(12d);
+        }
+    {
+        evMoveComplete Stop { }
+    }
+    // Final state for OneRing
+    Stop
+        Entry{
+            stop();
+    }
+    {
 }
 %%

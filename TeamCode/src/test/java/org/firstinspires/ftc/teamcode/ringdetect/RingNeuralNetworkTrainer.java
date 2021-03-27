@@ -19,23 +19,33 @@ public class RingNeuralNetworkTrainer {
     /**
      * Called to train a new network
      */
-    public void trainNewNetwork(String description, File trainingDataFile, File neuralNetworkFilePath,int networkConfig, File logFile,double testFraction,double eta,double lambda,int numEpochs){
-        RingDataProcessor processor = new RingDataProcessor(networkConfig);
-        File networkFile = new File(neuralNetworkFilePath,RingDetectorNeuralNetwork.getNeuralNetworkFilename(networkConfig));
-        if (networkFile.exists()){
-            throw new RuntimeException("File:"+networkFile+" exists.  Please delete first before training a new network.");
+    public void trainNewNetwork(String description, File trainingDataFile, File neuralNetworkFilePath, File logFile,double testFraction,double eta,double lambda,int numEpochs) {
+        File networkFile = new File(neuralNetworkFilePath, RingDetectorNeuralNetwork.getNeuralNetworkFilename());
+        if (networkFile.exists()) {
+            throw new RuntimeException("File:" + networkFile + " exists.  Please delete first before training a new network.");
         }
 
-        processor.processData(trainingDataFile,testFraction ,true,true);
+         // Now create the node structure according to the configuration
+        int[] nodes = RingDetectorNeuralNetwork.getNetworkNodeTopology();
 
-        // Now create the node structure according to the configuration
-        int[] nodes = RingDetectorNeuralNetwork.getNetworkNodeTopology(networkConfig);
+        // Instantiate the network
+        NeuralNetwork ringnn = new NeuralNetwork(nodes, NeuralNetwork.CROSS_ENTROPY_COST);
 
-        NeuralNetwork ringnn = new NeuralNetwork(nodes,NeuralNetwork.CROSS_ENTROPY_COST);
+        // and train it
+        trainNetwork(description,trainingDataFile,ringnn,networkFile,logFile,testFraction,eta,lambda,numEpochs);
+    }
+
+    /**
+     * Actual network training function called for both new and update
+     */
+    private void trainNetwork(String description,File trainingDataFile,NeuralNetwork ringnn,File nnOutputFile,File logFile,double testFraction,double eta,double lambda,int numEpochs){
+        RingDataProcessor processor = new RingDataProcessor();
+        processor.processData(trainingDataFile, testFraction, true, true);
+
 
         final StringBuffer logBuffer = new StringBuffer();
         String header = "Epoch#,Cost,del_L[0],del_L[1],delL[2],Normal Error";
-        logBuffer.append(header+"\n");
+        logBuffer.append(header + "\n");
         System.out.println(header);
 
         ringnn.addTrainingStatusListener(new NeuralNetwork.ITrainingStatusListener() {
@@ -55,13 +65,16 @@ public class RingNeuralNetworkTrainer {
             }
         });
 
-
-
         ringnn.train(description,processor.getXTrainingData(), processor.getYTrainingData(),
                 processor.getScaleFactors(), 10,eta,lambda,numEpochs);
-         // Write out the network
+        // Write out the network
         try {
-            FileOutputStream fos = new FileOutputStream(networkFile);
+            // Delete the old file if it exists
+            if (nnOutputFile.exists()) {
+                nnOutputFile.delete();
+            }
+            // And replace or create it with the trained network
+            FileOutputStream fos = new FileOutputStream(nnOutputFile);
             ringnn.serializeNetwork(fos);
             fos.close();
         }
@@ -82,18 +95,37 @@ public class RingNeuralNetworkTrainer {
         }
 
     }
-
-    public void testNetwork(File testDataFile,File neuralNetworkFilePath,int networkConfig,File logFile){
-        RingDataProcessor processor = new RingDataProcessor(networkConfig);
-       // Read the network
+    /**
+     * Called to update train an existing network
+     */
+    public void updateNetwork(String description, File trainingDataFile, File neuralNetworkFilePath, File logFile,double testFraction,double eta,double lambda,int numEpochs) {
+        // Read the network
         RingDetectorNeuralNetwork ringnn=null;
         try {
-            ringnn = new RingDetectorNeuralNetwork(neuralNetworkFilePath,networkConfig,logFile,false);
+            ringnn = new RingDetectorNeuralNetwork(neuralNetworkFilePath,logFile,false);
         }
         catch(Exception e){
             e.printStackTrace();
             return;
         }
+        // Get the networkFile to output the updated network after training
+        File networkFile = new File(neuralNetworkFilePath, RingDetectorNeuralNetwork.getNeuralNetworkFilename());
+        // And train it
+        trainNetwork(description,trainingDataFile,ringnn,networkFile,logFile,testFraction,eta,lambda,numEpochs);
+    }
+
+
+    public void testNetwork(File testDataFile,File neuralNetworkFilePath,File logFile){
+       // Read the network
+        RingDetectorNeuralNetwork ringnn=null;
+        try {
+            ringnn = new RingDetectorNeuralNetwork(neuralNetworkFilePath,logFile,false);
+        }
+        catch(Exception e){
+            e.printStackTrace();
+            return;
+        }
+        RingDataProcessor processor = new RingDataProcessor();
 
         // Init the log buffer
         final StringBuffer logBuffer = new StringBuffer();
@@ -151,66 +183,40 @@ public class RingNeuralNetworkTrainer {
 
     }
 
-    /**
-     * This is the method used for the color and distance sensor network
-     */
-    public static void doColorDistanceSensorNetwork(){
-        RingNeuralNetworkTrainer trainer = new RingNeuralNetworkTrainer();
-        int networkConfig = RingDetectorNeuralNetwork.CONFIGURATION_NO_MID_COLOR_SENSOR;
 
-        // Get the path to the data directory
-        Path currentRelativePath = Paths.get("");
-        String dataPath = currentRelativePath.toAbsolutePath().toString() + "/src/test/java/org/firstinspires/ftc/teamcode/ringdetect/data";
-        // Form training and testing log filenames using the configuration filename as a prefix
-        String fileprefix = RingDetectorNeuralNetwork.getNeuralNetworkFilename(networkConfig);
-        fileprefix = fileprefix.substring(0,fileprefix.length()-4);      // Strip .bin extension
-        File neuralNetFilePath = new File(dataPath);
-
-        boolean TRAIN = true;
-        if (TRAIN) {
-            File trainingFile = new File(dataPath, "21DEC20_training_data.csv");
-            File trainingLogFile = new File(dataPath,fileprefix+"_training_log.csv");
-            trainer.trainNewNetwork(RingDetectorNeuralNetwork.getNeuralNetworkFilename(networkConfig),
-                    trainingFile,neuralNetFilePath,networkConfig,trainingLogFile,0d,0.1d,0d,5000);
-        }
-
-        boolean test = true;
-        if (test){
-            File testingLogFile = new File(dataPath, fileprefix +"_testing_log.csv");
-            File testingDataFile = new File(dataPath,"21DEC20_testing_data.csv");
-            //           File testingDataFile = new File(dataPath,"15DEC20_training_data with old setup.csv");
-            trainer.testNetwork(testingDataFile,neuralNetFilePath,networkConfig,testingLogFile);
-        }
-
-
-    }
     /**
      * This is the method used for the image capture camera
      */
     public static void doCameraSensorNetwork(){
         RingNeuralNetworkTrainer trainer = new RingNeuralNetworkTrainer();
-        int networkConfig = RingDetectorNeuralNetwork.CONFIGURATION_CAMERA_ONLY;
 
         // Get the path to the data directory
         Path currentRelativePath = Paths.get("");
-        String dataPath = currentRelativePath.toAbsolutePath().toString() + "/src/test/java/org/firstinspires/ftc/teamcode/ringdetect/data/images";
+        String dataPath = currentRelativePath.toAbsolutePath().toString() + "/src/test/java/org/firstinspires/ftc/teamcode/ringdetect/data";
         // Form training and testing log filenames using the configuration filename as a prefix
-        String fileprefix = RingDetectorNeuralNetwork.getNeuralNetworkFilename(networkConfig);
+        String fileprefix = RingDetectorNeuralNetwork.getNeuralNetworkFilename();
         fileprefix = fileprefix.substring(0,fileprefix.length()-4);      // Strip .bin extension
 
         File neuralNetFilePath = new File(dataPath);
-        boolean TRAIN = true;
+
+        boolean TRAIN = false;
         if (TRAIN) {
             File trainingLogFile = new File(dataPath,fileprefix+"_training_log.csv");
             trainer.trainNewNetwork(fileprefix,
-                    neuralNetFilePath,neuralNetFilePath,networkConfig,trainingLogFile,0d,0.1d,0,5000);
+                    neuralNetFilePath,neuralNetFilePath,trainingLogFile,0d,0.1d,0,5000);
+        }
+        boolean UPDATE = true;
+        if (UPDATE) {
+            File trainingLogFile = new File(dataPath,fileprefix+"_training_log.csv");
+            trainer.updateNetwork(fileprefix,
+                    neuralNetFilePath,neuralNetFilePath,trainingLogFile,0d,0.1d,0,5000);
         }
 
         boolean test = true;
         if (test){
             File testingLogFile = new File(dataPath, fileprefix +"_testing_log.csv");
             //           File testingDataFile = new File(dataPath,"15DEC20_training_data with old setup.csv");
-            trainer.testNetwork(neuralNetFilePath,neuralNetFilePath,networkConfig,testingLogFile);
+            trainer.testNetwork(neuralNetFilePath,neuralNetFilePath,testingLogFile);
         }
 
 

@@ -395,7 +395,7 @@ public class AutonomousStateMachineContext
         {
 
             (context.getState()).exit(context);
-            context.setState(OneRingSequence.Start);
+            context.setState(FourRingsSequence.Start);
             (context.getState()).entry(context);
             return;
         }
@@ -895,22 +895,20 @@ public class AutonomousStateMachineContext
 
         public static final OneRingSequence_Start Start =
             new OneRingSequence_Start("OneRingSequence.Start", 11);
-        public static final OneRingSequence_RotateTowardSquareB RotateTowardSquareB =
-            new OneRingSequence_RotateTowardSquareB("OneRingSequence.RotateTowardSquareB", 12);
         public static final OneRingSequence_GotoSquareB GotoSquareB =
-            new OneRingSequence_GotoSquareB("OneRingSequence.GotoSquareB", 13);
+            new OneRingSequence_GotoSquareB("OneRingSequence.GotoSquareB", 12);
         public static final OneRingSequence_MoveIntoSquareB MoveIntoSquareB =
-            new OneRingSequence_MoveIntoSquareB("OneRingSequence.MoveIntoSquareB", 14);
+            new OneRingSequence_MoveIntoSquareB("OneRingSequence.MoveIntoSquareB", 13);
         public static final OneRingSequence_DropWobbleGoal DropWobbleGoal =
-            new OneRingSequence_DropWobbleGoal("OneRingSequence.DropWobbleGoal", 15);
+            new OneRingSequence_DropWobbleGoal("OneRingSequence.DropWobbleGoal", 14);
         public static final OneRingSequence_RotateToGoal RotateToGoal =
-            new OneRingSequence_RotateToGoal("OneRingSequence.RotateToGoal", 16);
+            new OneRingSequence_RotateToGoal("OneRingSequence.RotateToGoal", 15);
         public static final OneRingSequence_DoPowerShot DoPowerShot =
-            new OneRingSequence_DoPowerShot("OneRingSequence.DoPowerShot", 17);
+            new OneRingSequence_DoPowerShot("OneRingSequence.DoPowerShot", 16);
         public static final OneRingSequence_MoveToWhiteLine MoveToWhiteLine =
-            new OneRingSequence_MoveToWhiteLine("OneRingSequence.MoveToWhiteLine", 18);
+            new OneRingSequence_MoveToWhiteLine("OneRingSequence.MoveToWhiteLine", 17);
         public static final OneRingSequence_Stop Stop =
-            new OneRingSequence_Stop("OneRingSequence.Stop", 19);
+            new OneRingSequence_Stop("OneRingSequence.Stop", 18);
     }
 
     protected static class OneRingSequence_Default
@@ -953,73 +951,12 @@ public class AutonomousStateMachineContext
             {
                 AutonomousController ctxt = context.getOwner();
 
-            ctxt.rotateToHeading(90);
+            ctxt.strafe(18d);
             return;
         }
 
         @Override
-        protected void evMoveComplete(AutonomousStateMachineContext context)
-        {
-
-            (context.getState()).exit(context);
-            context.setState(OneRingSequence.RotateTowardSquareB);
-            (context.getState()).entry(context);
-            return;
-        }
-
-        @Override
-        protected void evRotationComplete(AutonomousStateMachineContext context)
-        {
-            AutonomousController ctxt = context.getOwner();
-
-            AutonomousControllerState endState = context.getState();
-            context.clearState();
-            try
-            {
-                ctxt.moveStraight(18d);
-            }
-            finally
-            {
-                context.setState(endState);
-            }
-
-            return;
-        }
-
-    //-------------------------------------------------------
-    // Member data.
-    //
-
-        //---------------------------------------------------
-        // Constants.
-        //
-
-        private static final long serialVersionUID = 1L;
-    }
-
-    private static final class OneRingSequence_RotateTowardSquareB
-        extends OneRingSequence_Default
-    {
-    //-------------------------------------------------------
-    // Member methods.
-    //
-
-        private OneRingSequence_RotateTowardSquareB(String name, int id)
-        {
-            super (name, id);
-        }
-
-        @Override
-        protected void entry(AutonomousStateMachineContext context)
-            {
-                AutonomousController ctxt = context.getOwner();
-
-            ctxt.rotateToHeading(0);
-            return;
-        }
-
-        @Override
-        protected void evRotationComplete(AutonomousStateMachineContext context)
+        protected void evStrafeComplete(AutonomousStateMachineContext context)
         {
 
             (context.getState()).exit(context);
@@ -1398,21 +1335,21 @@ public class AutonomousStateMachineContext
         //
 
         public static final FourRingsSequence_Start Start =
-            new FourRingsSequence_Start("FourRingsSequence.Start", 20);
+            new FourRingsSequence_Start("FourRingsSequence.Start", 19);
         public static final FourRingsSequence_GotoSquareB GotoSquareB =
-            new FourRingsSequence_GotoSquareB("FourRingsSequence.GotoSquareB", 21);
+            new FourRingsSequence_GotoSquareB("FourRingsSequence.GotoSquareB", 20);
         public static final FourRingsSequence_MoveIntoSquareB MoveIntoSquareB =
-            new FourRingsSequence_MoveIntoSquareB("FourRingsSequence.MoveIntoSquareB", 22);
+            new FourRingsSequence_MoveIntoSquareB("FourRingsSequence.MoveIntoSquareB", 21);
         public static final FourRingsSequence_DropWobbleGoal DropWobbleGoal =
-            new FourRingsSequence_DropWobbleGoal("FourRingsSequence.DropWobbleGoal", 23);
+            new FourRingsSequence_DropWobbleGoal("FourRingsSequence.DropWobbleGoal", 22);
         public static final FourRingsSequence_RotateToGoal RotateToGoal =
-            new FourRingsSequence_RotateToGoal("FourRingsSequence.RotateToGoal", 24);
+            new FourRingsSequence_RotateToGoal("FourRingsSequence.RotateToGoal", 23);
         public static final FourRingsSequence_DoPowerShot DoPowerShot =
-            new FourRingsSequence_DoPowerShot("FourRingsSequence.DoPowerShot", 25);
+            new FourRingsSequence_DoPowerShot("FourRingsSequence.DoPowerShot", 24);
         public static final FourRingsSequence_MoveToWhiteLine MoveToWhiteLine =
-            new FourRingsSequence_MoveToWhiteLine("FourRingsSequence.MoveToWhiteLine", 26);
+            new FourRingsSequence_MoveToWhiteLine("FourRingsSequence.MoveToWhiteLine", 25);
         public static final FourRingsSequence_Stop Stop =
-            new FourRingsSequence_Stop("FourRingsSequence.Stop", 27);
+            new FourRingsSequence_Stop("FourRingsSequence.Stop", 26);
     }
 
     protected static class FourRingsSequence_Default

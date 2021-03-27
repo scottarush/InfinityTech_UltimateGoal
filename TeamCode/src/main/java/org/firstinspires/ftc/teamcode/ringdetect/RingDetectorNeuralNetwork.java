@@ -67,6 +67,7 @@ public class RingDetectorNeuralNetwork extends NeuralNetwork {
             // Open the file and deserialize the network
             InputStream is = new FileInputStream(nnFile);
             deserializeNetwork(is);
+            is.close();
 
             // Initialize the logging file.  create the directory if it doesn't exist
             if (logFile != null) {
