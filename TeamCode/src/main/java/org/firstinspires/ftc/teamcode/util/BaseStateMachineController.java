@@ -179,17 +179,7 @@ public class BaseStateMachineController {
                 try
                 {
                     transition.invoke(mStateMachineContext, args);
-                    if (mLoggingEnabled){
-                        String[] logRecord = new String[LOG_COLUMNS.length];
-                        int logIndex = 0;
-                        long elapsedTime = System.currentTimeMillis()-mStartTimeMS;
-                        double mstime = (double)elapsedTime/1e3d;
-                        logRecord[logIndex++] = String.format("%4.3f",mstime);
-                        logRecord[logIndex++] = "Event";
-                        logRecord[logIndex++] = mCurrentStateName;
-                        logRecord[logIndex++] = name;
-                        mLogFile.writeLogRow(logRecord);
-                    }
+                    logTransition(name);
                 }
                 catch (Exception ex)
                 {
@@ -237,5 +227,19 @@ public class BaseStateMachineController {
 
     public String getState(){
         return mCurrentStateName;
+    }
+
+    private void logTransition(String transition){
+        if (mLoggingEnabled){
+            String[] logRecord = new String[LOG_COLUMNS.length];
+            int logIndex = 0;
+            long elapsedTime = System.currentTimeMillis()-mStartTimeMS;
+            double mstime = (double)elapsedTime/1e3d;
+            logRecord[logIndex++] = String.format("%4.3f",mstime);
+            logRecord[logIndex++] = "Event";
+            logRecord[logIndex++] = mCurrentStateName;
+            logRecord[logIndex++] = transition;
+            mLogFile.writeLogRow(logRecord);
+        }
     }
 }
