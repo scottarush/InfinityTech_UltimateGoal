@@ -31,6 +31,16 @@ public class BaseStateMachineController {
     private boolean mInitialized = false;
 
     protected boolean mDebuggingEnabled = false;
+
+    protected boolean mLoggingEnabled = false;
+    private LogFile mLogFile = null;
+
+    public static final String LOG_PATHNAME = "/sdcard";
+
+    public static final String[] LOG_COLUMNS = {"time", "type","state","event"};
+    public static final String LOG_FILENAME = "statelog.csv";
+
+    private long mStartTimeMS = 0l;
     /**
      * Common timer
      */
@@ -41,8 +51,9 @@ public class BaseStateMachineController {
         }
     });
 
-    public BaseStateMachineController(boolean debuggingEnabled){
+    public BaseStateMachineController(boolean debuggingEnabled, boolean loggingEnabled){
         mDebuggingEnabled = debuggingEnabled;
+        mLoggingEnabled = loggingEnabled;
 
     }
     /**
@@ -57,11 +68,12 @@ public class BaseStateMachineController {
     }
 
     /**
-     * must be called from the OpMode loop to service timers.  Can be overridden
-     * by subclasses for additional functionality.
+     * must be called from the OpMode loop to service timers  if enabled.
+     * Can be overridden by subclasses for additional functionality.
      */
     public void loop() {
         serviceTimers();
+
     }
     /**
      * Starts the common timer that will fire the evTimeout event
@@ -77,6 +89,15 @@ public class BaseStateMachineController {
      */
     public void stopTimer(){
         mTimer.cancel();
+    }
+
+    /**
+     * closes the log file if logging was enabled.  Must be called my child class at shutdown.
+     */
+    protected void closeLogFile(){
+        if (mLoggingEnabled){
+            mLogFile.closeFile();
+        }
     }
 
     /**
@@ -106,8 +127,27 @@ public class BaseStateMachineController {
                 if (mDebuggingEnabled){
                     System.out.println("Transition to state:"+mCurrentStateName);
                 }
+                if (mLoggingEnabled){
+                    String[] logRecord = new String[LOG_COLUMNS.length];
+                    int logIndex = 0;
+                    long elapsedTime = System.currentTimeMillis()-mStartTimeMS;
+                    double mstime = (double)elapsedTime/1e3d;
+                    logRecord[logIndex++] = String.format("%4.3f",mstime);
+                    logRecord[logIndex++] = "State Transition";
+                    logRecord[logIndex++] = mCurrentStateName;
+                    logRecord[logIndex++] = "-";
+                    mLogFile.writeLogRow(logRecord);
+                }
             }
         });
+        // open the log file if enabled
+        if (mLoggingEnabled) {
+            mLogFile = new LogFile(LOG_PATHNAME, LOG_FILENAME, LOG_COLUMNS);
+            mLogFile.openFile();
+        }
+        // And initialize the starting time
+        mStartTimeMS = System.currentTimeMillis();
+
     }
     /***
      * Needed to queue events into the state machine
@@ -139,6 +179,17 @@ public class BaseStateMachineController {
                 try
                 {
                     transition.invoke(mStateMachineContext, args);
+                    if (mLoggingEnabled){
+                        String[] logRecord = new String[LOG_COLUMNS.length];
+                        int logIndex = 0;
+                        long elapsedTime = System.currentTimeMillis()-mStartTimeMS;
+                        double mstime = (double)elapsedTime/1e3d;
+                        logRecord[logIndex++] = String.format("%4.3f",mstime);
+                        logRecord[logIndex++] = "Event";
+                        logRecord[logIndex++] = mCurrentStateName;
+                        logRecord[logIndex++] = name;
+                        mLogFile.writeLogRow(logRecord);
+                    }
                 }
                 catch (Exception ex)
                 {

@@ -11,13 +11,15 @@ import org.firstinspires.ftc.teamcode.shooter.Grabber;
 import org.firstinspires.ftc.teamcode.shooter.IShooterListener;
 import org.firstinspires.ftc.teamcode.shooter.Shooter;
 import org.firstinspires.ftc.teamcode.util.BaseStateMachineController;
-import org.firstinspires.ftc.teamcode.util.OneShotTimer;
 
 public class AutonomousController extends BaseStateMachineController
         implements IShooterListener, IGuidanceControllerStatusListener, IRingDetectorResultListener {
 
     public static final int DEMO_SEQUENCE = 0;
     public static final int RINGS_SEQUENCE = 1;
+
+    private static final boolean DEBUGGING_ENABLED = true;
+    private static final boolean LOGGING_ENABLED = true;
 
     /**
      * Max rotation power.
@@ -41,7 +43,7 @@ public class AutonomousController extends BaseStateMachineController
     public AutonomousController(final OpMode opMode,
                                 GuidanceController guidanceController,
                                 MrRingsBot ringsBot) {
-        super(false);
+        super(DEBUGGING_ENABLED ,LOGGING_ENABLED);
         mGuidanceController = guidanceController;
         mRingsBot = ringsBot;
 

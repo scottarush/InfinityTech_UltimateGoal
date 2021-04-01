@@ -13,9 +13,10 @@ public class ShooterController extends BaseStateMachineController {
     private Shooter mShooter = null;
 
     private static final boolean DEBUGGING_ENABLED = false;
+    private static final boolean LOGGING_ENABLED = false;
 
     public ShooterController(Shooter shooter, OpMode opMode) {
-        super(DEBUGGING_ENABLED);
+        super(DEBUGGING_ENABLED,LOGGING_ENABLED);
         mShooter = shooter;
         // initialize the base class
         init(opMode,new ShooterStateMachineContext(this));
