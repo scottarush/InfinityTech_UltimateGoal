@@ -180,6 +180,11 @@ public class GuidanceController {
      **/
     public void moveStraight(double distance,double maxPower,double targetHeading) {
         mMode = STRAIGHT_MODE;
+        // Set the direction flag.  We need to use this to detect the completion of the manuveur
+        mDirection = false;
+        if (distance >= 0d){
+            mDirection = true;
+        }
         mTargetHeading = targetHeading;
         mStraightPowerPID.setOutputLimits(-maxPower,maxPower);
         // Compute the target point
@@ -202,6 +207,11 @@ public class GuidanceController {
     public void strafe(double distance,double maxPower,double targetHeading){
         mMode = STRAFE_MODE;
         mStrafePowerPID.setOutputLimits(-maxPower,maxPower);
+        // Set the direction flag.  We need to use this to detect the completion of the manuveur
+        mDirection = false;
+        if (distance >= 0d){
+            mDirection = true;
+        }
 
         // Compute the heading angle to strafe base on left or right
         double strafeHeading = targetHeading;
@@ -465,14 +475,16 @@ public class GuidanceController {
         //  check if we have passed the target.  Only need to check the y coordinate, but leave
         // stopDistance based on the stop time and estimated speed
         boolean stop = false;
-        double stopDistance = mGCParameters.straightModeStopTime * mKalmanTracker.getEstimatedSpeed();
-        if (rotatedTarget.y < 0){
-            if (rotRobotPos.y <= rotatedTarget.y+stopDistance){
+        double stopDistance = Math.abs(mGCParameters.straightModeStopTime * mKalmanTracker.getEstimatedSpeed());
+        if (mDirection) {
+            // Check for going past target forward
+            if (rotRobotPos.y >= rotatedTarget.y + stopDistance) {
                 stop = true;
             }
         }
-        else{
-            if (rotRobotPos.y >= rotatedTarget.y-stopDistance){
+        else {
+            // Check for going past target in rearward direction
+            if (rotRobotPos.y <= rotatedTarget.y + stopDistance) {
                 stop = true;
             }
         }
@@ -517,14 +529,16 @@ public class GuidanceController {
         //  check if we have passed the target.  Only need to check the x coordinate, but leave
         // stopDistance based on the stop time and estimated speed
         boolean stop = false;
-        double stopDistance = mGCParameters.strafeModeStopTime * mKalmanTracker.getEstimatedSpeed();
-        if (rotatedTarget.x < 0){
-            if (rotRobotPos.x <= rotatedTarget.x+stopDistance){
+        double stopDistance = Math.abs(mGCParameters.strafeModeStopTime * mKalmanTracker.getEstimatedSpeed());
+        if (mDirection) {
+            // Check for going past target rightward
+            if (rotRobotPos.x >= rotatedTarget.x + stopDistance) {
                 stop = true;
             }
         }
-        else{
-            if (rotRobotPos.x >= rotatedTarget.x-stopDistance){
+        else {
+            // Check for going past target to the left
+            if (rotRobotPos.x <= rotatedTarget.x + stopDistance) {
                 stop = true;
             }
         }

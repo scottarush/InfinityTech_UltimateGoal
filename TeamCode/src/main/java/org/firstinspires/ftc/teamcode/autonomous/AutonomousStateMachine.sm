@@ -201,7 +201,6 @@
     {
         // After orienting toward the goal, move straight backward behind the white line on 0 heading
         evRotationComplete nil { moveStraight(-36d,0);  }
-        // TODO:  The evMoveComplete event is getting triggered 50 ms later.
         evMoveComplete DoPowerShot { }
     }
 
