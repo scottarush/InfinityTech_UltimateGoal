@@ -26,7 +26,7 @@ public class AutonomousController extends BaseStateMachineController
      */
     private static final double MAX_ROTATION_POWER = 0.75d;
     private static final double STRAIGHT_MODE_MAX_POWER = 0.5d;
-    private static final double STRAFE_MODE_MAX_POWER = 0.5d;
+    private static final double STRAFE_MODE_MAX_POWER = 0.7d;
 
     /**
      * rotation timeout. same value used for all transitions

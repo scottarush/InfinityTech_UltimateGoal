@@ -150,7 +150,7 @@
         Entry{
             // strafe right to go around the ring and not hit the left wobble goal (by going left instead)
 			// Stay on 0 degree heading
-            strafe(18d,0);
+            strafe(22d,0);
         }
     {
         evStrafeComplete GotoSquareB { }
@@ -239,7 +239,7 @@
         Entry{
             // strafe right to go around the ring and not hit the left wobble goal (by going left instead)
 			// and stay on 0 degree heading
-            strafe(18d,0);
+            strafe(22d,0);
         }
     {
         evStrafeComplete GotoSquareB { }

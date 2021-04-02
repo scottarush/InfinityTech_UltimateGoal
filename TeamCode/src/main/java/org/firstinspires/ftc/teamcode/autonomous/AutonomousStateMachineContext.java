@@ -951,7 +951,7 @@ public class AutonomousStateMachineContext
             {
                 AutonomousController ctxt = context.getOwner();
 
-            ctxt.strafe(18d, 0);
+            ctxt.strafe(22d, 0);
             return;
         }
 
@@ -1394,7 +1394,7 @@ public class AutonomousStateMachineContext
             {
                 AutonomousController ctxt = context.getOwner();
 
-            ctxt.strafe(18d, 0);
+            ctxt.strafe(22d, 0);
             return;
         }
 
