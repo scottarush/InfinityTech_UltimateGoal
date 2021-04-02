@@ -87,7 +87,7 @@ public class GuidanceController {
         public double straightModeHeadingMaxIntegOutput = 0.2d;
         public double straightModeHeadingDerivGain = 4.0d;
 
-        public double strafeModeStopTime = 0.15;
+        public double strafeModeStopTime = 0;
         public double strafeModePowerPropGain = 0.1d;
         public double strafeModePowerIntegGain = 0.3d;
         public double strafeModePowerMaxIntegOutput = 0.8d;
