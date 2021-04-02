@@ -78,11 +78,6 @@ public class KalmanTracker {
         public double VAR_THETA = Math.pow(SIGMA_THETA,2.0d);
     }
 
-    // last calculated vx
-    private double mVx = 0d;
-    // last calculated vy
-    private double mVy = 0d;
-
     /**
      * Initializes the Kalman filter
      */
@@ -201,13 +196,13 @@ public class KalmanTracker {
      * returns last calculated input Vx.  Used for logging
      */
     public Double getVx(){
-        return mVx;
+        return mFilter.getState().get(XHAT_VX_INDEX);
     }
     /**
      * returns last calculated input Vy.  Used for logging
      */
     public Double getVy(){
-        return mVy;
+        return mFilter.getState().get(XHAT_VY_INDEX);
     }
     /**
      *

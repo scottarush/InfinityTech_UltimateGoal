@@ -478,7 +478,7 @@ public class GuidanceController {
         double stopDistance = Math.abs(mGCParameters.straightModeStopTime * mKalmanTracker.getEstimatedSpeed());
         if (mDirection) {
             // Check for going past target forward
-            if (rotRobotPos.y >= rotatedTarget.y + stopDistance) {
+            if (rotRobotPos.y >= rotatedTarget.y - stopDistance) {
                 stop = true;
             }
         }
