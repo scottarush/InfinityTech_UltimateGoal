@@ -26,6 +26,8 @@ public class AutonomousController extends BaseStateMachineController
      */
     private static final double MAX_ROTATION_POWER = 0.75d;
     private static final double STRAIGHT_MODE_MAX_POWER = 0.5d;
+    private static final double STRAFE_MODE_MAX_POWER = 0.5d;
+
     /**
      * rotation timeout. same value used for all transitions
      */
@@ -130,7 +132,7 @@ public class AutonomousController extends BaseStateMachineController
     public void strafe(double distance,int targetHeading) {
         double meters = distance / 39.37d;
         double radianAngle = (double)targetHeading * Math.PI/180d;
-        mGuidanceController.strafe(meters,1.0d,radianAngle);
+        mGuidanceController.strafe(meters,STRAFE_MODE_MAX_POWER,radianAngle);
     }
 
     /**
