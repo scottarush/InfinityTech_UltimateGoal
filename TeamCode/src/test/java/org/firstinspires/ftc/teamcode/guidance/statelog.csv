@@ -1,0 +1,23 @@
+time,type,state,event
+6.129,State Transition,AutonomousStateMachine.MoveForward,-
+6.129,Event,AutonomousStateMachine.MoveForward,evStart
+7.914,State Transition,AutonomousStateMachine.MeasureRing,-
+8.002,Event,AutonomousStateMachine.MeasureRing,evMoveComplete
+9.158,State Transition,OneRingSequence.Start,-
+9.184,Event,OneRingSequence.Start,evOneRing
+10.695,State Transition,OneRingSequence.GotoSquareB,-
+10.706,Event,OneRingSequence.GotoSquareB,evStrafeComplete
+15.303,Event,OneRingSequence.GotoSquareB,evMoveComplete
+17.389,State Transition,OneRingSequence.MoveIntoSquareB,-
+17.402,Event,OneRingSequence.MoveIntoSquareB,evRotationComplete
+17.427,State Transition,OneRingSequence.DropWobbleGoal,-
+17.439,Event,OneRingSequence.DropWobbleGoal,evMoveComplete
+17.97,Event,OneRingSequence.DropWobbleGoal,evTimeout
+19.196,State Transition,OneRingSequence.RotateToGoal,-
+19.203,Event,OneRingSequence.RotateToGoal,evMoveComplete
+21.179,Event,OneRingSequence.RotateToGoal,evRotationComplete
+21.211,State Transition,OneRingSequence.DoPowerShot,-
+21.212,Event,OneRingSequence.DoPowerShot,evMoveComplete
+23.269,State Transition,OneRingSequence.MoveToWhiteLine,-
+23.299,Event,OneRingSequence.MoveToWhiteLine,evTimeout
+24.614,State Transition,OneRingSequence.Stop,-

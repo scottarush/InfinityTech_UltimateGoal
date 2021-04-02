@@ -125,8 +125,7 @@ public class AutonomousController extends BaseStateMachineController
     }
     /**
      * Strafes the robot left (negative distance) or right (positive distance).
-     * Listeners are notified on completion via the IGuidanceControllerStatusListener interface.
-     * @param distance distance to strafe in inches + for right, - for left
+     * Listeners are notified via the strafeComplete event.
      **/
     public void strafe(double distance,int targetHeading) {
         double meters = distance / 39.37d;
@@ -139,7 +138,7 @@ public class AutonomousController extends BaseStateMachineController
      * a detection after an average period.
      */
     public void startRingsMeasurement(){
-        mRingsBot.getRingDetector().doAveragedInference(5,this);
+        mRingsBot.getRingDetector().doAveragedInference(15,this);
     }
 
     @Override
