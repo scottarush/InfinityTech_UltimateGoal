@@ -44,9 +44,11 @@
             deactivateRingDetector();
         }
     {
-        evNoRings jump(NoRingSequence::Start) { }
+   //     evNoRings jump(NoRingSequence::Start) { }
+        evNoRings jump(OneRingSequence::Start) { }
         evOneRing jump(OneRingSequence::Start)  { }
-        evFourRings jump(FourRingsSequence::Start) { }
+   //     evFourRings jump(FourRingsSequence::Start) { }
+        evFourRings jump(OneRingSequence::Start) { }
         evTimeoutComplete jump(FourRingsSequence::Start) { }
     }
     Stop

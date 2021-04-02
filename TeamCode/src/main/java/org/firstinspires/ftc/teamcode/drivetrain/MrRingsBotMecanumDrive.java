@@ -21,7 +21,7 @@ public class MrRingsBotMecanumDrive extends BaseMecanumDrive {
 
     @Override
     public double getWheelRadius() {
-        return 0.098d/2d;
+        return 0.095d/2d;
     }
 
     @Override
@@ -31,12 +31,12 @@ public class MrRingsBotMecanumDrive extends BaseMecanumDrive {
 
     @Override
     public double getLX() {
-        return 0.29d/2d;
+        return 0.295d/2d;
     }
 
     @Override
     public double getLY() {
-        return 0.275d/2d;
+        return 0.294d/2d;
     }
 
     /**
