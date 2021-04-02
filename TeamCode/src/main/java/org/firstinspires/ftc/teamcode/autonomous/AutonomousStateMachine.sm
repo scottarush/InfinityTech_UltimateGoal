@@ -257,9 +257,9 @@
 
     MoveToColumnOverC
         Entry{
-			// Strafe left to column C and try to avoid the left hand wall by 8 inches or so
+			// Strafe left to column C and try to avoid the left hand wall by 5 inches or so
 			// Maintain robot heading 0 to try to strafe correct heading
-            strafe(-44d,0);
+            strafe(-47d,0);
         }
     {
 		// After the strafe is complete, then drop the wobble goal
@@ -283,7 +283,7 @@
     StrafeToAlignPowerShot
         Entry {
             // strafe right to align at the power shot
-            strafe(44d,0);
+            strafe(47d,0);
             // And activate the shooter on the way
             activateShooter();
         }
