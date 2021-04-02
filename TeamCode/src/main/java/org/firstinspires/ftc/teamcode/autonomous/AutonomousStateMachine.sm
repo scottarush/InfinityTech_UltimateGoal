@@ -21,7 +21,7 @@
             // Move forward to the front of the stacker on 0 degree target heading
 			// 20" forward move leaves the camera about 10" from the stack.  Any
 			// closer and we were getting false indications on the single ring stack case
-            moveStraight(20d,0);
+            moveStraight(18d,0);
         }
     {
         // On move complete, go to measure the ring
@@ -44,11 +44,9 @@
             deactivateRingDetector();
         }
     {
-   //     evNoRings jump(NoRingSequence::Start) { }
-        evNoRings jump(OneRingSequence::Start) { }
+           evNoRings jump(NoRingSequence::Start) { }
         evOneRing jump(OneRingSequence::Start)  { }
-   //     evFourRings jump(FourRingsSequence::Start) { }
-        evFourRings jump(OneRingSequence::Start) { }
+       evFourRings jump(FourRingsSequence::Start) { }
         evTimeoutComplete jump(FourRingsSequence::Start) { }
     }
     Stop
@@ -65,8 +63,8 @@
 %%
     Start
         Entry{
-            // Move straight 49" to the center line on a 0 degree heading
-            moveStraight(49d,0);
+            // Move straight to the center line on a 0 degree heading
+            moveStraight(51d,0);
         }
     {
         evMoveComplete RotateToSquareA { }
@@ -161,7 +159,7 @@
     GotoSquareB
         Entry{
             // go forward to to right of square B staying on 0 degree heading
-            moveStraight(72d,0);
+            moveStraight(74d,0);
         }
     {
         // After move complete, then rotate to -90 heading pointing into square b
@@ -250,7 +248,7 @@
     GotoSquareB
         Entry{
             // go forward to 6" beyond the far end of square B
-            moveStraight(78d,0);
+            moveStraight(80d,0);
         }
     {
         // After move complete, then 
