@@ -69,7 +69,7 @@ public class MrRingsBotMecanumDrive extends BaseMecanumDrive {
         try {
             motor = tryMapMotor("rf");
             mRFMotor = motor;
-            mRFMotor.setDirection(DcMotorSimple.Direction.FORWARD);
+            mRFMotor.setDirection(DcMotorSimple.Direction.REVERSE);
             mRFMotor.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
 
         }
@@ -89,7 +89,7 @@ public class MrRingsBotMecanumDrive extends BaseMecanumDrive {
         try {
             motor = tryMapMotor("rr");
             mRRMotor = motor;
-            mRRMotor.setDirection(DcMotorSimple.Direction.FORWARD);
+            mRRMotor.setDirection(DcMotorSimple.Direction.REVERSE);
             mRRMotor.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
 
         }
