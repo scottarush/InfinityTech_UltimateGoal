@@ -293,7 +293,7 @@
    MoveBehindWhiteLine
         Entry {
             // move backward to be behind the white line maintaining heading 0
-            moveStraight(-38d,0);
+            moveStraight(-34d,0);
             // And activate the shooter on the way
             activateShooter();
         }
@@ -313,7 +313,7 @@
 
     MoveToWhiteLine
         Entry{
-            moveStraight(12d,0);
+            moveStraight(15d,0);
         }
     {
         evMoveComplete Stop { }

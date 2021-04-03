@@ -1625,7 +1625,7 @@ public class AutonomousStateMachineContext
             {
                 AutonomousController ctxt = context.getOwner();
 
-            ctxt.moveStraight(-38d, 0);
+            ctxt.moveStraight(-34d, 0);
             ctxt.activateShooter();
             return;
         }
@@ -1711,7 +1711,7 @@ public class AutonomousStateMachineContext
             {
                 AutonomousController ctxt = context.getOwner();
 
-            ctxt.moveStraight(12d, 0);
+            ctxt.moveStraight(15d, 0);
             return;
         }
 
