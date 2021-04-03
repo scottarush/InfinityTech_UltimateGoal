@@ -85,6 +85,8 @@ public abstract class BaseMecanumDrive extends Drivetrain implements IGuidanceCo
      */
     public static int RR_WHEEL_ARRAY_INDEX = 3;
 
+    private boolean mStrafeActive = false;
+
     private int mMotorPositions[] = new int[4];
     private double mWheelSpeeds[] = new double[4];
 
@@ -122,6 +124,12 @@ public abstract class BaseMecanumDrive extends Drivetrain implements IGuidanceCo
      * wheel speed slip factor for this bot
      */
     protected abstract double getWheelSlipFactor();
+
+    /**
+     * wheel speed slip factor for this bot in strafe mode only
+     */
+    protected abstract double getStrafeWheelSlipFactor();
+
 
     /**
      * lx  Lateral distance from wheel axle to imu center in meters
@@ -182,7 +190,14 @@ public abstract class BaseMecanumDrive extends Drivetrain implements IGuidanceCo
             double angle = (double)(newpos - mMotorPositions[i])/(double)getEncoderCountsPerRev() * 2d*Math.PI;
             mWheelSpeeds[i] = angle /deltaT;
             // Compensate for slip factor
-            mWheelSpeeds[i] *= (1.0d-getWheelSlipFactor());
+            double slip = 0d;
+            if (mStrafeActive){
+                slip = getStrafeWheelSlipFactor();
+            }
+            else{
+                slip = getWheelSlipFactor();
+            }
+            mWheelSpeeds[i] *= (1.0d-slip);
             mMotorPositions[i] = newpos;  // Transfer to current pos array for next time
         }
         // Now compute the body center values in direction of current heading.  These are the values actually used by the Kalman filter
@@ -249,7 +264,7 @@ public abstract class BaseMecanumDrive extends Drivetrain implements IGuidanceCo
     @Override
     public void setStraightCommand(double power,double headingCorrection){
         double motorPower[] = new double[4];
-
+        mStrafeActive = false;
         power = limitUnity(power);
         motorPower[LF_WHEEL_ARRAY_INDEX] = power+headingCorrection;
         motorPower[RF_WHEEL_ARRAY_INDEX] = power-headingCorrection;
@@ -263,7 +278,7 @@ public abstract class BaseMecanumDrive extends Drivetrain implements IGuidanceCo
     @Override
     public void setStrafeCommand(double power,double headingCorrection) {
         double motorPower[] = new double[4];
-
+        mStrafeActive = true;
         power = limitUnity(power);
         motorPower[LF_WHEEL_ARRAY_INDEX] = power+headingCorrection;
         motorPower[RF_WHEEL_ARRAY_INDEX] = -power-headingCorrection;
@@ -282,6 +297,8 @@ public abstract class BaseMecanumDrive extends Drivetrain implements IGuidanceCo
      */
     public void setSteeringCommand(double steering,double power){
         double motorPower[] = new double[4];
+        mStrafeActive = false;
+
         // Do a rotation scaled by the steering command
         // limit steering
         if (Math.abs(steering) > 1.0d){
@@ -305,6 +322,7 @@ public abstract class BaseMecanumDrive extends Drivetrain implements IGuidanceCo
     @Override
     public void setRotationCommand(double rotation){
         double motorPower[] = new double[4];
+        mStrafeActive = false;
         // Do a rotation scaled by the steering command
         // limit steering
         if (Math.abs(rotation) > 1.0d){
