@@ -265,10 +265,10 @@ public abstract class BaseMecanumDrive extends Drivetrain implements IGuidanceCo
         double motorPower[] = new double[4];
 
         power = limitUnity(power);
-        motorPower[LF_WHEEL_ARRAY_INDEX] = power+headingCorrection;
-        motorPower[RF_WHEEL_ARRAY_INDEX] = -power-headingCorrection;
-        motorPower[LR_WHEEL_ARRAY_INDEX] = -power+headingCorrection;
-        motorPower[RR_WHEEL_ARRAY_INDEX] = power-headingCorrection;
+        motorPower[LF_WHEEL_ARRAY_INDEX] = -power+headingCorrection;
+        motorPower[RF_WHEEL_ARRAY_INDEX] = power-headingCorrection;
+        motorPower[LR_WHEEL_ARRAY_INDEX] = power+headingCorrection;
+        motorPower[RR_WHEEL_ARRAY_INDEX] = -power-headingCorrection;
         for(int i=0;i < mMotorList.size();i++){
             mMotorList.get(i).setPower(motorPower[i]);
         }
