@@ -60,7 +60,7 @@ public class MrRingsBotMecanumDrive extends BaseMecanumDrive {
             motor = tryMapMotor("lf");
 //            lfMotor = new WrappedDCMotor(motor,ENCODER_COUNTS_PER_MOTOR_SHAFT_ROTATION, PIMOTOR_KP, PIMOTOR_KI);
             mLFMotor = motor;
-            mLFMotor.setDirection(DcMotorSimple.Direction.REVERSE);
+            mLFMotor.setDirection(DcMotorSimple.Direction.FORWARD);
             mLFMotor.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
         }
         catch (Exception e){
@@ -79,7 +79,7 @@ public class MrRingsBotMecanumDrive extends BaseMecanumDrive {
         try {
             motor = tryMapMotor("lr");
             mLRMotor = motor;
-            mLRMotor.setDirection(DcMotorSimple.Direction.REVERSE);
+            mLRMotor.setDirection(DcMotorSimple.Direction.FORWARD);
             mLRMotor.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
 
         }

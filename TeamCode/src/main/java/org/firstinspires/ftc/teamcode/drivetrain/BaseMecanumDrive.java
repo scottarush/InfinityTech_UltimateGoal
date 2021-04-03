@@ -251,10 +251,10 @@ public abstract class BaseMecanumDrive extends Drivetrain implements IGuidanceCo
         double motorPower[] = new double[4];
 
         power = limitUnity(power);
-        motorPower[0] = power-headingCorrection;
-        motorPower[1] = power+headingCorrection;
-        motorPower[2] = power-headingCorrection;
-        motorPower[3] = power+headingCorrection;
+        motorPower[LF_WHEEL_ARRAY_INDEX] = power+headingCorrection;
+        motorPower[RF_WHEEL_ARRAY_INDEX] = power-headingCorrection;
+        motorPower[LR_WHEEL_ARRAY_INDEX] = power+headingCorrection;
+        motorPower[RR_WHEEL_ARRAY_INDEX] = power-headingCorrection;
         for(int i=0;i < mMotorList.size();i++){
             mMotorList.get(i).setPower(motorPower[i]);
         }
@@ -265,10 +265,10 @@ public abstract class BaseMecanumDrive extends Drivetrain implements IGuidanceCo
         double motorPower[] = new double[4];
 
         power = limitUnity(power);
-        motorPower[0] = power-headingCorrection;
-        motorPower[1] = -power+headingCorrection;
-        motorPower[2] = -power-headingCorrection;
-        motorPower[3] = power+headingCorrection;
+        motorPower[LF_WHEEL_ARRAY_INDEX] = -power+headingCorrection;
+        motorPower[RF_WHEEL_ARRAY_INDEX] = power-headingCorrection;
+        motorPower[LR_WHEEL_ARRAY_INDEX] = power+headingCorrection;
+        motorPower[RR_WHEEL_ARRAY_INDEX] = -power-headingCorrection;
         for(int i=0;i < mMotorList.size();i++){
             mMotorList.get(i).setPower(motorPower[i]);
         }
@@ -289,10 +289,10 @@ public abstract class BaseMecanumDrive extends Drivetrain implements IGuidanceCo
         }
         double powerAbs = Math.abs(power);
         double steering_gain = 2.0d;
-        motorPower[0] = powerAbs* limitUnity(1.0d + steering_gain*steering);
-        motorPower[1] = powerAbs* limitUnity(1.0d - steering_gain*steering);
-        motorPower[2] = powerAbs* limitUnity(1.0d + steering_gain*steering);
-        motorPower[3] = powerAbs* limitUnity(1.0d - steering_gain*steering);
+        motorPower[LF_WHEEL_ARRAY_INDEX] = powerAbs* limitUnity(1.0d + steering_gain*steering);
+        motorPower[RF_WHEEL_ARRAY_INDEX] = powerAbs* limitUnity(1.0d - steering_gain*steering);
+        motorPower[LR_WHEEL_ARRAY_INDEX] = powerAbs* limitUnity(1.0d + steering_gain*steering);
+        motorPower[RR_WHEEL_ARRAY_INDEX] = powerAbs* limitUnity(1.0d - steering_gain*steering);
         for(int i=0;i < mMotorList.size();i++){
             mMotorList.get(i).setPower(motorPower[i]);
         }
@@ -300,7 +300,7 @@ public abstract class BaseMecanumDrive extends Drivetrain implements IGuidanceCo
     /**
      * sets the motors to rotation mode with a rotation gain onlky
      * @param rotation 0 = stop, >0..+1.0 turn to right
-     *                 >0..-1.0 turn to left
+     *                 < 0..-1.0 turn to left
      */
     @Override
     public void setRotationCommand(double rotation){
@@ -310,10 +310,10 @@ public abstract class BaseMecanumDrive extends Drivetrain implements IGuidanceCo
         if (Math.abs(rotation) > 1.0d){
             rotation = Math.signum(rotation);
         }
-        motorPower[0] = -rotation;
-        motorPower[1] = rotation;
-        motorPower[2] = -rotation;
-        motorPower[3] = rotation;
+        motorPower[LF_WHEEL_ARRAY_INDEX] = rotation;
+        motorPower[RF_WHEEL_ARRAY_INDEX] = -rotation;
+        motorPower[LR_WHEEL_ARRAY_INDEX] = rotation;
+        motorPower[RR_WHEEL_ARRAY_INDEX] = -rotation;
         for(int i=0;i < mMotorList.size();i++){
             mMotorList.get(i).setPower(motorPower[i]);
         }
