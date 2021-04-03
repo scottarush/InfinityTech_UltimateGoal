@@ -205,6 +205,10 @@ public class GuidanceController {
      * @param maxPower maximum power from 0d to 1.0d
      **/
     public void strafe(double distance,double maxPower,double targetHeading){
+        // Hack the direction by changing the sign on distance to deal with the wiring config problem
+        // that we don't have time to resolve
+        distance = -distance;
+
         mMode = STRAFE_MODE;
         mStrafePowerPID.setOutputLimits(-maxPower,maxPower);
         // Set the direction flag.  We need to use this to detect the completion of the manuveur
