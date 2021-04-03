@@ -31,7 +31,7 @@ public class MrRingsBotMecanumDrive extends BaseMecanumDrive {
 
     @Override
     protected double getStrafeWheelSlipFactor() {
-        return 0.1d;
+        return 0.2d;
     }
 
     @Override
