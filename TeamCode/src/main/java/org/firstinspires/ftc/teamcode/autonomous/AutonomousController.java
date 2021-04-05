@@ -54,7 +54,6 @@ public class AutonomousController extends BaseStateMachineController
 
         mGuidanceController.addGuidanceControllerStatusListener(this);
 
-        mRingsBot.getShooter().addShooterListener(this);
     }
 
     /**
