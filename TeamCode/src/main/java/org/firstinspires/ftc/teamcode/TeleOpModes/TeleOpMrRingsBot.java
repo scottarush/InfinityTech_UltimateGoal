@@ -81,6 +81,11 @@ public class TeleOpMrRingsBot extends OpMode {
             return;  // Skip this one to force quantization on all controls
         }
 
+        // Activate the shooter if it isn't already active
+        if (mRingsBot.getShooter().isShooterActive()){
+            mRingsBot.getShooter().activateShooter();
+        }
+
         // Otherwise, quantization time met so execute teleop controls
 
         // ------------------------------------------------------
@@ -95,19 +100,6 @@ public class TeleOpMrRingsBot extends OpMode {
         // the speeds with the new gamepad inputs
         mRingsBot.getDrivetrain().setTankDriveJoystickInput(xleft,yleft,xright,yright);
 
-        // ------------------------------------------------------
-        // b button on either pad activates or deactivates the shooter
-        // ------------------------------------------------------
-        if (mPad1ActivateButtonEdgeDetector.sampleRisingEdge(gamepad1.b) ||
-                mPad2ActivateButtonEdgeDetector.sampleRisingEdge(gamepad2.b)) {
-            if (mRingsBot.getShooter().isShooterActive()){
-                mRingsBot.getShooter().deactivateShooter();
-            }
-            else {
-                // trigger the evActivate event to the shooter controller
-                mRingsBot.getShooter().activateShooter();
-            }
-        }
         // ------------------------------------------------------
         // a, x, and y buttons set the shooter speed setting
         // ------------------------------------------------------
