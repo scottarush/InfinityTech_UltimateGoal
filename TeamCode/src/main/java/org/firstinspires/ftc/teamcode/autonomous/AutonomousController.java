@@ -53,7 +53,6 @@ public class AutonomousController extends BaseStateMachineController
         init(opMode,new AutonomousStateMachineContext(this));
 
         mGuidanceController.addGuidanceControllerStatusListener(this);
-
     }
 
     /**
@@ -139,7 +138,7 @@ public class AutonomousController extends BaseStateMachineController
      * a detection after an average period.
      */
     public void startRingsMeasurement(){
-        mRingsBot.getRingDetector().doAveragedInference(15,this);
+        mRingsBot.getRingDetector().doAveragedInference(10,this);
     }
 
     @Override
@@ -188,6 +187,9 @@ public class AutonomousController extends BaseStateMachineController
      * Activates shooter
      */
     public void activateShooter(){
+        // Set shooter to the power shot setting
+        mRingsBot.getShooter().setShooterDistance(Shooter.SPEED_SETTING_MIDFIELD_POWER_SHOT);
+        // And activate the shooter
         mRingsBot.getShooter().activateShooter();
     }
     /**

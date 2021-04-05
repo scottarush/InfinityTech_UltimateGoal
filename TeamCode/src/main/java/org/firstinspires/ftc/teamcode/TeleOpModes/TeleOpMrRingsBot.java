@@ -123,6 +123,10 @@ public class TeleOpMrRingsBot extends OpMode {
                 mPad2MidfieldHighGoalSpeedSettingButtonEdgeDetector.sampleRisingEdge(gamepad2.y)) {
             mRingsBot.getShooter().setShooterDistance((Shooter.SPEED_SETTING_MIDFIELD_HIGH_GOAL));
         }
+        if (mPad1MidfieldHighGoalSpeedSettingButtonEdgeDetector.sampleRisingEdge(gamepad1.b) ||
+                mPad2MidfieldHighGoalSpeedSettingButtonEdgeDetector.sampleRisingEdge(gamepad2.b)) {
+            mRingsBot.getShooter().setShooterDistance((Shooter.SPEED_SETTING_MIDFIELD_POWER_SHOT));
+        }
 
         // Right bumper on either pad shoots
         if (mPad1ShootButtonEdgeDetector.sampleRisingEdge(gamepad1.right_bumper) ||

@@ -98,20 +98,25 @@ public class Shooter {
      * Speed setting for hitting the high goal from just behind the midfield white line.
      */
     public static final int SPEED_SETTING_MIDFIELD_HIGH_GOAL = 2;
+
+    /*
+     * Speed setting for hitting the power shot just behind the midfield white line.
+     */
+    public static final int SPEED_SETTING_MIDFIELD_POWER_SHOT = 3;
+
     private int mShooterDistanceSetting = SPEED_SETTING_MIDFIELD_HIGH_GOAL;
 
     /**
-     * From 04MAR21 Meeting, here are the best values all from the white line:
-     * High goal:  665 w/o spin
-     * Mid goal:  600 w/o spin
-     * Power shot:  630 w/ 50 rpm clockwise spin
+     * From 04MAR21 Meeting, here are the best values from the white line:
      * Low goal:  300 w/o spin
+     * Mid goal:  600 w/o spin
+     * High goal:  665 w/o spin
+     * Power shot:  630 w/ 50 rpm clockwise spin
      */
-    // Shooter settings array in RPM
-    private static final int[] SHOOTER_SETTING_SPEEDS = new int[]{600,630,665};
+    private static final int[] SHOOTER_SETTING_SPEEDS = new int[]{300,600,665,630};
 
     // Spin offsets in total RPM, + is clockwise, - is counterclockwise
-    private static final int[] SHOOTER_SETTING_SPIN_OFFSET = new int[]{0,50,0};
+    private static final int[] SHOOTER_SETTING_SPIN_OFFSET = new int[]{0,0,0,50};
 
     // 1st order lag filter constant - same for both wheels
     private static final double SHOOTER_SPEED_LAG_FILTER_K = 1.0d;
