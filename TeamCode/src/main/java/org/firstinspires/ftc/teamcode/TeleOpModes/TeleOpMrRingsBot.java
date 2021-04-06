@@ -47,6 +47,8 @@ public class TeleOpMrRingsBot extends OpMode {
 
     private EdgeDetector mPad2GrabberClampEdgeDetector = new EdgeDetector();
 
+    private boolean mShooterStarted = false;
+
     @Override
     public void init() {
         mRingsBot = new MrRingsBot(this,false,false);
@@ -82,8 +84,9 @@ public class TeleOpMrRingsBot extends OpMode {
         }
 
         // Activate the shooter if it isn't already active
-        if (mRingsBot.getShooter().isShooterActive()){
+        if (!mShooterStarted){
             mRingsBot.getShooter().activateShooter();
+            mShooterStarted = true;
         }
 
         // Otherwise, quantization time met so execute teleop controls
