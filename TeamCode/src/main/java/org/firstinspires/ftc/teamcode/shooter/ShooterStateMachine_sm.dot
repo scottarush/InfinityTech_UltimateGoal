@@ -12,19 +12,16 @@ digraph ShooterStateMachine {
         //
 
         "ShooterStateMachine::Deactivated"
-            [label="{Deactivated|Entry/\l&nbsp;&nbsp;&nbsp;stopLoaderPully();\l&nbsp;&nbsp;&nbsp;setShooterActivation(false);\l}"];
+            [label="{Deactivated|Entry/\l&nbsp;&nbsp;&nbsp;stopLoaderPully();\l}"];
 
         "ShooterStateMachine::Activating"
-            [label="{Activating|Entry/\l&nbsp;&nbsp;&nbsp;setShooterActivation(true);\l}"];
-
-        "ShooterStateMachine::Reload"
-            [label="{Reload|Entry/\l&nbsp;&nbsp;&nbsp;stopLoaderPully();\l&nbsp;&nbsp;&nbsp;startTimer(1000);\l}"];
+            [label="{Activating|Entry/\l&nbsp;&nbsp;&nbsp;setLoaderPulleyLow();\l|evLoaderPullyHigh()/\levActivate()/\l}"];
 
         "ShooterStateMachine::ReadyToShoot"
-            [label="{ReadyToShoot}"];
+            [label="{ReadyToShoot|evShooterSpeedReady()/\levLoaderPullyHigh()/\l}"];
 
         "ShooterStateMachine::Shooting"
-            [label="{Shooting|Entry/\l&nbsp;&nbsp;&nbsp;startLoaderPully();\l&nbsp;&nbsp;&nbsp;startTimer(1250);\l}"];
+            [label="{Shooting|Entry/\l&nbsp;&nbsp;&nbsp;setLoaderPulleyHigh();\l|evLoaderPulleyHigh()/\l&nbsp;&nbsp;&nbsp;startTimer(500);\levTimeout()/\l&nbsp;&nbsp;&nbsp;setLoaderPulleyLow();\levActivate()/\l}"];
 
         "%start"
             [label="" shape=circle style=filled fillcolor=black width=0.25];
@@ -37,28 +34,22 @@ digraph ShooterStateMachine {
             [label="evActivate()/\l"];
 
         "ShooterStateMachine::Activating" -> "ShooterStateMachine::ReadyToShoot"
-            [label="evShooterReady()/\l"];
+            [label="evShooterSpeedReady()/\l"];
 
         "ShooterStateMachine::Activating" -> "ShooterStateMachine::Deactivated"
-            [label="evDeactivate()/\l"];
-
-        "ShooterStateMachine::Reload" -> "ShooterStateMachine::ReadyToShoot"
-            [label="evTimeout()/\l"];
-
-        "ShooterStateMachine::Reload" -> "ShooterStateMachine::Deactivated"
             [label="evDeactivate()/\l"];
 
         "ShooterStateMachine::ReadyToShoot" -> "ShooterStateMachine::Shooting"
             [label="evShoot()/\l"];
 
+        "ShooterStateMachine::ReadyToShoot" -> "ShooterStateMachine::Activating"
+            [label="evActivate()/\l"];
+
         "ShooterStateMachine::ReadyToShoot" -> "ShooterStateMachine::Deactivated"
             [label="evDeactivate()/\l"];
 
         "ShooterStateMachine::Shooting" -> "ShooterStateMachine::ReadyToShoot"
-            [label="evTimeout()\l\[ctxt.isShooterReady()\]/\lstopLoaderPully();\l"];
-
-        "ShooterStateMachine::Shooting" -> "ShooterStateMachine::Reload"
-            [label="evTimeout()\l\[!ctxt.isShooterReady()\]/\l"];
+            [label="evLoaderPulleyLow()/\l"];
 
         "ShooterStateMachine::Shooting" -> "ShooterStateMachine::Deactivated"
             [label="evDeactivate()/\l"];

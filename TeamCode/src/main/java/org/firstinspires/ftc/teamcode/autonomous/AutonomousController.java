@@ -18,8 +18,8 @@ public class AutonomousController extends BaseStateMachineController
     public static final int DEMO_SEQUENCE = 0;
     public static final int RINGS_SEQUENCE = 1;
 
-    private static final boolean DEBUGGING_ENABLED = true;
-    private static final boolean LOGGING_ENABLED = true;
+    private static final boolean DEBUGGING_ENABLED = false;
+    private static final boolean LOGGING_ENABLED = false;
 
     /**
      * Max rotation power.

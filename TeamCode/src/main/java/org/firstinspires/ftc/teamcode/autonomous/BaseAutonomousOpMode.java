@@ -22,7 +22,7 @@ public class BaseAutonomousOpMode {
 
     public static final String LOG_PATHNAME = "/sdcard";
 
-    public static final boolean LOGGING_ENABLED = true;
+    public static final boolean LOGGING_ENABLED = false;
     public static final String LOG_FILENAME = "kflog.csv";
     public static final String[] LOG_COLUMNS = {"time", "w_lf", "w_rf", "w_lr", "w_rr", "vx","vy","theta_imu",
             "kf_px", "kf_py", "kf_wz", "kf_heading",
