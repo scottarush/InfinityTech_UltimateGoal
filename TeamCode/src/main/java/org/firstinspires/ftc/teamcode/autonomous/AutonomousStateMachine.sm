@@ -40,14 +40,16 @@
             startRingsMeasurement();
         }
         Exit {
+            // Stop the timer in case it is still running so we don't get an evTimeoutComplete later
+            stopTimer();
             // Shut off the ring detector since we don't need it any more.
             deactivateRingDetector();
         }
     {
-           evNoRings jump(NoRingSequence::Start) { }
+        evNoRings jump(NoRingSequence::Start) { }
         evOneRing jump(OneRingSequence::Start)  { }
-       evFourRings jump(FourRingsSequence::Start) { }
-        evTimeoutComplete jump(FourRingsSequence::Start) { }
+        evFourRings jump(FourRingsSequence::Start) { }
+        evTimeout jump(FourRingsSequence::Start) { }
     }
     Stop
         Entry {
@@ -98,8 +100,8 @@
 
     MoveToPowerShot
         Entry {
-            // Move backward 36 inches staying on -90 degree heading
-            moveStraight(-36d,-90);
+            // Move backward 30 inches staying on -90 degree heading
+            moveStraight(-30d,-90);
         }
     {
         // After backward move, then rotate back to heading 0 toward the power shot
@@ -111,7 +113,7 @@
     ShootPowerShot
         Entry{
             // Back up to behind the white line pointing on 0 heading
-            moveStraight(-12d,0);
+            moveStraight(-16d,0);
         }
     {
         // After backup complete, then shoot and start a 2 second timer before moving to the white
@@ -123,7 +125,7 @@
     }
     MoveToWhiteLine
         Entry{
-            moveStraight(12d,0);
+            moveStraight(16d,0);
         }
     {
         evMoveComplete Stop { }
@@ -170,7 +172,7 @@
     MoveIntoSquareB
         Entry{
 			// Move forward into square B to drop the goal staying on -90
-            moveStraight(6d,-90);
+            moveStraight(12d,-90);
         }
     {
         evMoveComplete DropWobbleGoal { }

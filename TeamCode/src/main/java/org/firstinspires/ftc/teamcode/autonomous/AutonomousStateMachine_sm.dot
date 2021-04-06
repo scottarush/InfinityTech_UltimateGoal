@@ -1,0 +1,228 @@
+digraph AutonomousStateMachine {
+
+    node
+        [shape=Mrecord width=1.5];
+
+    subgraph cluster_AutonomousStateMachine {
+
+        label="AutonomousStateMachine";
+
+        //
+        // States (Nodes)
+        //
+
+        "AutonomousStateMachine::Idle"
+            [label="{Idle}"];
+
+        "AutonomousStateMachine::MoveForward"
+            [label="{MoveForward|Entry/\l&nbsp;&nbsp;&nbsp;moveStraight(18d, 0);\l}"];
+
+        "AutonomousStateMachine::MeasureRing"
+            [label="{MeasureRing|Entry/\l&nbsp;&nbsp;&nbsp;activateRingDetector();\l&nbsp;&nbsp;&nbsp;startTimer(3000);\l&nbsp;&nbsp;&nbsp;startRingsMeasurement();\lExit/\l&nbsp;&nbsp;&nbsp;stopTimer();\l&nbsp;&nbsp;&nbsp;deactivateRingDetector();\l}"];
+
+        "AutonomousStateMachine::Stop"
+            [label="{Stop|Entry/\l&nbsp;&nbsp;&nbsp;stop();\l}"];
+
+        "%start"
+            [label="" shape=circle style=filled fillcolor=black width=0.25];
+
+        //
+        // Transitions (Edges)
+        //
+
+        "AutonomousStateMachine::Idle" -> "AutonomousStateMachine::MoveForward"
+            [label="evStart()/\l"];
+
+        "AutonomousStateMachine::MoveForward" -> "AutonomousStateMachine::MeasureRing"
+            [label="evMoveComplete()/\l"];
+
+        "AutonomousStateMachine::MeasureRing" -> "NoRingSequence::Start"
+            [label="evNoRings()/\l"];
+
+        "AutonomousStateMachine::MeasureRing" -> "OneRingSequence::Start"
+            [label="evOneRing()/\l"];
+
+        "AutonomousStateMachine::MeasureRing" -> "FourRingsSequence::Start"
+            [label="evFourRings()/\l"];
+
+        "AutonomousStateMachine::MeasureRing" -> "FourRingsSequence::Start"
+            [label="evTimeout()/\l"];
+
+        "%start" -> "AutonomousStateMachine::Idle"
+    }
+
+    subgraph cluster_NoRingSequence {
+
+        label="NoRingSequence";
+
+        //
+        // States (Nodes)
+        //
+
+        "NoRingSequence::Start"
+            [label="{Start|Entry/\l&nbsp;&nbsp;&nbsp;moveStraight(51d, 0);\l}"];
+
+        "NoRingSequence::RotateToSquareA"
+            [label="{RotateToSquareA|Entry/\l&nbsp;&nbsp;&nbsp;rotateToHeading(-90);\l|evRotationComplete()/\l&nbsp;&nbsp;&nbsp;moveStraight(6d, -90);\l}"];
+
+        "NoRingSequence::DropWobbleGoal"
+            [label="{DropWobbleGoal|Entry/\l&nbsp;&nbsp;&nbsp;openGrabber();\l&nbsp;&nbsp;&nbsp;startTimer(500);\l}"];
+
+        "NoRingSequence::MoveToPowerShot"
+            [label="{MoveToPowerShot|Entry/\l&nbsp;&nbsp;&nbsp;moveStraight(-30d, -90);\l|evMoveComplete()/\l&nbsp;&nbsp;&nbsp;rotateToHeading(0);\l}"];
+
+        "NoRingSequence::ShootPowerShot"
+            [label="{ShootPowerShot|Entry/\l&nbsp;&nbsp;&nbsp;moveStraight(-16d, 0);\l|evMoveComplete()/\l&nbsp;&nbsp;&nbsp;shootRing();\l&nbsp;&nbsp;&nbsp;startTimer(2000);\l}"];
+
+        "NoRingSequence::MoveToWhiteLine"
+            [label="{MoveToWhiteLine|Entry/\l&nbsp;&nbsp;&nbsp;moveStraight(16d, 0);\l}"];
+
+        "NoRingSequence::Stop"
+            [label="{Stop|Entry/\l&nbsp;&nbsp;&nbsp;stop();\l}"];
+
+        //
+        // Transitions (Edges)
+        //
+
+        "NoRingSequence::Start" -> "NoRingSequence::RotateToSquareA"
+            [label="evMoveComplete()/\l"];
+
+        "NoRingSequence::RotateToSquareA" -> "NoRingSequence::DropWobbleGoal"
+            [label="evMoveComplete()/\l"];
+
+        "NoRingSequence::DropWobbleGoal" -> "NoRingSequence::MoveToPowerShot"
+            [label="evTimeout()/\lactivateShooter();\l"];
+
+        "NoRingSequence::MoveToPowerShot" -> "NoRingSequence::ShootPowerShot"
+            [label="evRotationComplete()/\l"];
+
+        "NoRingSequence::ShootPowerShot" -> "NoRingSequence::MoveToWhiteLine"
+            [label="evTimeout()/\l"];
+
+        "NoRingSequence::MoveToWhiteLine" -> "NoRingSequence::Stop"
+            [label="evMoveComplete()/\l"];
+    }
+
+    subgraph cluster_OneRingSequence {
+
+        label="OneRingSequence";
+
+        //
+        // States (Nodes)
+        //
+
+        "OneRingSequence::Start"
+            [label="{Start|Entry/\l&nbsp;&nbsp;&nbsp;strafe(22d, 0);\l}"];
+
+        "OneRingSequence::GotoSquareB"
+            [label="{GotoSquareB|Entry/\l&nbsp;&nbsp;&nbsp;moveStraight(74d, 0);\l|evMoveComplete()/\l&nbsp;&nbsp;&nbsp;rotateToHeading(-90);\l}"];
+
+        "OneRingSequence::MoveIntoSquareB"
+            [label="{MoveIntoSquareB|Entry/\l&nbsp;&nbsp;&nbsp;moveStraight(12d, -90);\l}"];
+
+        "OneRingSequence::DropWobbleGoal"
+            [label="{DropWobbleGoal|Entry/\l&nbsp;&nbsp;&nbsp;openGrabber();\l&nbsp;&nbsp;&nbsp;startTimer(500);\l|evTimeout()/\l&nbsp;&nbsp;&nbsp;moveStraight(-6d, -90);\l}"];
+
+        "OneRingSequence::RotateToGoal"
+            [label="{RotateToGoal|Entry/\l&nbsp;&nbsp;&nbsp;rotateToHeading(0);\l&nbsp;&nbsp;&nbsp;activateShooter();\l|evRotationComplete()/\l&nbsp;&nbsp;&nbsp;moveStraight(-36d, 0);\l}"];
+
+        "OneRingSequence::DoPowerShot"
+            [label="{DoPowerShot|Entry/\l&nbsp;&nbsp;&nbsp;shootRing();\l&nbsp;&nbsp;&nbsp;startTimer(2000);\l}"];
+
+        "OneRingSequence::MoveToWhiteLine"
+            [label="{MoveToWhiteLine|Entry/\l&nbsp;&nbsp;&nbsp;moveStraight(12d, 0);\l}"];
+
+        "OneRingSequence::Stop"
+            [label="{Stop|Entry/\l&nbsp;&nbsp;&nbsp;stop();\l}"];
+
+        //
+        // Transitions (Edges)
+        //
+
+        "OneRingSequence::Start" -> "OneRingSequence::GotoSquareB"
+            [label="evStrafeComplete()/\l"];
+
+        "OneRingSequence::GotoSquareB" -> "OneRingSequence::MoveIntoSquareB"
+            [label="evRotationComplete()/\l"];
+
+        "OneRingSequence::MoveIntoSquareB" -> "OneRingSequence::DropWobbleGoal"
+            [label="evMoveComplete()/\l"];
+
+        "OneRingSequence::DropWobbleGoal" -> "OneRingSequence::RotateToGoal"
+            [label="evMoveComplete()/\l"];
+
+        "OneRingSequence::RotateToGoal" -> "OneRingSequence::DoPowerShot"
+            [label="evMoveComplete()/\l"];
+
+        "OneRingSequence::DoPowerShot" -> "OneRingSequence::MoveToWhiteLine"
+            [label="evTimeout()/\l"];
+
+        "OneRingSequence::MoveToWhiteLine" -> "OneRingSequence::Stop"
+            [label="evMoveComplete()/\l"];
+    }
+
+    subgraph cluster_FourRingsSequence {
+
+        label="FourRingsSequence";
+
+        //
+        // States (Nodes)
+        //
+
+        "FourRingsSequence::Start"
+            [label="{Start|Entry/\l&nbsp;&nbsp;&nbsp;strafe(22d, 0);\l}"];
+
+        "FourRingsSequence::GotoSquareB"
+            [label="{GotoSquareB|Entry/\l&nbsp;&nbsp;&nbsp;moveStraight(80d, 0);\l}"];
+
+        "FourRingsSequence::MoveToColumnOverC"
+            [label="{MoveToColumnOverC|Entry/\l&nbsp;&nbsp;&nbsp;strafe(-47d, 0);\l}"];
+
+        "FourRingsSequence::DropWobbleGoal"
+            [label="{DropWobbleGoal|Entry/\l&nbsp;&nbsp;&nbsp;openGrabber();\l&nbsp;&nbsp;&nbsp;startTimer(500);\l|evTimeout()/\l&nbsp;&nbsp;&nbsp;moveStraight(-6d, 0);\l}"];
+
+        "FourRingsSequence::StrafeToAlignPowerShot"
+            [label="{StrafeToAlignPowerShot|Entry/\l&nbsp;&nbsp;&nbsp;strafe(47d, 0);\l&nbsp;&nbsp;&nbsp;activateShooter();\l}"];
+
+        "FourRingsSequence::MoveBehindWhiteLine"
+            [label="{MoveBehindWhiteLine|Entry/\l&nbsp;&nbsp;&nbsp;moveStraight(-34d, 0);\l&nbsp;&nbsp;&nbsp;activateShooter();\l}"];
+
+        "FourRingsSequence::DoPowerShot"
+            [label="{DoPowerShot|Entry/\l&nbsp;&nbsp;&nbsp;shootRing();\l&nbsp;&nbsp;&nbsp;startTimer(2000);\l}"];
+
+        "FourRingsSequence::MoveToWhiteLine"
+            [label="{MoveToWhiteLine|Entry/\l&nbsp;&nbsp;&nbsp;moveStraight(15d, 0);\l}"];
+
+        "FourRingsSequence::Stop"
+            [label="{Stop|Entry/\l&nbsp;&nbsp;&nbsp;stop();\l}"];
+
+        //
+        // Transitions (Edges)
+        //
+
+        "FourRingsSequence::Start" -> "FourRingsSequence::GotoSquareB"
+            [label="evStrafeComplete()/\l"];
+
+        "FourRingsSequence::GotoSquareB" -> "FourRingsSequence::MoveToColumnOverC"
+            [label="evMoveComplete()/\l"];
+
+        "FourRingsSequence::MoveToColumnOverC" -> "FourRingsSequence::DropWobbleGoal"
+            [label="evStrafeComplete()/\l"];
+
+        "FourRingsSequence::DropWobbleGoal" -> "FourRingsSequence::StrafeToAlignPowerShot"
+            [label="evMoveComplete()/\l"];
+
+        "FourRingsSequence::StrafeToAlignPowerShot" -> "FourRingsSequence::MoveBehindWhiteLine"
+            [label="evStrafeComplete()/\l"];
+
+        "FourRingsSequence::MoveBehindWhiteLine" -> "FourRingsSequence::DoPowerShot"
+            [label="evMoveComplete()/\l"];
+
+        "FourRingsSequence::DoPowerShot" -> "FourRingsSequence::MoveToWhiteLine"
+            [label="evTimeout()/\l"];
+
+        "FourRingsSequence::MoveToWhiteLine" -> "FourRingsSequence::Stop"
+            [label="evMoveComplete()/\l"];
+    }
+
+}

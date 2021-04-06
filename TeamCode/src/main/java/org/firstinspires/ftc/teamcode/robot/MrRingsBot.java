@@ -204,7 +204,9 @@ public class MrRingsBot {
     /**
      * must be called from the opmode's stop function.
      */
-    public void stop(){
+    public void
+
+    stop(){
         getDrivetrain().stop();
         mShooter.stop();
         // Call stop to close the log file

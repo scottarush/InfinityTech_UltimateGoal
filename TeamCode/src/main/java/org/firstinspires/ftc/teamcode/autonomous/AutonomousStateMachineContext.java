@@ -98,14 +98,6 @@ public class AutonomousStateMachineContext
         return;
     }
 
-    public void evTimeoutComplete()
-    {
-        _transition = "evTimeoutComplete";
-        getState().evTimeoutComplete(this);
-        _transition = "";
-        return;
-    }
-
     public AutonomousControllerState getState()
         throws statemap.StateUndefinedException
     {
@@ -206,11 +198,6 @@ public class AutonomousStateMachineContext
         }
 
         protected void evTimeout(AutonomousStateMachineContext context)
-        {
-            Default(context);
-        }
-
-        protected void evTimeoutComplete(AutonomousStateMachineContext context)
         {
             Default(context);
         }
@@ -386,6 +373,7 @@ public class AutonomousStateMachineContext
             {
             AutonomousController ctxt = context.getOwner();
 
+            ctxt.stopTimer();
             ctxt.deactivateRingDetector();
             return;
         }
@@ -421,7 +409,7 @@ public class AutonomousStateMachineContext
         }
 
         @Override
-        protected void evTimeoutComplete(AutonomousStateMachineContext context)
+        protected void evTimeout(AutonomousStateMachineContext context)
         {
 
             (context.getState()).exit(context);
@@ -699,7 +687,7 @@ public class AutonomousStateMachineContext
             {
                 AutonomousController ctxt = context.getOwner();
 
-            ctxt.moveStraight(-36d, -90);
+            ctxt.moveStraight(-30d, -90);
             return;
         }
 
@@ -760,7 +748,7 @@ public class AutonomousStateMachineContext
             {
                 AutonomousController ctxt = context.getOwner();
 
-            ctxt.moveStraight(-12d, 0);
+            ctxt.moveStraight(-16d, 0);
             return;
         }
 
@@ -822,7 +810,7 @@ public class AutonomousStateMachineContext
             {
                 AutonomousController ctxt = context.getOwner();
 
-            ctxt.moveStraight(12d, 0);
+            ctxt.moveStraight(16d, 0);
             return;
         }
 
@@ -1054,7 +1042,7 @@ public class AutonomousStateMachineContext
             {
                 AutonomousController ctxt = context.getOwner();
 
-            ctxt.moveStraight(6d, -90);
+            ctxt.moveStraight(12d, -90);
             return;
         }
 
