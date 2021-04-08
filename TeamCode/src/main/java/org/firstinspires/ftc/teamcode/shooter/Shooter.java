@@ -81,8 +81,11 @@ public class Shooter {
 
     private static final double LOADER_PULLY_POWER = 0.4d;
 
+    // Delta in encoder counts between loader pulley position High and Low
+    private static final int LOADER_PULLEY_ENCODER_VALUE_LOW_TO_HIGH_DELTA = 145;
+
     private int mLoaderPulleyEncoderValueLow = 0;
-    private int mLoaderPulleyEncoderValueHigh = 145;
+    private int mLoaderPulleyEncoderValueHigh = LOADER_PULLEY_ENCODER_VALUE_LOW_TO_HIGH_DELTA;
     private int mLoaderPulleyEncoderValueCurrent;
     private double power = 0.5;
 
@@ -370,8 +373,20 @@ public class Shooter {
                 }
                 break;
             case LOADER_PULLEY_STATE_SHOOTING:
-                if (mPulleyHighTouchSensor.isPressed() || !mLoaderPulley.isBusy()) {
-                    // shot
+                if (mPulleyHighTouchSensor.isPressed()){
+                    // We've hit the high touch sensor.  Latch the pulley high touch sensor position
+                    // to absorb drift.
+                    mLoaderPulleyEncoderValueHigh = mLoaderPulley.getCurrentPosition();
+                    // And update the low position as a delta from the high
+                    mLoaderPulleyEncoderValueLow = mLoaderPulleyEncoderValueHigh- LOADER_PULLEY_ENCODER_VALUE_LOW_TO_HIGH_DELTA;
+                    // Stop the motor
+                    mLoaderPulley.setPower(0.0);
+                    // And send the event to the shooter controller
+                    mShooterController.evLoaderPulleyHigh();
+                }
+                else if (!mLoaderPulley.isBusy()) {
+                    // we reached the target without hitting the switch so just shut off the
+                    // pulley.
                     mLoaderPulley.setPower(0.0);
                     mLoaderPulleyState = LOADER_PULLEY_STATE_SHOT;
                     mShooterController.evLoaderPulleyHigh();
