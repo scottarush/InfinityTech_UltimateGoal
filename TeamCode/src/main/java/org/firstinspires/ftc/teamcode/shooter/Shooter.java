@@ -386,14 +386,14 @@ public class Shooter {
                     // And send the event to the shooter controller that the pulley reach high
                     mShooterController.evLoaderPulleyHigh();
                 }
-                else if (!mLoaderPulley.isBusy()) {
-                    // we reached the target without hitting the switch so just shut off the
-                    // pulley.
-                    mLoaderPulley.setPower(0.0);
-                    // Update the loader pulley state
-                    mLoaderPulleyState = LOADER_PULLEY_STATE_SHOT;
-                    mShooterController.evLoaderPulleyHigh();
-                }
+//                else if (!mLoaderPulley.isBusy()) {
+//                    // we reached the target without hitting the switch so just shut off the
+//                    // pulley.
+//                    mLoaderPulley.setPower(0.0);
+//                    // Update the loader pulley state
+//                    mLoaderPulleyState = LOADER_PULLEY_STATE_SHOT;
+//                    mShooterController.evLoaderPulleyHigh();
+//                }
                 break;
             case LOADER_PULLEY_STATE_SHOT:
                 mLoaderPulleyTargetPostion = LOADER_PULLEY_POSITION_LOW;
