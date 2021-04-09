@@ -172,7 +172,7 @@
     MoveIntoSquareB
         Entry{
 			// Move forward into square B to drop the goal staying on -90
-            moveStraight(12d,-90);
+            moveStraight(6d,-90);
         }
     {
         evMoveComplete DropWobbleGoal { }
@@ -187,8 +187,9 @@
             startTimer(500);
         }
     {
-        // After the timeout, move back 6" to be able to clear the wobble goal
-         evTimeout nil { moveStraight(-6d,-90); }
+        // After the timeout, move back to clear the wobble goal and lineup for the
+        // power shot.
+         evTimeout nil { moveStraight(-12d,-90); }
         evMoveComplete RotateToGoal { }
     }
     RotateToGoal

@@ -1042,7 +1042,7 @@ public class AutonomousStateMachineContext
             {
                 AutonomousController ctxt = context.getOwner();
 
-            ctxt.moveStraight(12d, -90);
+            ctxt.moveStraight(6d, -90);
             return;
         }
 
@@ -1108,7 +1108,7 @@ public class AutonomousStateMachineContext
             context.clearState();
             try
             {
-                ctxt.moveStraight(-6d, -90);
+                ctxt.moveStraight(-12d, -90);
             }
             finally
             {
