@@ -82,7 +82,7 @@ public class Shooter {
     private static final double LOADER_PULLY_POWER = 0.4d;
 
     // Delta in encoder counts between loader pulley position High and Low
-    private static final int LOADER_PULLEY_ENCODER_VALUE_LOW_TO_HIGH_DELTA = 155;
+    private static final int LOADER_PULLEY_ENCODER_VALUE_LOW_TO_HIGH_DELTA = 175;
 
     private int mLoaderPulleyEncoderValueLow = 0;
     private int mLoaderPulleyEncoderValueHigh = LOADER_PULLEY_ENCODER_VALUE_LOW_TO_HIGH_DELTA;
