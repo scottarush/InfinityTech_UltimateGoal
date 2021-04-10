@@ -21,7 +21,7 @@
             // Move forward to the front of the stacker on 0 degree target heading
 			// 20" forward move leaves the camera about 10" from the stack.  Any
 			// closer and we were getting false indications on the single ring stack case
-            moveStraight(18d,0);
+            moveStraight(20d,0);
         }
     {
         // On move complete, go to measure the ring
@@ -316,7 +316,7 @@
 
     MoveToWhiteLine
         Entry{
-            moveStraight(15d,0);
+            moveStraight(12d,0);
         }
     {
         evMoveComplete Stop { }

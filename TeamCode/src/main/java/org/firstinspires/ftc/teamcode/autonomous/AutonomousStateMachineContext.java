@@ -320,7 +320,7 @@ public class AutonomousStateMachineContext
             {
                 AutonomousController ctxt = context.getOwner();
 
-            ctxt.moveStraight(18d, 0);
+            ctxt.moveStraight(20d, 0);
             return;
         }
 
@@ -1699,7 +1699,7 @@ public class AutonomousStateMachineContext
             {
                 AutonomousController ctxt = context.getOwner();
 
-            ctxt.moveStraight(15d, 0);
+            ctxt.moveStraight(12d, 0);
             return;
         }
 
